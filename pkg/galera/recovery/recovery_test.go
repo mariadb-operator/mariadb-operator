@@ -1,306 +1,260 @@
 package recovery
 
 import (
-	"reflect"
-	"testing"
-
 	"github.com/go-logr/logr"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestGaleraStateMarshal(t *testing.T) {
-	tests := []struct {
-		name        string
-		galeraState *GaleraState
-		want        string
-		wantErr     bool
-	}{
-		{
-			name: "invalid uuid",
-			galeraState: &GaleraState{
+var _ = Describe("GaleraState Marshal", func() {
+	DescribeTable("marshaling a GaleraState",
+		func(galeraState *GaleraState, want string, wantErr bool) {
+			bytes, err := galeraState.Marshal()
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(string(bytes)).To(Equal(want))
+		},
+		Entry("invalid uuid",
+			&GaleraState{
 				Version:         "2.1",
 				UUID:            "foo",
 				Seqno:           1,
 				SafeToBootstrap: false,
 			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			name: "safe_to_bootstrap false",
-			galeraState: &GaleraState{
+			"",
+			true,
+		),
+		Entry("safe_to_bootstrap false",
+			&GaleraState{
 				Version:         "2.1",
 				UUID:            "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno:           1,
 				SafeToBootstrap: false,
 			},
-			want: `version: 2.1
+			`version: 2.1
 uuid: 05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno: 1
 safe_to_bootstrap: 0`,
-			wantErr: false,
-		},
-		{
-			name: "safe_to_bootstrap true",
-			galeraState: &GaleraState{
+			false,
+		),
+		Entry("safe_to_bootstrap true",
+			&GaleraState{
 				Version:         "2.1",
 				UUID:            "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno:           1,
 				SafeToBootstrap: true,
 			},
-			want: `version: 2.1
+			`version: 2.1
 uuid: 05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno: 1
 safe_to_bootstrap: 1`,
-			wantErr: false,
-		},
-		{
-			name: "negative seqno",
-			galeraState: &GaleraState{
+			false,
+		),
+		Entry("negative seqno",
+			&GaleraState{
 				Version:         "2.1",
 				UUID:            "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno:           -1,
 				SafeToBootstrap: false,
 			},
-			want: `version: 2.1
+			`version: 2.1
 uuid: 05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno: -1
 safe_to_bootstrap: 0`,
-			wantErr: false,
+			false,
+		),
+	)
+})
+
+var _ = Describe("GaleraState Unmarshal", func() {
+	DescribeTable("unmarshaling a GaleraState",
+		func(b []byte, want GaleraState, wantErr bool) {
+			var galeraState GaleraState
+			err := galeraState.Unmarshal(b)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(galeraState).To(Equal(want))
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			bytes, err := tt.galeraState.Marshal()
-			if tt.wantErr && err == nil {
-				t.Fatal("error expected, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Fatalf("error unexpected, got %v", err)
-			}
-			if tt.want != string(bytes) {
-				t.Fatalf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.want, string(bytes))
-			}
-		})
-	}
-}
-
-func TestGaleraStateUnmarshal(t *testing.T) {
-	tests := []struct {
-		name    string
-		bytes   []byte
-		want    GaleraState
-		wantErr bool
-	}{
-		{
-			name: "empty",
-			bytes: []byte(`
+		Entry("empty",
+			[]byte(`
 `),
-			want:    GaleraState{},
-			wantErr: true,
-		},
-		{
-			name: "comment",
-			bytes: []byte(`# GALERA saved state
+			GaleraState{},
+			true,
+		),
+		Entry("comment",
+			[]byte(`# GALERA saved state
 version: 2.1
 uuid:    05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno:   1
 safe_to_bootstrap: 1`),
-			want: GaleraState{
+			GaleraState{
 				Version:         "2.1",
 				UUID:            "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno:           1,
 				SafeToBootstrap: true,
 			},
-			wantErr: false,
-		},
-		{
-			name: "indentation",
-			bytes: []byte(`# GALERA saved state
+			false,
+		),
+		Entry("indentation",
+			[]byte(`# GALERA saved state
 version: 												2.1
 uuid:  05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno:   																				1
 safe_to_bootstrap: 			1`),
-			want: GaleraState{
+			GaleraState{
 				Version:         "2.1",
 				UUID:            "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno:           1,
 				SafeToBootstrap: true,
 			},
-			wantErr: false,
-		},
-		{
-			name: "invalid uuid",
-			bytes: []byte(`# GALERA saved state
+			false,
+		),
+		Entry("invalid uuid",
+			[]byte(`# GALERA saved state
 version: 2.1
 uuid:    foo
 seqno:   -1
 safe_to_bootstrap: 1`),
-			want:    GaleraState{},
-			wantErr: true,
-		},
-		{
-			name: "invalid seqno",
-			bytes: []byte(`# GALERA saved state
+			GaleraState{},
+			true,
+		),
+		Entry("invalid seqno",
+			[]byte(`# GALERA saved state
 version: 2.1
 uuid:    05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno:   foo
 safe_to_bootstrap: 1`),
-			want:    GaleraState{},
-			wantErr: true,
-		},
-		{
-			name: "invalid safe_to_bootstrap",
-			bytes: []byte(`# GALERA saved state
+			GaleraState{},
+			true,
+		),
+		Entry("invalid safe_to_bootstrap",
+			[]byte(`# GALERA saved state
 version: 2.1
 uuid:    05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno:   1
 safe_to_bootstrap: true`),
-			want:    GaleraState{},
-			wantErr: true,
-		},
-		{
-			name: "safe_to_bootstrap true",
-			bytes: []byte(`version: 2.1
+			GaleraState{},
+			true,
+		),
+		Entry("safe_to_bootstrap true",
+			[]byte(`version: 2.1
 uuid: 05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno: 1
 safe_to_bootstrap: 1`),
-			want: GaleraState{
+			GaleraState{
 				Version:         "2.1",
 				UUID:            "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno:           1,
 				SafeToBootstrap: true,
 			},
-			wantErr: false,
-		},
-		{
-			name: "safe_to_bootstrap false",
-			bytes: []byte(`version: 2.1
+			false,
+		),
+		Entry("safe_to_bootstrap false",
+			[]byte(`version: 2.1
 uuid: 05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno: 1
 safe_to_bootstrap: 0`),
-			want: GaleraState{
+			GaleraState{
 				Version:         "2.1",
 				UUID:            "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno:           1,
 				SafeToBootstrap: false,
 			},
-			wantErr: false,
-		},
-		{
-			name: "negative seqno",
-			bytes: []byte(`version: 2.1
+			false,
+		),
+		Entry("negative seqno",
+			[]byte(`version: 2.1
 uuid: 05f061bd-02a3-11ee-857c-aa370ff6666b
 seqno: -1
 safe_to_bootstrap: 0`),
-			want: GaleraState{
+			GaleraState{
 				Version:         "2.1",
 				UUID:            "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno:           -1,
 				SafeToBootstrap: false,
 			},
-			wantErr: false,
-		},
-		{
-			name: "missing safe_to_bootstrap",
-			bytes: []byte(`version: 2.1
+			false,
+		),
+		Entry("missing safe_to_bootstrap",
+			[]byte(`version: 2.1
 uuid: 05f061bd-02a3-11ee-857c-aa370ff6666b
 safe_to_bootstrap: 0`),
-			want:    GaleraState{},
-			wantErr: true,
-		},
-		{
-			name: "missing seqno",
-			bytes: []byte(`version: 2.1
+			GaleraState{},
+			true,
+		),
+		Entry("missing seqno",
+			[]byte(`version: 2.1
 uuid: 05f061bd-02a3-11ee-857c-aa370ff6666b
 safe_to_bootstrap: 0`),
-			want:    GaleraState{},
-			wantErr: true,
+			GaleraState{},
+			true,
+		),
+	)
+})
+
+var _ = Describe("Bootstrap Validate", func() {
+	DescribeTable("validating a Bootstrap",
+		func(bootstrap Bootstrap, wantErr bool) {
+			err := bootstrap.Validate()
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var galeraState GaleraState
-			err := galeraState.Unmarshal(tt.bytes)
-			if tt.wantErr && err == nil {
-				t.Fatal("error expected, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Fatalf("error unexpected, got %v", err)
-			}
-			if !reflect.DeepEqual(tt.want, galeraState) {
-				t.Fatalf("unexpected result:\nexpected:\n%v\ngot:\n%v\n", tt.want, galeraState)
-			}
-		})
-	}
-}
-
-func TestBootstrapValidate(t *testing.T) {
-	tests := []struct {
-		name      string
-		bootstrap Bootstrap
-		wantErr   bool
-	}{
-		{
-			name: "invalid uuid",
-			bootstrap: Bootstrap{
+		Entry("invalid uuid",
+			Bootstrap{
 				UUID:  "foo",
 				Seqno: 1,
 			},
-			wantErr: true,
-		},
-		{
-			name: "seqno",
-			bootstrap: Bootstrap{
+			true,
+		),
+		Entry("seqno",
+			Bootstrap{
 				UUID:  "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno: 1,
 			},
-			wantErr: false,
-		},
-		{
-			name: "negative seqno",
-			bootstrap: Bootstrap{
+			false,
+		),
+		Entry("negative seqno",
+			Bootstrap{
 				UUID:  "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno: -1,
 			},
-			wantErr: false,
-		},
-	}
+			false,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.bootstrap.Validate()
-			if tt.wantErr && err == nil {
-				t.Fatal("error expected, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Fatalf("error unexpected, got %v", err)
-			}
-		})
-	}
-}
-
-func TestBootstrapUnmarshal(t *testing.T) {
+var _ = Describe("Bootstrap Unmarshal", func() {
 	logger := logr.Discard()
 
-	tests := []struct {
-		name    string
-		bytes   []byte
-		want    Bootstrap
-		wantErr bool
-	}{
-		{
-			name: "empty",
-			bytes: []byte(`
-`),
-			want:    Bootstrap{},
-			wantErr: true,
+	DescribeTable("unmarshaling a Bootstrap",
+		func(b []byte, want Bootstrap, wantErr bool) {
+			var bootstrap Bootstrap
+			err := bootstrap.Unmarshal(b, logger)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(bootstrap).To(Equal(want))
 		},
-		{
-			name: "missig position",
+		Entry("empty",
+			[]byte(`
+`),
+			Bootstrap{},
+			true,
+		),
+		Entry("missig position",
 			//nolint
-			bytes: []byte(`2023-06-04  8:24:23 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 86033
+			[]byte(`2023-06-04  8:24:23 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 86033
 2023-06-04  8:24:23 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
 2023-06-04  8:24:23 0 [Note] InnoDB: Number of transaction pools: 1
 2023-06-04  8:24:23 0 [Note] InnoDB: Using crc32 + pclmulqdq instructions
@@ -311,25 +265,22 @@ func TestBootstrapUnmarshal(t *testing.T) {
 2023-06-04  8:24:23 0 [Note] InnoDB: File system buffers for log disabled (block size=512 bytes)
 2023-06-04  8:24:23 0 [Note] InnoDB: 128 rollback segments are active.
 `),
-			want:    Bootstrap{},
-			wantErr: true,
-		},
-		{
-			name:    "invalid uuid",
-			bytes:   []byte(`2023-06-04  8:24:23 0 [Note] WSREP: Recovered position: foo:1`),
-			want:    Bootstrap{},
-			wantErr: true,
-		},
-		{
-			name:    "invalid seqno",
-			bytes:   []byte(`2023-06-04  8:24:23 0 [Note] WSREP: Recovered position: 15d9a0ef-02b1-11ee-9499-decd8e34642e:bar`),
-			want:    Bootstrap{},
-			wantErr: true,
-		},
-		{
-			name: "single position",
+			Bootstrap{},
+			true,
+		),
+		Entry("invalid uuid",
+			[]byte(`2023-06-04  8:24:23 0 [Note] WSREP: Recovered position: foo:1`),
+			Bootstrap{},
+			true,
+		),
+		Entry("invalid seqno",
+			[]byte(`2023-06-04  8:24:23 0 [Note] WSREP: Recovered position: 15d9a0ef-02b1-11ee-9499-decd8e34642e:bar`),
+			Bootstrap{},
+			true,
+		),
+		Entry("single position",
 			//nolint
-			bytes: []byte(`2023-06-04  8:24:23 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 86033
+			[]byte(`2023-06-04  8:24:23 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 86033
 2023-06-04  8:24:23 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
 2023-06-04  8:24:23 0 [Note] InnoDB: Number of transaction pools: 1
 2023-06-04  8:24:23 0 [Note] InnoDB: Using crc32 + pclmulqdq instructions
@@ -348,16 +299,15 @@ func TestBootstrapUnmarshal(t *testing.T) {
 2023-06-04  8:24:23 0 [Note] WSREP: Recovered position: 15d9a0ef-02b1-11ee-9499-decd8e34642e:1
 Warning: Memory not freed: 280
 `),
-			want: Bootstrap{
+			Bootstrap{
 				UUID:  "15d9a0ef-02b1-11ee-9499-decd8e34642e",
 				Seqno: 1,
 			},
-			wantErr: false,
-		},
-		{
-			name: "1 single position with GTID",
+			false,
+		),
+		Entry("1 single position with GTID",
 			//nolint
-			bytes: []byte(`2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
+			[]byte(`2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
 2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
 2025-10-14 10:14:25 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
 2025-10-14 10:14:25 0 [Note] InnoDB: Number of transaction pools: 1
@@ -383,16 +333,15 @@ Warning: Memory not freed: 280
 2025-10-14 10:14:26 0 [Note] WSREP: Recovered position: 808ffebd-a7f3-11f0-b6b4-b3b81fce961a:48451,201-2001-48431
 2025-10-14 10:14:26 server_audit: STOPPED
 `),
-			want: Bootstrap{
+			Bootstrap{
 				UUID:  "808ffebd-a7f3-11f0-b6b4-b3b81fce961a",
 				Seqno: 48451,
 			},
-			wantErr: false,
-		},
-		{
-			name: "2 single position with GTID",
+			false,
+		),
+		Entry("2 single position with GTID",
 			//nolint
-			bytes: []byte(`2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
+			[]byte(`2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
 2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
 2025-10-14 10:14:25 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
 2025-10-14 10:14:25 0 [Note] InnoDB: Number of transaction pools: 1
@@ -418,16 +367,15 @@ Warning: Memory not freed: 280
 2025-10-14 10:14:26 0 [Note] WSREP: Recovered position: 808ffebd-a7f3-11f0-b6b4-b3b81fce961a:201-2001-48431,48451
 2025-10-14 10:14:26 server_audit: STOPPED
 `),
-			want: Bootstrap{
+			Bootstrap{
 				UUID:  "808ffebd-a7f3-11f0-b6b4-b3b81fce961a",
 				Seqno: 48451,
 			},
-			wantErr: false,
-		},
-		{
-			name: "multiple positions",
+			false,
+		),
+		Entry("multiple positions",
 			//nolint
-			bytes: []byte(`2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
+			[]byte(`2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
 2023-06-04  8:24:16 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
 2023-06-04  8:24:16 0 [Note] InnoDB: Number of transaction pools: 1
 2023-06-04  8:24:16 0 [Note] InnoDB: Using crc32 + pclmulqdq instructions
@@ -486,18 +434,17 @@ Warning: Memory not freed: 280
 2023-06-04  8:24:18 0 [Note] Plugin 'FEEDBACK' is disabled.
 2023-06-04  8:24:18 0 [Note] Server socket created on IP: '0.0.0.0'.
 2023-06-04  8:24:18 0 [Note] WSREP: Recovered position: 08dd3b99-ac6b-46f8-84bd-8cb8f9f949b0:3
-Warning: Memory not freed: 280	
+Warning: Memory not freed: 280
 `),
-			want: Bootstrap{
+			Bootstrap{
 				UUID:  "08dd3b99-ac6b-46f8-84bd-8cb8f9f949b0",
 				Seqno: 3,
 			},
-			wantErr: false,
-		},
-		{
-			name: "multiple position with GTID",
+			false,
+		),
+		Entry("multiple position with GTID",
 			//nolint
-			bytes: []byte(`2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
+			[]byte(`2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
 2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
 2025-10-14 10:14:25 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
 2025-10-14 10:14:25 0 [Note] InnoDB: Number of transaction pools: 1
@@ -573,27 +520,11 @@ Warning: Memory not freed: 280
 2025-10-14 10:14:26 0 [Note] WSREP: Recovered position: 808ffebd-a7f3-11f0-b6b4-b3b81fce961c:48453,201-2001-48431
 2025-10-14 10:14:26 server_audit: STOPPED
 `),
-			want: Bootstrap{
+			Bootstrap{
 				UUID:  "808ffebd-a7f3-11f0-b6b4-b3b81fce961c",
 				Seqno: 48453,
 			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var bootstrap Bootstrap
-			err := bootstrap.Unmarshal(tt.bytes, logger)
-			if tt.wantErr && err == nil {
-				t.Fatal("error expected, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Fatalf("error unexpected, got %v", err)
-			}
-			if !reflect.DeepEqual(tt.want, bootstrap) {
-				t.Fatalf("unexpected result:\nexpected:\n%v\ngot:\n%v\n", tt.want, bootstrap)
-			}
-		})
-	}
-}
+			false,
+		),
+	)
+})
