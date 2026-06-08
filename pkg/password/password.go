@@ -17,7 +17,7 @@ const (
 	lowerChars  = "abcdefghijklmnopqrstuvwxyz"
 	upperChars  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	digitChars  = "0123456789"
-	symbolChars = "!@#$%^&*()-_=+[]{}|;:,.<>/?"
+	symbolChars = "~!@%^&*()_+-={}|[]:<>/"
 
 	// allChars is the pool used to fill remaining positions after the minimum
 	// character class requirements have been satisfied.
