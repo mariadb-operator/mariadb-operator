@@ -6,7 +6,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
-	"github.com/sethvargo/go-password/password"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/password"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,22 +16,13 @@ import (
 
 type SecretReconciler struct {
 	client.Client
-	Builder   *builder.Builder
-	generator *password.Generator
+	Builder *builder.Builder
 }
 
 func NewSecretReconciler(client client.Client, builder *builder.Builder) (*SecretReconciler, error) {
-	generator, err := password.NewGenerator(&password.GeneratorInput{
-		Symbols: "~!@%^&*()_+-={}|[]:<>/",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating password generator: %v", err)
-	}
-
 	return &SecretReconciler{
-		Client:    client,
-		Builder:   builder,
-		generator: generator,
+		Client:  client,
+		Builder: builder,
 	}, nil
 }
 
@@ -57,7 +48,7 @@ func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req PasswordRe
 		return "", fmt.Errorf("error reconciling password Secret: %v", err)
 	}
 
-	password, err := r.generator.Generate(16, 4, 2, false, false)
+	password, err := password.Generate()
 	if err != nil {
 		return "", fmt.Errorf("error generating password Secret: %v", err)
 	}
