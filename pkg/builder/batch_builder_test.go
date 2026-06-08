@@ -1028,6 +1028,98 @@ func TestPhysicalBackupJobInitContainers(t *testing.T) {
 	}
 }
 
+func TestPhysicalBackupJobSELinuxOptions(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "node-1",
+		},
+	}
+	mariadbSELinux := &corev1.SELinuxOptions{
+		Level: "s0:c100,c200",
+	}
+	backupSELinux := &corev1.SELinuxOptions{
+		Level: "s0:c300,c400",
+	}
+	storage := mariadbv1alpha1.PhysicalBackupStorage{
+		Volume: &mariadbv1alpha1.StorageVolumeSource{
+			EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		mariadb     *mariadbv1alpha1.MariaDB
+		backup      *mariadbv1alpha1.PhysicalBackup
+		wantSELinux *corev1.SELinuxOptions
+	}{
+		{
+			name:        "no SELinux options anywhere",
+			mariadb:     &mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{}},
+			backup:      &mariadbv1alpha1.PhysicalBackup{Spec: mariadbv1alpha1.PhysicalBackupSpec{Storage: storage}},
+			wantSELinux: nil,
+		},
+		{
+			name: "Job inherits MariaDB SELinux options",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
+							SELinuxOptions: mariadbSELinux,
+						},
+					},
+				},
+			},
+			backup:      &mariadbv1alpha1.PhysicalBackup{Spec: mariadbv1alpha1.PhysicalBackupSpec{Storage: storage}},
+			wantSELinux: mariadbSELinux,
+		},
+		{
+			name: "explicit Job SELinux options take precedence over MariaDB",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
+							SELinuxOptions: mariadbSELinux,
+						},
+					},
+				},
+			},
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: storage,
+					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
+						PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
+							SELinuxOptions: backupSELinux,
+						},
+					},
+				},
+			},
+			wantSELinux: backupSELinux,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildPhysicalBackupJob(
+				client.ObjectKeyFromObject(tt.backup),
+				tt.backup,
+				tt.mariadb,
+				pod,
+				"backupfile",
+			)
+			if err != nil {
+				t.Fatalf("unexpected error building PhysicalBackup Job: %v", err)
+			}
+			psc := job.Spec.Template.Spec.SecurityContext
+			assert.NotNil(t, psc, "expected pod security context to be set")
+			assert.Equal(t, tt.wantSELinux, psc.SELinuxOptions)
+		})
+	}
+}
+
 func TestRestoreJobImagePullSecrets(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
