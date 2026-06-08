@@ -265,6 +265,10 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	if err != nil {
 		return nil, err
 	}
+	// This Job co-mounts the MariaDB data volume, so it must share the MariaDB Pod's
+	// SELinux context. Otherwise, on SELinux-enforcing nodes the volume is relabelled
+	// and the running mariadbd loses access to its own data directory (Errcode: 13).
+	inheritMariadbSELinuxOptions(securityContext, mariadb)
 
 	var affinity *corev1.Affinity
 	if ptr.Deref(backup.Spec.PodAffinity, true) {
