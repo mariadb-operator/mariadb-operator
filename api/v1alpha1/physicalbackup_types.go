@@ -416,7 +416,3 @@ func (m *PhysicalBackupList) ListItems() []client.Object {
 	}
 	return items
 }
-
-func init() {
-	SchemeBuilder.Register()
-}
