@@ -6,6 +6,6 @@ package v1alpha1
 const (
 	// ActionReconciling indicates that the controller is reconciling a resource.
 	ActionReconciling = "Reconciling"
-	// ActionReconciling indicates that the archiver is archiving a binary log.
+	// ActionArchiving indicates that the archiver is archiving a binary log.
 	ActionArchiving = "Archiving"
 )
