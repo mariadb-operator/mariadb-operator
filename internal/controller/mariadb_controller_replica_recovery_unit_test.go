@@ -1417,11 +1417,99 @@ func TestResetReplicaRecoveryIfNotNeededCleansRecoveryArtifacts(t *testing.T) {
 	if _, ok := updated.Annotations[replicaRecoveryNodeAnnotationKey(0)]; ok {
 		t.Fatalf("expected replica recovery node annotation to be cleared")
 	}
-	if _, ok := updated.Annotations[replicaRecoveryCompletedPVCUIDAnnotationKey(0)]; ok {
-		t.Fatalf("expected replica recovery completed PVC annotation to be cleared")
+	if got := updated.Annotations[replicaRecoveryCompletedPVCUIDAnnotationKey(0)]; got != "replica-uid" {
+		t.Fatalf("expected replica recovery completed PVC annotation to be preserved, got %q", got)
 	}
 	if updated.IsRecoveringReplicas() {
 		t.Fatalf("expected replica recovery condition to be reset")
+	}
+}
+
+func TestSetReplicaRecoveredAndCleanupPreservesCompletedPVCAnnotation(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+			Annotations: map[string]string{
+				replicaRecoveryRefreshPVCUIDAnnotationKey(0):   "replica-uid",
+				replicaRecoveryNodeAnnotationKey(0):            "node-a",
+				replicaRecoveryCompletedPVCUIDAnnotationKey(0): "replica-uid",
+			},
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 1,
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   mariadbv1alpha1.ConditionTypeReplicaRecovered,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonReplicaRecovered,
+				},
+			},
+		},
+	}
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupReplicaRecoveryKey().Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+	initJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupInitJobKey(0).Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+		WithObjects(mariadb, physicalBackup, initJob).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	if err := reconciler.setReplicaRecoveredAndCleanup(context.Background(), mariadb); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := fakeClient.Get(
+		context.Background(),
+		client.ObjectKeyFromObject(physicalBackup),
+		&mariadbv1alpha1.PhysicalBackup{},
+	); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected replica recovery PhysicalBackup to be deleted, got err=%v", err)
+	}
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(initJob), &batchv1.Job{}); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected replica recovery init Job to be deleted, got err=%v", err)
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if _, ok := updated.Annotations[replicaRecoveryRefreshPVCUIDAnnotationKey(0)]; ok {
+		t.Fatalf("expected replica recovery retry annotation to be cleared")
+	}
+	if _, ok := updated.Annotations[replicaRecoveryNodeAnnotationKey(0)]; ok {
+		t.Fatalf("expected replica recovery node annotation to be cleared")
+	}
+	if got := updated.Annotations[replicaRecoveryCompletedPVCUIDAnnotationKey(0)]; got != "replica-uid" {
+		t.Fatalf("expected replica recovery completed PVC annotation to be preserved, got %q", got)
+	}
+	if updated.IsRecoveringReplicas() {
+		t.Fatalf("expected replica recovery condition to be set to recovered")
 	}
 }
 

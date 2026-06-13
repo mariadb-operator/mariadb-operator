@@ -12,8 +12,10 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	jobpkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,7 +39,7 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return result, err
 	}
 
-	isScalingOut, err := r.isScalingOut(mariadb, &sts)
+	isScalingOut, err := r.shouldScaleOut(ctx, mariadb, &sts, logger)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -93,7 +95,17 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 	return r.reconcileScaleOutInitJobs(ctx, mariadb, physicalBackup, fromIndex, logger)
 }
 
-func (r *MariaDBReconciler) isScalingOut(mdb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
+func (r *MariaDBReconciler) shouldScaleOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	sts *appsv1.StatefulSet, logger logr.Logger) (bool, error) {
+	replicaBootstrapScaleOutPending, err := r.isReplicaBootstrapScaleOutPending(ctx, mariadb, sts, logger)
+	if err != nil {
+		return false, err
+	}
+	return r.isScalingOut(mariadb, sts, replicaBootstrapScaleOutPending)
+}
+
+func (r *MariaDBReconciler) isScalingOut(mdb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet,
+	replicaBootstrapScaleOutPending bool) (bool, error) {
 	if !mdb.IsReplicationEnabled() || sts.Status.Replicas == 0 {
 		return false, nil
 	}
@@ -105,9 +117,12 @@ func (r *MariaDBReconciler) isScalingOut(mdb *mariadbv1alpha1.MariaDB, sts *apps
 	if mdb.IsScalingOut() {
 		return true, nil
 	}
-	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() || mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
+	if mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
 		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
 		return false, nil
+	}
+	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() {
+		return replicaBootstrapScaleOutPending, nil
 	}
 	if !mdb.HasConfiguredReplication() {
 		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
@@ -120,12 +135,30 @@ func (r *MariaDBReconciler) isScalingOut(mdb *mariadbv1alpha1.MariaDB, sts *apps
 		sts.Status.Replicas < mdb.Spec.Replicas, nil
 }
 
+func (r *MariaDBReconciler) isReplicaBootstrapScaleOutPending(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	sts *appsv1.StatefulSet, logger logr.Logger) (bool, error) {
+	if sts.Status.Replicas == 0 || sts.Status.Replicas != sts.Status.ReadyReplicas || sts.Status.Replicas >= mariadb.Spec.Replicas {
+		return false, nil
+	}
+
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	if replication.Replica.ReplicaBootstrapFrom == nil {
+		return false, nil
+	}
+
+	pvcStates, err := r.getStoragePVCStates(ctx, mariadb)
+	if err != nil {
+		return false, fmt.Errorf("error getting storage PVC state: %v", err)
+	}
+	return getReplicaScaleOutStartIndex(mariadb, pvcStates, logger) != nil, nil
+}
+
 func (r *MariaDBReconciler) reconcileReplicaBootstrapScaleOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	sts *appsv1.StatefulSet, logger logr.Logger) (ctrl.Result, error) {
 	if mariadb.IsScalingOut() || mariadb.IsRecoveringReplicas() {
 		return ctrl.Result{}, nil
 	}
-	if mariadb.IsSwitchingPrimary() || mariadb.IsReplicationSwitchoverRequired() || mariadb.IsInitializing() ||
+	if mariadb.IsInitializing() ||
 		mariadb.IsRestoringBackup() || mariadb.IsResizingStorage() || mariadb.IsUpdating() {
 		return ctrl.Result{}, nil
 	}
@@ -227,8 +260,19 @@ func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb 
 		return ctrl.Result{}, fmt.Errorf("error checking PVCs: %v", err)
 	}
 	if pvcsAlreadyExist {
-		r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBScaleOutError, mariadbv1alpha1.ActionReconciling,
-			"Unable to scale out MariaDB: storage PVCs already exist")
+		restoredPVCs, err := r.hasCompletedScaleOutInitJobPVCs(ctx, mariadb, fromIndex)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error checking completed scale out init jobs: %v", err)
+		}
+		if restoredPVCs {
+			logger.Info("Scale out storage PVCs were restored by completed init jobs; continuing")
+			return ctrl.Result{}, nil
+		}
+
+		if r.Recorder != nil {
+			r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBScaleOutError, mariadbv1alpha1.ActionReconciling,
+				"Unable to scale out MariaDB: storage PVCs already exist")
+		}
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			condition.SetScaleOutError(status, "storage PVCs already exist")
@@ -242,6 +286,39 @@ func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb 
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) hasCompletedScaleOutInitJobPVCs(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB, fromIndex int) (bool, error) {
+	foundExistingPVC := false
+
+	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
+		pvcState, ok, err := r.getStoragePVCState(ctx, mariadb, i)
+		if err != nil {
+			return false, err
+		}
+		if !ok || pvcState.UID == "" {
+			continue
+		}
+		foundExistingPVC = true
+
+		jobKey := mariadb.PhysicalBackupInitJobKey(i)
+		var job batchv1.Job
+		if err := r.Get(ctx, jobKey, &job); err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, fmt.Errorf("error getting init Job '%s': %v", jobKey.Name, err)
+		}
+		if !jobpkg.IsJobComplete(&job) {
+			return false, nil
+		}
+		if job.Annotations[initJobStoragePVCUIDAnnotation] != pvcState.UID {
+			return false, nil
+		}
+	}
+
+	return foundExistingPVC, nil
 }
 
 func isInitJobUnschedulableScaleOutError(errMsg string) bool {

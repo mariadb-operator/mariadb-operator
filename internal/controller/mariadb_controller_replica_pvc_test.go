@@ -211,7 +211,7 @@ func TestReconcilePrimaryPVCFailoverPromotesReplicaOnPrimaryPVCChange(t *testing
 	}
 }
 
-func TestReconcilePrimaryPVCFailoverPromotesExternallyPromotedPrimaryOnPrimaryPVCChange(t *testing.T) {
+func TestReconcilePrimaryPVCFailoverDoesNotPromoteExternalPrimaryOnPrimaryPVCChange(t *testing.T) {
 	scheme := runtime.NewScheme()
 	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
 		t.Fatalf("error adding MariaDB scheme: %v", err)
@@ -270,28 +270,25 @@ func TestReconcilePrimaryPVCFailoverPromotesExternallyPromotedPrimaryOnPrimaryPV
 		FailoverCandidateFn: func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (string, error) {
 			return "", errors.New("no promotion candidates were found")
 		},
-		PromotedPrimaryCandidateFn: func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (string, error) {
-			return "mariadb-1", nil
-		},
 	}
 
 	result, err := reconciler.reconcilePrimaryPVCFailover(context.Background(), mariadb)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.IsZero() {
-		t.Fatalf("expected reconcile to requeue after promoting externally promoted primary")
+	if result.RequeueAfter == 0 {
+		t.Fatalf("expected reconcile to requeue while waiting for a safe failover candidate")
 	}
 
 	var updated mariadbv1alpha1.MariaDB
 	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
 		t.Fatalf("error getting MariaDB: %v", err)
 	}
-	if got := ptr.Deref(updated.Spec.Replication.Primary.PodIndex, -1); got != 1 {
-		t.Fatalf("expected spec primary pod index 1, got %d", got)
+	if got := ptr.Deref(updated.Spec.Replication.Primary.PodIndex, -1); got != 0 {
+		t.Fatalf("expected spec primary pod index to stay 0, got %d", got)
 	}
-	if got := ptr.Deref(updated.Status.CurrentPrimaryPodIndex, -1); got != 1 {
-		t.Fatalf("expected status primary pod index 1, got %d", got)
+	if got := ptr.Deref(updated.Status.CurrentPrimaryPodIndex, -1); got != 0 {
+		t.Fatalf("expected status primary pod index to stay 0, got %d", got)
 	}
 }
 

@@ -65,6 +65,12 @@ type promotionCandidate struct {
 	gtidCurrentPos *replication.Gtid
 }
 
+type promotionCandidateSQLClient interface {
+	IsSystemVariableEnabled(ctx context.Context, variable string) (bool, error)
+	ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadbv1alpha1.ReplicaStatusVars, error)
+	GtidDomainId(ctx context.Context) (*uint32, error)
+}
+
 func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod) []promotionCandidate {
 	candidates := make([]promotionCandidate, 0, len(pods))
 	for _, pod := range pods {
@@ -87,55 +93,73 @@ func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod)
 		}
 		defer sqlClient.Close()
 
-		status, err := sqlClient.ReplicaStatus(ctx, podLogger)
-		if err != nil {
-			podLogger.Info("Unable to get replica status Skipping...", "err", err)
-			continue
+		candidate := f.promotionCandidateForClient(ctx, pod.Name, sqlClient, podLogger)
+		if candidate != nil {
+			candidates = append(candidates, *candidate)
 		}
-
-		slaveIORunning := ptr.Deref(status.SlaveIORunning, false)
-		if !slaveIORunning {
-			podLogger.Info("IO thread not running. Skipping...")
-			continue
-		}
-		slaveSQLRunning := ptr.Deref(status.SlaveSQLRunning, false)
-		if !slaveSQLRunning {
-			podLogger.Info("SQL thread not running. Skipping...")
-			continue
-		}
-
-		gtidDomainId, err := sqlClient.GtidDomainId(ctx)
-		if err != nil {
-			podLogger.Info("Error getting GTID domain ID. Skipping...", "err", err)
-			continue
-		}
-
-		hasRelayLogEvents, err := HasRelayLogEvents(status, *gtidDomainId, podLogger)
-		if err != nil {
-			podLogger.Info("Error checking relay log events. Skipping...", "err", err)
-			continue
-		}
-		if hasRelayLogEvents {
-			podLogger.Info("Detected events in relay log. Skipping...")
-			continue
-		}
-
-		if status.GtidCurrentPos == nil {
-			podLogger.Info("GTID current position not set. Skipping...")
-			continue
-		}
-		gtidCurrentPos, err := replication.ParseGtidWithDomainId(*status.GtidCurrentPos, *gtidDomainId, f.logger)
-		if err != nil {
-			podLogger.Info("Error parsing GTID current position. Skipping...", "err", err)
-			continue
-		}
-
-		candidates = append(candidates, promotionCandidate{
-			name:           pod.Name,
-			gtidCurrentPos: gtidCurrentPos,
-		})
 	}
 	return candidates
+}
+
+func (f *FailoverHandler) promotionCandidateForClient(ctx context.Context, podName string,
+	sqlClient promotionCandidateSQLClient, podLogger logr.Logger) *promotionCandidate {
+	readOnly, err := sqlClient.IsSystemVariableEnabled(ctx, "read_only")
+	if err != nil {
+		podLogger.Info("Unable to determine read_only state. Skipping...", "err", err)
+		return nil
+	}
+	if !readOnly {
+		podLogger.Info("Pod is writable. Skipping...")
+		return nil
+	}
+
+	status, err := sqlClient.ReplicaStatus(ctx, podLogger)
+	if err != nil {
+		podLogger.Info("Unable to get replica status Skipping...", "err", err)
+		return nil
+	}
+
+	slaveIORunning := ptr.Deref(status.SlaveIORunning, false)
+	if !slaveIORunning {
+		podLogger.Info("IO thread not running. Skipping...")
+		return nil
+	}
+	slaveSQLRunning := ptr.Deref(status.SlaveSQLRunning, false)
+	if !slaveSQLRunning {
+		podLogger.Info("SQL thread not running. Skipping...")
+		return nil
+	}
+
+	gtidDomainId, err := sqlClient.GtidDomainId(ctx)
+	if err != nil {
+		podLogger.Info("Error getting GTID domain ID. Skipping...", "err", err)
+		return nil
+	}
+
+	hasRelayLogEvents, err := HasRelayLogEvents(status, *gtidDomainId, podLogger)
+	if err != nil {
+		podLogger.Info("Error checking relay log events. Skipping...", "err", err)
+		return nil
+	}
+	if hasRelayLogEvents {
+		podLogger.Info("Detected events in relay log. Skipping...")
+		return nil
+	}
+
+	if status.GtidCurrentPos == nil {
+		podLogger.Info("GTID current position not set. Skipping...")
+		return nil
+	}
+	gtidCurrentPos, err := replication.ParseFurthestGtidWithDomainId(*status.GtidCurrentPos, *gtidDomainId, f.logger)
+	if err != nil {
+		podLogger.Info("Error parsing GTID current position. Skipping...", "err", err)
+		return nil
+	}
+
+	return &promotionCandidate{
+		name:           podName,
+		gtidCurrentPos: gtidCurrentPos,
+	}
 }
 
 func (f *FailoverHandler) furthestAdvancedCandidate(candidates []promotionCandidate) *promotionCandidate {

@@ -90,16 +90,6 @@ func replicaRecoveryNodeTrackedAnnotations(annotations map[string]string) map[st
 	return tracked
 }
 
-func replicaRecoveryCompletedPVCUIDTrackedAnnotations(annotations map[string]string) map[string]string {
-	tracked := make(map[string]string)
-	for key, value := range annotations {
-		if strings.HasPrefix(key, replicaRecoveryCompletedPVCUIDAnnotationPrefix) {
-			tracked[key] = value
-		}
-	}
-	return tracked
-}
-
 func desiredStoragePVCUIDAnnotations(replicas int32, pvcUIDs map[int]string) map[string]string {
 	annotations := make(map[string]string)
 	for i := 0; i < int(replicas); i++ {
@@ -705,28 +695,6 @@ func (r *MariaDBReconciler) clearReplicaRecoveryCompletedPVCUIDAnnotation(ctx co
 
 	return r.patch(ctx, &current, func(mdb *mariadbv1alpha1.MariaDB) error {
 		delete(mdb.Annotations, annotationKey)
-		return nil
-	})
-}
-
-func (r *MariaDBReconciler) clearReplicaRecoveryCompletedPVCUIDAnnotations(ctx context.Context,
-	mariadb *mariadbv1alpha1.MariaDB) error {
-	key := client.ObjectKeyFromObject(mariadb)
-
-	var current mariadbv1alpha1.MariaDB
-	if err := r.Get(ctx, key, &current); err != nil {
-		return fmt.Errorf("error getting MariaDB: %v", err)
-	}
-	if len(replicaRecoveryCompletedPVCUIDTrackedAnnotations(current.Annotations)) == 0 {
-		return nil
-	}
-
-	return r.patch(ctx, &current, func(mdb *mariadbv1alpha1.MariaDB) error {
-		for key := range mdb.Annotations {
-			if strings.HasPrefix(key, replicaRecoveryCompletedPVCUIDAnnotationPrefix) {
-				delete(mdb.Annotations, key)
-			}
-		}
 		return nil
 	})
 }

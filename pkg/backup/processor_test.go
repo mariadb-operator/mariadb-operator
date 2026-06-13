@@ -267,7 +267,6 @@ func TestLogicalGetOldBackupFiles(t *testing.T) {
 				"backup.2023-12-22T17:00:00Z.sql",
 				"backup.2023-12-22T18:00:00Z.sql",
 				"backup.2023-12-22T19:00:00Z.sql",
-				"backup.2023-12-22T20:00:00Z.sql",
 			},
 		},
 	}
@@ -754,7 +753,6 @@ func TestPhysicalGetOldBackupFiles(t *testing.T) {
 				"physicalbackup-20231222170000.xb",
 				"physicalbackup-20231222180000.xb",
 				"physicalbackup-20231222190000.xb",
-				"physicalbackup-20231222200000.xb",
 			},
 		},
 		{
@@ -1243,7 +1241,6 @@ func TestSnapshotGetOldBackupFiles(t *testing.T) {
 				"snapshot-20231222170000",
 				"snapshot-20231222180000",
 				"snapshot-20231222190000",
-				"snapshot-20231222200000",
 			},
 		},
 	}

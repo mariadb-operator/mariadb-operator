@@ -91,6 +91,10 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{}, nil
 	}
 
+	if result, err := r.ensureUpdatedReplicasConfigured(ctx, mdb, podsByRole.replicas, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+
 	if err := r.waitForConfiguredReplica(mdb, logger); err != nil {
 		// returns ErrSkipReconciliationPhase if no configured replica detected
 		return ctrl.Result{}, err
@@ -104,6 +108,40 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	logger.Info("Updating primary Pod", "pod", primaryPod.Name)
 	if err := r.updatePod(ctx, mariadbKey, &primaryPod, stsUpdateRevision, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error updating primary Pod '%s': %v", primaryPod.Name, err)
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) ensureUpdatedReplicasConfigured(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	replicas []corev1.Pod, logger logr.Logger) (ctrl.Result, error) {
+	if !mdb.IsReplicationEnabled() || len(replicas) == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	req, err := r.ReplicationReconciler.NewReconcileRequest(ctx, mdb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating replication reconcile request: %v", err)
+	}
+	defer req.Close()
+
+	replLogger := logger.WithName("replication")
+	for _, replica := range replicas {
+		if !mdbpod.PodReady(&replica) {
+			replLogger.V(1).Info("Replica Pod not ready. Requeuing...", "pod", replica.Name)
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+
+		podIndex, err := statefulset.PodIndex(replica.Name)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting replica Pod index: %v", err)
+		}
+		result, err := r.ReplicationReconciler.ReconcileReplicationInPod(ctx, req, *podIndex, replLogger)
+		if !result.IsZero() || err != nil {
+			if err != nil {
+				return result, fmt.Errorf("error configuring replica Pod %s: %v", replica.Name, err)
+			}
+			return result, nil
+		}
 	}
 	return ctrl.Result{}, nil
 }

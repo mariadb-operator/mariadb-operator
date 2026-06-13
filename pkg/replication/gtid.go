@@ -127,26 +127,61 @@ func (g *Gtid) Diff(o *Gtid) (int, error) {
 }
 
 func ParseGtidWithDomainId(rawGtid string, domainId uint32, logger logr.Logger) (*Gtid, error) {
-	if !strings.Contains(rawGtid, ",") {
-		return ParseGtid(rawGtid)
+	gtids, err := ParseGtidsWithDomainId(rawGtid, domainId, logger)
+	if err != nil {
+		return nil, err
 	}
-	parts := strings.Split(rawGtid, ",")
+	return gtids[0], nil
+}
 
+func ParseFurthestGtidWithDomainId(rawGtid string, domainId uint32, logger logr.Logger) (*Gtid, error) {
+	gtids, err := ParseGtidsWithDomainId(rawGtid, domainId, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	var furthest *Gtid
+	for _, gtid := range gtids {
+		if furthest == nil {
+			furthest = gtid
+			continue
+		}
+		greaterThan, err := gtid.GreaterThan(furthest)
+		if err != nil {
+			return nil, err
+		}
+		if greaterThan {
+			furthest = gtid
+		}
+	}
+	return furthest, nil
+}
+
+func ParseGtidsWithDomainId(rawGtid string, domainId uint32, logger logr.Logger) ([]*Gtid, error) {
+	if rawGtid == "" {
+		return nil, fmt.Errorf("empty GTID string")
+	}
+
+	parts := strings.Split(rawGtid, ",")
+	gtids := make([]*Gtid, 0, len(parts))
 	for _, part := range parts {
-		rawGtid = strings.TrimSpace(part)
+		part = strings.TrimSpace(part)
 		if part == "" {
 			logger.Info("Ignoring empty GTID")
 			continue
 		}
 
-		gtid, err := ParseGtid(rawGtid)
+		gtid, err := ParseGtid(part)
 		if err != nil {
-			logger.Error(err, "Error parsing GTID", "gtid", rawGtid)
+			logger.Error(err, "Error parsing GTID", "gtid", part)
 			continue
 		}
 		if gtid.DomainID == domainId {
-			return gtid, nil
+			gtids = append(gtids, gtid)
 		}
+	}
+	if len(gtids) > 0 {
+		return gtids, nil
 	}
 	return nil, fmt.Errorf("GTID for domain ID %d not found", domainId)
 }

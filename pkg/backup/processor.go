@@ -27,6 +27,11 @@ type backupDiff struct {
 	diff     time.Duration
 }
 
+type backupDate struct {
+	fileName string
+	date     time.Time
+}
+
 // LogicalBackupProcessor processes logical backups.
 type LogicalBackupProcessor struct{}
 
@@ -75,19 +80,7 @@ func (p *LogicalBackupProcessor) GetBackupTargetFile(backupFileNames []string, t
 
 // GetOldBackupFiles determines which backup files should be deleted according with the retention policy.
 func (p *LogicalBackupProcessor) GetOldBackupFiles(backupFileNames []string, maxRetention time.Duration, logger logr.Logger) []string {
-	var oldBackups []string
-	now := now()
-	for _, file := range backupFileNames {
-		backupDate, err := p.parseDateInBackupFile(file)
-		if err != nil {
-			logger.Error(err, "error parsing backup date. Skipping", "file", file)
-			continue
-		}
-		if now.Sub(backupDate) > maxRetention {
-			oldBackups = append(oldBackups, file)
-		}
-	}
-	return oldBackups
+	return getOldBackupFilesRetainingLatest(backupFileNames, maxRetention, logger, p.parseDateInBackupFile)
 }
 
 // IsValidBackupFile determines whether a backup file name is valid.
@@ -234,16 +227,37 @@ func (p *PhysicalBackupProcessor) GetBackupTargetFile(backupFileNames []string, 
 
 // GetOldBackupFiles determines which backup files should be deleted according with the retention policy.
 func (p *PhysicalBackupProcessor) GetOldBackupFiles(backupFileNames []string, maxRetention time.Duration, logger logr.Logger) []string {
+	return getOldBackupFilesRetainingLatest(backupFileNames, maxRetention, logger, p.parseDateInBackupFile)
+}
+
+func getOldBackupFilesRetainingLatest(backupFileNames []string, maxRetention time.Duration, logger logr.Logger,
+	parseDate func(string) (time.Time, error)) []string {
 	var oldBackups []string
-	now := now()
+	var backupDates []backupDate
+	latestIndex := -1
 	for _, file := range backupFileNames {
-		backupDate, err := p.parseDateInBackupFile(file)
+		date, err := parseDate(file)
 		if err != nil {
 			logger.Error(err, "error parsing backup date. Skipping", "file", file)
 			continue
 		}
-		if now.Sub(backupDate) > maxRetention {
-			oldBackups = append(oldBackups, file)
+		backupDates = append(backupDates, backupDate{
+			fileName: file,
+			date:     date,
+		})
+		currentIndex := len(backupDates) - 1
+		if latestIndex == -1 || date.After(backupDates[latestIndex].date) {
+			latestIndex = currentIndex
+		}
+	}
+
+	currentTime := now()
+	for i, backupDate := range backupDates {
+		if i == latestIndex {
+			continue
+		}
+		if currentTime.Sub(backupDate.date) > maxRetention {
+			oldBackups = append(oldBackups, backupDate.fileName)
 		}
 	}
 	return oldBackups

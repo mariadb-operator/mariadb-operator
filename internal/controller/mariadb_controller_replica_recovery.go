@@ -41,7 +41,7 @@ func shouldReconcileReplicaRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
 	if !mdb.IsReplicationEnabled() || !mdb.HasConfiguredReplication() {
 		return false
 	}
-	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() || mdb.IsInitializing() || mdb.IsScalingOut() ||
+	if mdb.IsInitializing() || mdb.IsScalingOut() ||
 		mdb.IsRestoringBackup() || mdb.IsResizingStorage() {
 		return false
 	}
@@ -164,9 +164,6 @@ func (r *MariaDBReconciler) resetReplicaRecoveryIfNotNeeded(ctx context.Context,
 	}
 	if err := r.clearReplicaRecoveryNodeAnnotations(ctx, mariadb); err != nil {
 		return false, fmt.Errorf("error clearing replica recovery node annotations: %v", err)
-	}
-	if err := r.clearReplicaRecoveryCompletedPVCUIDAnnotations(ctx, mariadb); err != nil {
-		return false, fmt.Errorf("error clearing replica recovery completed PVC annotations: %v", err)
 	}
 	if err := r.cleanupReplicaRecoveryArtifacts(ctx, mariadb); err != nil {
 		return false, fmt.Errorf("error cleaning replica recovery artifacts: %v", err)
@@ -942,9 +939,6 @@ func (r *MariaDBReconciler) setReplicaRecoveredAndCleanup(ctx context.Context, m
 	}
 	if err := r.clearReplicaRecoveryNodeAnnotations(ctx, mariadb); err != nil {
 		return fmt.Errorf("error clearing replica recovery node annotations: %v", err)
-	}
-	if err := r.clearReplicaRecoveryCompletedPVCUIDAnnotations(ctx, mariadb); err != nil {
-		return fmt.Errorf("error clearing replica recovery completed PVC annotations: %v", err)
 	}
 	return nil
 }

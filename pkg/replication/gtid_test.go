@@ -203,6 +203,36 @@ func TestParseGtid(t *testing.T) {
 	}
 }
 
+func TestParseGtidsWithDomainId(t *testing.T) {
+	logger := logr.Discard()
+
+	gtids, err := ParseGtidsWithDomainId("0-10-30,0-11-1747,1-12-3", 0, logger)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(gtids) != 2 {
+		t.Fatalf("expected 2 GTIDs, got %d", len(gtids))
+	}
+	if got := gtids[0].String(); got != "0-10-30" {
+		t.Fatalf("expected first GTID 0-10-30, got %s", got)
+	}
+	if got := gtids[1].String(); got != "0-11-1747" {
+		t.Fatalf("expected second GTID 0-11-1747, got %s", got)
+	}
+}
+
+func TestParseFurthestGtidWithDomainId(t *testing.T) {
+	logger := logr.Discard()
+
+	got, err := ParseFurthestGtidWithDomainId("0-10-30,0-11-1747,1-12-9999", 0, logger)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.String() != "0-11-1747" {
+		t.Fatalf("expected furthest GTID 0-11-1747, got %s", got.String())
+	}
+}
+
 func TestParseRawGtidInMetaFile(t *testing.T) {
 	tests := []struct {
 		name     string

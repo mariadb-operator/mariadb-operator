@@ -3,17 +3,12 @@ package controller
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
-	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
-	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
-	mdbsql "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stspkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
@@ -153,153 +148,5 @@ func (r *MariaDBReconciler) selectPrimaryPVCFailoverCandidate(ctx context.Contex
 	if err == nil {
 		return candidateName, nil
 	}
-
-	logger.Info("No healthy failover candidate found, looking for an externally promoted primary", "err", err)
-	promotedCandidateName, promotedErr := r.selectPromotedPrimaryCandidate(ctx, mariadb, logger)
-	if promotedErr == nil {
-		return promotedCandidateName, nil
-	}
-
-	logger.Info("No externally promoted primary candidate found", "err", promotedErr)
 	return "", err
-}
-
-type promotedPrimaryCandidate struct {
-	name           string
-	gtidCurrentPos *mariadbrepl.Gtid
-}
-
-func (r *MariaDBReconciler) selectPromotedPrimaryCandidate(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (string, error) {
-	if r.PromotedPrimaryCandidateFn != nil {
-		return r.PromotedPrimaryCandidateFn(ctx, mariadb, logger)
-	}
-
-	pods, err := mdbpod.ListMariaDBSecondaryPods(ctx, r.Client, mariadb)
-	if err != nil {
-		return "", fmt.Errorf("error listing secondary Pods: %v", err)
-	}
-	logger.Info("Finding externally promoted primary candidates")
-
-	candidates := make([]promotedPrimaryCandidate, 0, len(pods))
-	for _, pod := range pods {
-		func() {
-			podLogger := logger.WithValues("name", pod.Name)
-
-			if !mdbpod.PodReady(&pod) {
-				podLogger.Info("Pod not ready. Skipping...")
-				return
-			}
-			podIndex, err := stspkg.PodIndex(pod.Name)
-			if err != nil {
-				podLogger.Info("Invalid Pod name. Skipping...", "err", err)
-				return
-			}
-
-			sqlClient, err := mdbsql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, *podIndex, mdbsql.WithTimeout(3*time.Second))
-			if err != nil {
-				podLogger.Info("Unable to create SQL connection. Skipping...", "err", err)
-				return
-			}
-			defer sqlClient.Close()
-
-			readOnly, err := isReadOnly(ctx, sqlClient)
-			if err != nil {
-				podLogger.Info("Unable to determine read_only state. Skipping...", "err", err)
-				return
-			}
-			if readOnly {
-				podLogger.Info("Pod is read_only. Skipping...")
-				return
-			}
-
-			isReplica, err := sqlClient.IsReplicationReplica(ctx)
-			if err != nil {
-				podLogger.Info("Unable to determine replica role. Skipping...", "err", err)
-				return
-			}
-			if isReplica {
-				hasConnectedReplicas, err := sqlClient.HasConnectedReplicas(ctx)
-				if err != nil {
-					podLogger.Info("Unable to determine connected replicas. Skipping...", "err", err)
-					return
-				}
-				if !hasConnectedReplicas {
-					podLogger.Info("Writable Pod still behaves as a replica. Skipping...")
-					return
-				}
-			}
-
-			candidate := promotedPrimaryCandidate{name: pod.Name}
-			if gtidDomainId, err := sqlClient.GtidDomainId(ctx); err != nil {
-				podLogger.Info("Error getting GTID domain ID. Skipping GTID ordering...", "err", err)
-			} else if currentPos, err := sqlClient.GtidCurrentPos(ctx); err != nil {
-				podLogger.Info("Error getting GTID current position. Skipping GTID ordering...", "err", err)
-			} else if currentPos != "" {
-				gtidCurrentPos, err := mariadbrepl.ParseGtidWithDomainId(currentPos, *gtidDomainId, podLogger)
-				if err != nil {
-					podLogger.Info("Error parsing GTID current position. Skipping GTID ordering...", "err", err)
-				} else {
-					candidate.gtidCurrentPos = gtidCurrentPos
-				}
-			}
-
-			podLogger.Info("Found externally promoted primary candidate")
-			candidates = append(candidates, candidate)
-		}()
-	}
-
-	if len(candidates) == 0 {
-		return "", fmt.Errorf("no externally promoted primary candidates were found")
-	}
-
-	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].name < candidates[j].name
-	})
-	if furthestAdvanced := furthestAdvancedPromotedPrimaryCandidate(candidates); furthestAdvanced != nil {
-		return furthestAdvanced.name, nil
-	}
-	return candidates[0].name, nil
-}
-
-func furthestAdvancedPromotedPrimaryCandidate(candidates []promotedPrimaryCandidate) *promotedPrimaryCandidate {
-	var furthestAdvanced *promotedPrimaryCandidate
-	for i := range candidates {
-		c := &candidates[i]
-		if c.gtidCurrentPos == nil {
-			if furthestAdvanced == nil {
-				furthestAdvanced = c
-			}
-			continue
-		}
-		if furthestAdvanced == nil || furthestAdvanced.gtidCurrentPos == nil {
-			furthestAdvanced = c
-			continue
-		}
-
-		greaterThan, err := c.gtidCurrentPos.GreaterThan(furthestAdvanced.gtidCurrentPos)
-		if err != nil {
-			continue
-		}
-		if greaterThan {
-			furthestAdvanced = c
-		}
-	}
-	return furthestAdvanced
-}
-
-func isReadOnly(ctx context.Context, sqlClient *mdbsql.Client) (bool, error) {
-	readOnly, err := sqlClient.SystemVariable(ctx, "read_only")
-	if err != nil {
-		return false, err
-	}
-
-	switch strings.ToLower(readOnly) {
-	case "1", "on", "true":
-		return true, nil
-	case "0", "off", "false":
-		return false, nil
-	default:
-		return false, fmt.Errorf("unexpected read_only value: %q", readOnly)
-	}
 }

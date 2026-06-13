@@ -2,6 +2,7 @@ package wait
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -14,13 +15,19 @@ import (
 
 func PollUntilSuccessOrContextCancelWithInterval(ctx context.Context, interval time.Duration, logger logr.Logger,
 	fn func(ctx context.Context) error) error {
-	return kwait.PollUntilContextCancel(ctx, interval, true, func(ctx context.Context) (bool, error) {
+	var lastErr error
+	err := kwait.PollUntilContextCancel(ctx, interval, true, func(ctx context.Context) (bool, error) {
 		if err := fn(ctx); err != nil {
+			lastErr = err
 			logger.V(1).Info("Error polling", "err", err)
 			return false, nil
 		}
 		return true, nil
 	})
+	if err != nil && lastErr != nil {
+		return fmt.Errorf("%w: last poll error: %v", err, lastErr)
+	}
+	return err
 }
 
 func PollUntilSuccessOrContextCancel(ctx context.Context, logger logr.Logger, fn func(ctx context.Context) error) error {
