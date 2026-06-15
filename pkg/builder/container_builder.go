@@ -147,9 +147,14 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	return containers, nil
 }
 
-func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Container, error) {
+func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale, opts ...mariadbPodOpt) ([]corev1.Container, error) {
 	tpl := mxs.Spec.ContainerTemplate
-	container, err := b.buildContainerWithTemplate(mxs.Spec.Image, mxs.Spec.ImagePullPolicy, &tpl)
+	container, err := b.buildContainerWithTemplate(
+		mxs.Spec.Image,
+		mxs.Spec.ImagePullPolicy,
+		&tpl,
+		opts...,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -367,6 +372,9 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 	} else if tpl.Resources != nil && mariadbOpts.includeMariadbResources {
 		container.Resources = tpl.Resources.ToKubernetesType()
 	}
+	if tpl.Lifecycle != nil && mariadbOpts.includeLifecycle {
+		container.Lifecycle = ptr.To(tpl.Lifecycle.ToKubernetesType())
+	}
 	return &container, nil
 }
 
@@ -503,47 +511,11 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 	}
 
 	if mariadb.IsReplicationEnabled() {
-		env = append(env, corev1.EnvVar{
-			Name:  "MARIADB_REPL_ENABLED",
-			Value: fmt.Sprint(true),
-		})
-
-		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-
-		if replication.IsGtidStrictModeEnabled() {
-			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_REPL_GTID_STRICT_MODE",
-				Value: fmt.Sprint(true),
-			})
+		replEnv, err := mariadbReplEnv(mariadb)
+		if err != nil {
+			return nil, fmt.Errorf("error getting MariaDB replication environment: %v", err)
 		}
-		if replication.IsSemiSyncEnabled() {
-			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
-				Value: fmt.Sprint(true),
-			})
-			if replication.SemiSyncAckTimeout != nil {
-				env = append(env, corev1.EnvVar{
-					Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT",
-					Value: fmt.Sprint(replication.SemiSyncAckTimeout.Milliseconds()),
-				})
-			}
-			if replication.SemiSyncWaitPoint != nil {
-				waitPoint, err := replication.SemiSyncWaitPoint.MariaDBFormat()
-				if err != nil {
-					return nil, fmt.Errorf("error getting semi-synchronous replication wait point: %v", err)
-				}
-				env = append(env, corev1.EnvVar{
-					Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT",
-					Value: waitPoint,
-				})
-			}
-		}
-		if replication.SyncBinlog != nil {
-			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_REPL_SYNC_BINLOG",
-				Value: fmt.Sprintf("%d", *replication.SyncBinlog),
-			})
-		}
+		env = append(env, replEnv...)
 	}
 
 	if mariadb.IsRootPasswordEmpty() {
@@ -581,6 +553,67 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		}
 	}
 
+	return env, nil
+}
+
+func mariadbReplEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
+	if !mariadb.IsReplicationEnabled() {
+		return nil, nil
+	}
+	env := []corev1.EnvVar{
+		{
+			Name:  "MARIADB_REPL_ENABLED",
+			Value: fmt.Sprint(true),
+		},
+	}
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+
+	if replication.IsGtidStrictModeEnabled() {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_REPL_GTID_STRICT_MODE",
+			Value: fmt.Sprint(true),
+		})
+	}
+	if replication.GtidDomainID != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_REPL_GTID_DOMAIN_ID",
+			Value: strconv.Itoa(*replication.GtidDomainID),
+		})
+	}
+	if replication.ServerIDStartIndex != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_REPL_SERVER_ID_START_INDEX",
+			Value: strconv.Itoa(*replication.ServerIDStartIndex),
+		})
+	}
+	if replication.IsSemiSyncEnabled() {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
+			Value: fmt.Sprint(true),
+		})
+		if replication.SemiSyncAckTimeout != nil {
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT",
+				Value: fmt.Sprint(replication.SemiSyncAckTimeout.Milliseconds()),
+			})
+		}
+		if replication.SemiSyncWaitPoint != nil {
+			waitPoint, err := replication.SemiSyncWaitPoint.MariaDBFormat()
+			if err != nil {
+				return nil, fmt.Errorf("error getting semi-synchronous replication wait point: %v", err)
+			}
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT",
+				Value: waitPoint,
+			})
+		}
+	}
+	if replication.SyncBinlog != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_REPL_SYNC_BINLOG",
+			Value: fmt.Sprintf("%d", *replication.SyncBinlog),
+		})
+	}
 	return env, nil
 }
 

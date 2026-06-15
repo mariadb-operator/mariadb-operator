@@ -2,246 +2,14 @@ package replication
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"text/template"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
-	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/secret"
 	env "github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
-	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-var (
-	replUser     = "repl"
-	replUserHost = "%"
-)
-
-type ReplicationConfigClient struct {
-	client.Client
-	builder          *builder.Builder
-	refResolver      *refresolver.RefResolver
-	secretReconciler *secret.SecretReconciler
-}
-
-func NewReplicationConfigClient(client client.Client, builder *builder.Builder,
-	secretReconciler *secret.SecretReconciler) *ReplicationConfigClient {
-	return &ReplicationConfigClient{
-		Client:           client,
-		builder:          builder,
-		refResolver:      refresolver.New(client),
-		secretReconciler: secretReconciler,
-	}
-}
-
-func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
-	isReplica, err := client.IsReplicationReplica(ctx)
-	if err != nil {
-		return fmt.Errorf("error checking replica: %v", err)
-	}
-	if isReplica {
-		if err := client.StopAllSlaves(ctx); err != nil {
-			return fmt.Errorf("error stopping slaves: %v", err)
-		}
-		if err := client.ResetAllSlaves(ctx); err != nil {
-			return fmt.Errorf("error resetting slave: %v", err)
-		}
-		if err := client.ResetGtidSlavePos(ctx); err != nil {
-			return fmt.Errorf("error resetting slave position: %v", err)
-		}
-	}
-	if err := client.DisableReadOnly(ctx); err != nil {
-		return fmt.Errorf("error disabling read_only: %v", err)
-	}
-	if err := r.reconcilePrimarySql(ctx, mariadb, client); err != nil {
-		return fmt.Errorf("error reconciling primary SQL: %v", err)
-	}
-	return nil
-}
-
-type ConfigureReplicaOpts struct {
-	GtidSlavePos      *string
-	ResetGtidSlavePos bool
-	ChangeMasterOpts  []sql.ChangeMasterOpt
-	ResetMaster       bool
-}
-
-type ConfigureReplicaOpt func(*ConfigureReplicaOpts)
-
-func WithGtidSlavePos(gtid string) ConfigureReplicaOpt {
-	return func(cro *ConfigureReplicaOpts) {
-		cro.GtidSlavePos = &gtid
-	}
-}
-
-func WithResetGtidSlavePos() ConfigureReplicaOpt {
-	return func(cro *ConfigureReplicaOpts) {
-		cro.ResetGtidSlavePos = true
-	}
-}
-
-func WithChangeMasterOpts(opts ...sql.ChangeMasterOpt) ConfigureReplicaOpt {
-	return func(cro *ConfigureReplicaOpts) {
-		cro.ChangeMasterOpts = opts
-	}
-}
-
-func WithResetMaster(resetMaster bool) ConfigureReplicaOpt {
-	return func(cro *ConfigureReplicaOpts) {
-		cro.ResetMaster = resetMaster
-	}
-}
-
-func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error {
-	opts := ConfigureReplicaOpts{
-		ResetMaster: true,
-	}
-	for _, setOpt := range replicaOpts {
-		setOpt(&opts)
-	}
-
-	if opts.ResetMaster {
-		if err := client.ResetMaster(ctx); err != nil {
-			return fmt.Errorf("error resetting master: %v", err)
-		}
-	}
-	if err := client.StopAllSlaves(ctx); err != nil {
-		return fmt.Errorf("error stopping slaves: %v", err)
-	}
-	if opts.GtidSlavePos != nil {
-		if err := client.SetGtidSlavePos(ctx, *opts.GtidSlavePos); err != nil {
-			return fmt.Errorf("error setting slave position \"%s\": %v", *opts.GtidSlavePos, err)
-		}
-	} else if opts.ResetGtidSlavePos {
-		if err := client.ResetGtidSlavePos(ctx); err != nil {
-			return fmt.Errorf("error resetting slave position: %v", err)
-		}
-	}
-	if err := client.EnableReadOnly(ctx); err != nil {
-		return fmt.Errorf("error enabling read_only: %v", err)
-	}
-	if err := r.changeMaster(ctx, mariadb, client, primaryPodIndex, opts.ChangeMasterOpts...); err != nil {
-		return fmt.Errorf("error changing master: %v", err)
-	}
-	if err := client.StartSlave(ctx); err != nil {
-		return fmt.Errorf("error starting slave: %v", err)
-	}
-	return nil
-}
-
-func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	primaryPodIndex int, opts ...sql.ChangeMasterOpt) error {
-	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-	if replication.Replica.ReplPasswordSecretKeyRef == nil {
-		return errors.New("'spec.replication.replica.replPasswordSecretKeyRef` must not be nil'")
-	}
-
-	password, err := r.refResolver.SecretKeyRef(ctx, replication.Replica.ReplPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting replication password: %v", err)
-	}
-
-	gtid := ptr.Deref(replication.Replica.Gtid, mariadbv1alpha1.GtidCurrentPos)
-	gtidString, err := gtid.MariaDBFormat()
-	if err != nil {
-		return fmt.Errorf("error getting change master GTID: %v", err)
-	}
-
-	changeMasterOpts := []sql.ChangeMasterOpt{
-		sql.WithChangeMasterHost(
-			statefulset.PodFQDNWithService(
-				mariadb.ObjectMeta,
-				primaryPodIndex,
-				mariadb.InternalServiceKey().Name,
-			),
-		),
-		sql.WithChangeMasterPort(mariadb.Spec.Port),
-		sql.WithChangeMasterCredentials(replUser, password),
-		sql.WithChangeMasterGtid(gtidString),
-	}
-	if mariadb.IsTLSEnabled() {
-		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterSSL(
-			builderpki.ClientCertPath,
-			builderpki.ClientKeyPath,
-			builderpki.CACertPath,
-		))
-	}
-
-	if retries := ptr.Deref(replication.Replica.ConnectionRetrySeconds, -1); retries != -1 {
-		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterRetries(*replication.Replica.ConnectionRetrySeconds))
-	}
-
-	changeMasterOpts = append(changeMasterOpts, opts...)
-
-	if err := client.ChangeMaster(ctx, changeMasterOpts...); err != nil {
-		return fmt.Errorf("error changing master: %v", err)
-	}
-	return nil
-}
-
-func (r *ReplicationConfigClient) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
-	opts := userSqlOpts{
-		username:   replUser,
-		host:       replUserHost,
-		privileges: []string{"REPLICATION REPLICA"},
-	}
-	if err := r.reconcileUserSql(ctx, mariadb, client, &opts); err != nil {
-		return fmt.Errorf("error reconciling '%s' SQL user: %v", replUser, err)
-	}
-	return nil
-}
-
-type userSqlOpts struct {
-	username   string
-	host       string
-	privileges []string
-}
-
-func (r *ReplicationConfigClient) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	opts *userSqlOpts) error {
-	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-	if replication.Replica.ReplPasswordSecretKeyRef == nil {
-		return errors.New("'spec.replication.replica.replPasswordSecretKeyRef` must not be nil'")
-	}
-
-	replPassword, err := r.refResolver.SecretKeyRef(ctx, replication.Replica.ReplPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting repl password: %v", err)
-	}
-	accountName := formatAccountName(opts.username, opts.host)
-
-	exists, err := client.UserExists(ctx, opts.username, opts.host)
-	if err != nil {
-		return fmt.Errorf("error checking if replication user exists: %v", err)
-	}
-	if exists {
-		if err := client.AlterUser(ctx, accountName, sql.WithIdentifiedBy(replPassword)); err != nil {
-			return fmt.Errorf("error altering replication user: %v", err)
-		}
-	} else {
-		if err := client.CreateUser(ctx, accountName, sql.WithIdentifiedBy(replPassword)); err != nil {
-			return fmt.Errorf("error creating replication user: %v", err)
-		}
-	}
-	if err := client.Grant(
-		ctx,
-		opts.privileges,
-		"*",
-		"*",
-		accountName,
-	); err != nil {
-		return fmt.Errorf("error creating grant: %v", err)
-	}
-	return nil
-}
 
 func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	replEnabled, err := env.IsReplEnabled()
@@ -255,6 +23,10 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting GTID strict mode: %v", err)
 	}
+	gtidDomainID, err := gtidDomainID(env.MariaDBReplGtidDomainID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting GTID domain ID: %v", err)
+	}
 	semiSyncEnabled, err := env.ReplSemiSyncEnabled()
 	if err != nil {
 		return nil, fmt.Errorf("error getting semi-sync enabled: %v", err)
@@ -263,7 +35,11 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting semi-sync master timeout: %v", err)
 	}
-	serverId, err := serverId(env.PodName)
+	serverIDStartIndex, err := serverIDStartIndex(env.MariaDBReplServerIDStartIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error getting server ID start index: %v", err)
+	}
+	serverID, err := serverId(env.PodName, serverIDStartIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting server ID: %v", err)
 	}
@@ -280,6 +56,9 @@ log_basename={{.LogName }}
 {{- with .GtidStrictMode }}
 gtid_strict_mode
 {{- end }}
+{{- with .GtidDomainID }}
+gtid_domain_id={{ . }}
+{{- end }}
 {{- if .SemiSyncEnabled }}
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
@@ -290,7 +69,7 @@ rpl_semi_sync_master_timeout={{ . }}
 rpl_semi_sync_master_wait_point={{ . }}
 {{- end }}
 {{- end }}
-server_id={{ .ServerId }}
+server_id={{ .ServerID }}
 {{- with .SyncBinlog }}
 sync_binlog={{ . }}
 {{- end }}
@@ -299,18 +78,20 @@ sync_binlog={{ . }}
 	err = tpl.Execute(buf, struct {
 		LogName                 string
 		GtidStrictMode          bool
+		GtidDomainID            *int
 		SemiSyncEnabled         bool
 		SemiSyncMasterTimeout   *int64
 		SemiSyncMasterWaitPoint string
 		SyncBinlog              *int
-		ServerId                int
+		ServerID                int
 	}{
 		LogName:                 env.MariadbName,
 		GtidStrictMode:          gtidStrictMode,
+		GtidDomainID:            gtidDomainID,
 		SemiSyncEnabled:         semiSyncEnabled,
 		SemiSyncMasterTimeout:   semiSyncMasterTimeout,
 		SemiSyncMasterWaitPoint: env.MariaDBReplSemiSyncMasterWaitPoint,
-		ServerId:                serverId,
+		ServerID:                serverID,
 		SyncBinlog:              syncBinlog,
 	})
 	if err != nil {
@@ -319,12 +100,34 @@ sync_binlog={{ . }}
 	return buf.Bytes(), nil
 }
 
-func serverId(podName string) (int, error) {
+func gtidDomainID(rawGtidDomainID string) (*int, error) {
+	if rawGtidDomainID == "" {
+		return nil, nil // rely on server defaults
+	}
+	gtidDomainId, err := strconv.Atoi(rawGtidDomainID)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing GTID domain ID: %v", err)
+	}
+	return &gtidDomainId, nil
+}
+
+func serverIDStartIndex(rawStartIndex string) (int, error) {
+	if rawStartIndex == "" {
+		return 10, nil
+	}
+	startIndex, err := strconv.Atoi(rawStartIndex)
+	if err != nil {
+		return 0, fmt.Errorf("serverID start index could not be parsed. %v", err)
+	}
+	return startIndex, nil
+}
+
+func serverId(podName string, startIndex int) (int, error) {
 	podIndex, err := statefulset.PodIndex(podName)
 	if err != nil {
 		return 0, fmt.Errorf("error getting Pod index: %v", err)
 	}
-	return 10 + *podIndex, nil
+	return startIndex + *podIndex, nil
 }
 
 func formatAccountName(username, host string) string {

@@ -170,7 +170,3 @@ type RestoreList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Restore `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&Restore{}, &RestoreList{})
-}

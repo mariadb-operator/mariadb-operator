@@ -25,6 +25,7 @@ import (
 	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -405,6 +406,19 @@ func sortByObjectTime[T client.Object](objList []T) error {
 		return objTime.After(anotherObjTime)
 	})
 	return parseErr
+}
+
+func deleteOldJobs(ctx context.Context, c client.Client, jobs []*batchv1.Job, maxHistory int, logger logr.Logger, backupName string) error {
+	for i := maxHistory; i < len(jobs); i++ {
+		job := jobs[i]
+
+		err := c.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)})
+		if err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error deleting Job \"%s\": %v", job.Name, err)
+		}
+		logger.V(1).Info("Deleted old Job", "job", job.Name, "physicalbackup", backupName)
+	}
+	return nil
 }
 
 type targetFn func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (*int, error)

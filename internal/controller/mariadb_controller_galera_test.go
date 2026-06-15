@@ -159,7 +159,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.150",
 						},
 					},
 				},
@@ -173,7 +173,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.160",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.160",
 						},
 					},
 				},
@@ -187,7 +187,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.161",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.161",
 						},
 					},
 				},
@@ -441,7 +441,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.224",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.224",
 						},
 					},
 				},
@@ -449,7 +449,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.231",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.231",
 						},
 					},
 				},
@@ -518,7 +518,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.150",
 						},
 					},
 				},
@@ -526,7 +526,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.160",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.160",
 						},
 					},
 				},
@@ -534,7 +534,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.161",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.161",
 						},
 					},
 				},
@@ -570,7 +570,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 
 		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 		DeferCleanup(func() {
-			deletePhysicalBackup(backupKey)
+			deletePhysicalBackup(backupKey, false)
 		})
 
 		By("Expecting PhysicalBackup to complete eventually")
@@ -650,7 +650,7 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.168",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.168",
 						},
 					},
 				},
@@ -658,7 +658,7 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.169",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.169",
 						},
 					},
 				},
@@ -666,7 +666,7 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.170",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.170",
 						},
 					},
 				},
@@ -725,11 +725,11 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 				TLS: &mariadbv1alpha1.TLS{
 					Enabled:  true,
 					Required: ptr.To(true),
-					ServerCertIssuerRef: &cmmeta.ObjectReference{
+					ServerCertIssuerRef: &cmmeta.IssuerReference{
 						Name: "root-ca",
 						Kind: "ClusterIssuer",
 					},
-					ClientCertIssuerRef: &cmmeta.ObjectReference{
+					ClientCertIssuerRef: &cmmeta.IssuerReference{
 						Name: "root-ca",
 						Kind: "ClusterIssuer",
 					},
@@ -739,7 +739,7 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.168",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.168",
 						},
 					},
 				},
@@ -747,7 +747,7 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.169",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.169",
 						},
 					},
 				},
@@ -755,7 +755,7 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.170",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.170",
 						},
 					},
 				},

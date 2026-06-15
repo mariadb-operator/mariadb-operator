@@ -581,10 +581,14 @@ func (r *MaxScaleReconciler) reconcileInternalService(ctx context.Context, maxsc
 
 func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) error {
 	key := client.ObjectKeyFromObject(maxscale)
-	selectorLabels :=
+	selectorLabelsBuilder :=
 		labels.NewLabelsBuilder().
-			WithMaxScaleSelectorLabels(maxscale).
-			Build()
+			WithMaxScaleSelectorLabels(maxscale)
+	if maxscale.IsMaintenanceModeEnabled() {
+		selectorLabelsBuilder = selectorLabelsBuilder.WithCordon(maxscale)
+	}
+	selectorLabels := selectorLabelsBuilder.Build()
+
 	ports := []corev1.ServicePort{
 		{
 			Name: "admin",
@@ -702,8 +706,29 @@ type maxscaleAuthReconcileItem struct {
 
 func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	mxs := req.mxs
-	// TODO: support for external databases by extending MariaDBRef
-	if !ptr.Deref(mxs.Spec.Auth.Generate, false) || mxs.Spec.MariaDBRef == nil {
+	logger := log.FromContext(ctx).WithName("auth").V(1)
+
+	// If servers are provided directly, we assume credentials have already been setup
+	if mxs.Spec.MariaDBRef == nil {
+		logger.Info("spec.servers provided manually. Skipping...")
+		return ctrl.Result{}, nil
+	}
+	mariadb, err := r.RefResolver.MariaDB(ctx, mxs.Spec.MariaDBRef, mxs.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
+	}
+	// This prevents:
+	// - MaxScale and MariaDB provisioning from happening in parallel.
+	// - Performing writes in mysql.user and  mysql.maxscale_config  (related to auth and monitor respectively)
+	// before MariaDB is fully configured and restored.
+	// - Provision MaxScale in the middle of a point-in-time restoration.
+	if mariadb.HasPendingHATopologyConfiguration() || mariadb.HasPendingBinlogReplay() {
+		logger.Info("Waiting for MariaDB to be fully configured and restored. Requeuing...")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	// Authentication has already been configured manually.
+	if !ptr.Deref(mxs.Spec.Auth.Generate, false) {
 		return ctrl.Result{}, nil
 	}
 

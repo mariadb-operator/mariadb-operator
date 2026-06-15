@@ -4,7 +4,7 @@ metadata:
   name: mxs-test-0-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.50
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.50
 spec:
   ports:
   - name: admin

@@ -38,6 +38,8 @@ const (
 	ReasonGaleraPodSyncTimeout = "GaleraPodSyncTimeout"
 	// ReasonGaleraPVCNotBound indicates that a Galera PVC is not in Bound phase, therefore the init process cannot be started.
 	ReasonGaleraPVCNotBound = "GaleraPVCNotBound"
+	// ReasonGaleraPrimaryReplicaConfigured indicates that the Galera primary replica has been configured.
+	ReasonGaleraPrimaryReplicaConfigured = "GaleraPrimaryReplicaConfigured"
 
 	// ReasonPrimarySwitching indicates that primary is being switched.
 	ReasonPrimarySwitching = "PrimarySwitching"
@@ -82,4 +84,10 @@ const (
 
 	// ReasonBinlogTimelineInvalid indicates that an error has occurred when validating the binlog timeline to be used for point-in-time recovery.
 	ReasonBinlogTimelineInvalid = "BinlogTimelineInvalid"
+
+	// ReasonMariaDBRootPasswordChanged indicates that a root password change was completed after an update to the rootPasswordSecretKeyRef.
+	ReasonMariaDBRootPasswordChanged = "MariaDBRootPasswordChanged"
+
+	// ReasonMaintenance indicates that an action related to maintenance has been performed.
+	ReasonMaintenance = "Maintenance"
 )

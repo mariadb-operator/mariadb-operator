@@ -47,7 +47,7 @@ Helm has certain [limitations when it comes to manage CRDs](https://helm.sh/docs
 CRDs can now be installed/upgraded in your cluster by running the following commands
 
 ```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm repo update
 helm upgrade --install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 ```
@@ -70,7 +70,7 @@ Our [CRD bundle is now 580KB](https://github.com/mariadb-operator/mariadb-operat
 By setting `currentNamespaceOnly=true` when installing the `mariadb-operator` Helm chart, the operator will only watch CRDs within the namespace it is deployed in, and the RBAC permissions will be restricted to that namespace as well:
 
 ```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator \
   -n databases --create-namespace \
   --set currentNamespaceOnly=true \

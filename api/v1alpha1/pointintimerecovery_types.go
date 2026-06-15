@@ -101,7 +101,3 @@ func (s *PointInTimeRecoveryStorage) Validate() error {
 
 	return nil
 }
-
-func init() {
-	SchemeBuilder.Register(&PointInTimeRecovery{}, &PointInTimeRecoveryList{})
-}

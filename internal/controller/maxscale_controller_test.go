@@ -166,7 +166,7 @@ var _ = Describe("MaxScale", Label("basic"), func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.51",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.51",
 						},
 					},
 				},

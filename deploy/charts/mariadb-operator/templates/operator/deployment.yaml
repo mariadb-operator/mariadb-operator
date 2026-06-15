@@ -8,15 +8,21 @@ spec:
   {{- if .Values.ha.enabled }}
   replicas: {{ .Values.ha.replicas}}
   {{- end }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "mariadb-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/operator/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
         {{ toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "mariadb-operator.selectorLabels" . | nindent 8 }}
     spec:
@@ -106,7 +112,7 @@ spec:
           volumeMounts:
           {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
           {{- end }}
-          {{ with .Values.resources }}          
+          {{ with .Values.resources }}
           resources:
             {{ toYaml . | nindent 12 }}
           {{ end }}

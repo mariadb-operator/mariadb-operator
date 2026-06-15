@@ -23,6 +23,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/maintenance"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
@@ -65,13 +66,13 @@ type MariaDBReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder events.EventRecorder
 
-	Builder          *builder.Builder
-	RefResolver      *refresolver.RefResolver
-	ConditionReady   *condition.Ready
-	Environment      *environment.OperatorEnv
-	Discovery        *discovery.Discovery
-	BackupProcessor  backup.BackupProcessor
-	ReplConfigClient *replication.ReplicationConfigClient
+	Builder         *builder.Builder
+	RefResolver     *refresolver.RefResolver
+	ConditionReady  *condition.Ready
+	Environment     *environment.OperatorEnv
+	Discovery       *discovery.Discovery
+	BackupProcessor backup.BackupProcessor
+	TopologyManager *replication.TopologyManager
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
@@ -87,6 +88,7 @@ type MariaDBReconciler struct {
 
 	ReplicationReconciler *replication.ReplicationReconciler
 	GaleraReconciler      *galera.GaleraReconciler
+	MaintenanceReconciler *maintenance.MaintenanceReconciler
 }
 
 type reconcilePhaseMariaDB struct {
@@ -200,12 +202,24 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.GaleraReconciler.Reconcile,
 		},
 		{
+			Name:      "Root Password",
+			Reconcile: r.reconcileRootPassword,
+		},
+		{
 			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
 		},
 		{
 			Name:      "PITR",
 			Reconcile: r.reconcilePITR,
+		},
+		{
+			Name:      "MultiCluster",
+			Reconcile: r.reconcileMultiCluster,
+		},
+		{
+			Name:      "Maintenance",
+			Reconcile: r.MaintenanceReconciler.Reconcile,
 		},
 		{
 			Name:      "SQL",
@@ -264,6 +278,11 @@ func shouldSkipPhase(err error) bool {
 }
 
 func requeueResult(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mdb.IsMaintenanceModeEnabled() {
+		log.FromContext(ctx).V(1).Info("Maintenance mode enabled. Requeuing MariaDB...")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
 	if mdb.IsTLSEnabled() {
 		log.FromContext(ctx).V(1).Info("Requeuing MariaDB")
 		return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil // ensure certificates get renewed
@@ -315,6 +334,36 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 			return ctrl.Result{}, err
 		}
 	}
+
+	return r.reconcileRootPasswordSecret(ctx, mariadb)
+}
+
+// reconcileRootPasswordSecret is used to create a duplicate of the root password secret.
+//
+// @WARN: If the internal duplicated password is modified externally, the operator will fail to reconcile the database
+func (r *MariaDBReconciler) reconcileRootPasswordSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !mariadb.IsRootPasswordEmpty() {
+		rootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
+		}
+
+		internalSecretKey := mariadb.InternalRootPasswordSecretKey()
+
+		req := secret.SecretRequest{
+			Owner:        mariadb,
+			Metadata:     []*mariadbv1alpha1.Metadata{mariadb.Spec.InheritMetadata},
+			Key:          internalSecretKey,
+			SkipIfExists: true,
+			Data: map[string][]byte{
+				mariadb.Spec.RootPasswordSecretKeyRef.Key: []byte(rootPassword),
+			},
+		}
+		if err := r.SecretReconciler.Reconcile(ctx, &req); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling internal root password secret: %v", err)
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -597,10 +646,14 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 	if mariadb.Spec.ServicePorts != nil {
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
-	selectorLabels :=
+	selectorLabelsBuilder :=
 		labels.NewLabelsBuilder().
-			WithMariaDBSelectorLabels(mariadb).
-			Build()
+			WithMariaDBSelectorLabels(mariadb)
+	if mariadb.IsMaintenanceModeEnabled() {
+		selectorLabelsBuilder = selectorLabelsBuilder.WithCordon(mariadb)
+	}
+	selectorLabels := selectorLabelsBuilder.Build()
+
 	opts := builder.ServiceOpts{
 		Ports:          ports,
 		SelectorLabels: selectorLabels,
@@ -700,11 +753,15 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 	if mariadb.Spec.ServicePorts != nil {
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
-	serviceLabels :=
+	serviceLabelsBuilder :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
-			WithStatefulSetPod(mariadb.ObjectMeta, *mariadb.Status.CurrentPrimaryPodIndex).
-			Build()
+			WithStatefulSetPod(mariadb.ObjectMeta, *mariadb.Status.CurrentPrimaryPodIndex)
+	if mariadb.IsMaintenanceModeEnabled() {
+		serviceLabelsBuilder = serviceLabelsBuilder.WithCordon(mariadb)
+	}
+	serviceLabels := serviceLabelsBuilder.Build()
+
 	opts := builder.ServiceOpts{
 		Ports:          ports,
 		SelectorLabels: serviceLabels,
@@ -909,6 +966,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			return result, err
 		}
 	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -1184,13 +1242,22 @@ ignore_db_dirs = 'lost+found'
 {{- with .TimeZone }}
 default_time_zone = {{ . }}
 {{- end }}
+{{- with .LogSlaveUpdates }}
+log_slave_updates=ON
+{{- end }}
 `)
 
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, struct {
-		TimeZone *string
+		TimeZone        *string
+		LogSlaveUpdates bool
 	}{
 		TimeZone: mariadb.Spec.TimeZone,
+		// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#log_slave_updates
+		// We set this so:
+		// - We don't have to re-configure the replication in the replica cluster when primary cluster changes
+		// - Replica cluster primary can relay events to its replicas
+		LogSlaveUpdates: mariadb.IsMultiClusterEnabled(),
 	})
 	if err != nil {
 		return "", err

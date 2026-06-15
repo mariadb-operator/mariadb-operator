@@ -218,7 +218,3 @@ func (m *ExternalMariaDBList) ListItems() []client.Object {
 	}
 	return items
 }
-
-func init() {
-	SchemeBuilder.Register(&ExternalMariaDB{}, &ExternalMariaDBList{})
-}

@@ -7,7 +7,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#localobjectreference-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#localobjectreference-v1-core.
 type LocalObjectReference struct {
 	// +optional
 	// +default=""
@@ -21,7 +21,7 @@ func (r LocalObjectReference) ToKubernetesType() corev1.LocalObjectReference {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectreference-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectreference-v1-core.
 type ObjectReference struct {
 	// +optional
 	Name string `json:"name,omitempty"`
@@ -36,7 +36,7 @@ func (r ObjectReference) ToKubernetesType() corev1.ObjectReference {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#secretkeyselector-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#secretkeyselector-v1-core.
 // +structType=atomic
 type SecretKeySelector struct {
 	LocalObjectReference `json:",inline"`
@@ -50,7 +50,7 @@ func (s SecretKeySelector) ToKubernetesType() corev1.SecretKeySelector {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#configmapkeyselector-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#configmapkeyselector-v1-core.
 // +structType=atomic
 type ConfigMapKeySelector struct {
 	LocalObjectReference `json:",inline"`
@@ -64,7 +64,7 @@ func (s ConfigMapKeySelector) ToKubernetesType() corev1.ConfigMapKeySelector {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectfieldselector-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectfieldselector-v1-core.
 // +structType=atomic
 type ObjectFieldSelector struct {
 	// +optional
@@ -79,7 +79,7 @@ func (s ObjectFieldSelector) ToKubernetesType() corev1.ObjectFieldSelector {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvarsource-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvarsource-v1-core.
 type EnvVarSource struct {
 	// +optional
 	FieldRef *ObjectFieldSelector `json:"fieldRef,omitempty"`
@@ -103,7 +103,7 @@ func (e EnvVarSource) ToKubernetesType() corev1.EnvVarSource {
 	return env
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvarsource-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvarsource-v1-core.
 type EnvVar struct {
 	// Name of the environment variable. Must be a C_IDENTIFIER.
 	Name string `json:"name"`
@@ -124,7 +124,7 @@ func (e EnvVar) ToKubernetesType() corev1.EnvVar {
 	return env
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envfromsource-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envfromsource-v1-core.
 type EnvFromSource struct {
 	// +optional
 	Prefix string `json:"prefix,omitempty"`
@@ -151,7 +151,7 @@ func (e EnvFromSource) ToKubernetesType() corev1.EnvFromSource {
 	return env
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#execaction-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#execaction-v1-core.
 type ExecAction struct {
 	// +optional
 	// +listType=atomic
@@ -164,7 +164,7 @@ func (e ExecAction) ToKubernetesType() corev1.ExecAction {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#httpgetaction-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#httpgetaction-v1-core.
 type HTTPGetAction struct {
 	// +optional
 	Path string             `json:"path,omitempty"`
@@ -184,7 +184,7 @@ func (e HTTPGetAction) ToKubernetesType() corev1.HTTPGetAction {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#tcpsocketaction-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#tcpsocketaction-v1-core.
 type TCPSocketAction struct {
 	Port intstr.IntOrString `json:"port"`
 	// +optional
@@ -198,7 +198,7 @@ func (e TCPSocketAction) ToKubernetesType() corev1.TCPSocketAction {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core.
 type ProbeHandler struct {
 	// +optional
 	Exec *ExecAction `json:"exec,omitempty"`
@@ -222,7 +222,7 @@ func (p ProbeHandler) ToKubernetesType() corev1.ProbeHandler {
 	return probe
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core.
 type Probe struct {
 	ProbeHandler `json:",inline"`
 	// +optional
@@ -248,7 +248,62 @@ func (p Probe) ToKubernetesType() corev1.Probe {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#resourcerequirements-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#sleepaction-v1-core
+type SleepAction struct {
+	// +optional
+	Seconds int64 `json:"seconds"`
+}
+
+func (s SleepAction) ToKubernetesType() corev1.SleepAction {
+	return corev1.SleepAction{
+		Seconds: s.Seconds,
+	}
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#lifecyclehandler-v1-core.
+type LifecycleHandler struct {
+	// +optional
+	Exec *ExecAction `json:"exec,omitempty"`
+	// +optional
+	HTTPGet *HTTPGetAction `json:"httpGet,omitempty"`
+	// +optional
+	Sleep *SleepAction `json:"sleep,omitempty"`
+}
+
+func (l LifecycleHandler) ToKubernetesType() corev1.LifecycleHandler {
+	lifecycleHandler := corev1.LifecycleHandler{}
+	if l.Exec != nil {
+		lifecycleHandler.Exec = ptr.To(l.Exec.ToKubernetesType())
+	}
+	if l.HTTPGet != nil {
+		lifecycleHandler.HTTPGet = ptr.To(l.HTTPGet.ToKubernetesType())
+	}
+	if l.Sleep != nil {
+		lifecycleHandler.Sleep = ptr.To(l.Sleep.ToKubernetesType())
+	}
+	return lifecycleHandler
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#lifecycle-v1-core.
+type Lifecycle struct {
+	// +optional
+	PostStart *LifecycleHandler `json:"postStart,omitempty"`
+	// +optional
+	PreStop *LifecycleHandler `json:"preStop,omitempty"`
+}
+
+func (l Lifecycle) ToKubernetesType() corev1.Lifecycle {
+	lifecycle := corev1.Lifecycle{}
+	if l.PostStart != nil {
+		lifecycle.PostStart = ptr.To(l.PostStart.ToKubernetesType())
+	}
+	if l.PreStop != nil {
+		lifecycle.PreStop = ptr.To(l.PreStop.ToKubernetesType())
+	}
+	return lifecycle
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#resourcerequirements-v1-core.
 type ResourceRequirements struct {
 	// +optional
 	Limits corev1.ResourceList `json:"limits,omitempty"`
@@ -263,7 +318,7 @@ func (r ResourceRequirements) ToKubernetesType() corev1.ResourceRequirements {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#securitycontext-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core.
 type SecurityContext struct {
 	// +optional
 	Capabilities *corev1.Capabilities `json:"capabilities,omitempty"`
@@ -293,7 +348,7 @@ func (s SecurityContext) ToKubernetesType() corev1.SecurityContext {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podsecuritycontext-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core
 type PodSecurityContext struct {
 	// +optional
 	SELinuxOptions *corev1.SELinuxOptions `json:"seLinuxOptions,omitempty"`
@@ -330,7 +385,7 @@ func (s PodSecurityContext) ToKubernetesType() corev1.PodSecurityContext {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#serviceport-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#serviceport-v1-core
 type ServicePort struct {
 	Name string `json:"name"`
 	Port int32  `json:"port"`

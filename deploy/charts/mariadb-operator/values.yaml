@@ -8,7 +8,7 @@ crds:
   # and is later uninstalled, all MariaDB instances will be DELETED.
   enabled: false
 image:
-  repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
+  repository: ghcr.io/mariadb-operator/mariadb-operator
   pullPolicy: IfNotPresent
   # -- Image tag to use. By default the chart appVersion is used
   tag: ""
@@ -27,6 +27,10 @@ ha:
   enabled: false
   # -- Number of replicas
   replicas: 3
+# -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+revisionHistoryLimit: 10
+# -- Set deployment strategy
+strategy: {}
 metrics:
   # -- Enable operator internal metrics. Prometheus must be installed in the cluster
   enabled: false
@@ -124,7 +128,7 @@ webhook:
   # -- Specifies whether the webhook should be created.
   enabled: true
   image:
-    repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
+    repository: ghcr.io/mariadb-operator/mariadb-operator
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
     tag: ""
@@ -136,6 +140,10 @@ webhook:
     enabled: false
     # -- Number of replicas
     replicas: 3
+  # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+  revisionHistoryLimit: 10
+  # -- Set deployment strategy
+  strategy: {}
   cert:
     certManager:
       # -- Whether to use cert-manager to issue and rotate the certificate. If set to false, mariadb-operator's cert-controller will be used instead.
@@ -227,7 +235,7 @@ certController:
   # -- Specifies whether the cert-controller should be created.
   enabled: true
   image:
-    repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
+    repository: ghcr.io/mariadb-operator/mariadb-operator
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
     tag: ""
@@ -239,6 +247,10 @@ certController:
     enabled: false
     # -- Number of replicas
     replicas: 3
+  # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
+  revisionHistoryLimit: 10
+  # -- Set deployment strategy
+  strategy: {}
   # -- CA certificate lifetime. It must be greater than certLifetime.
   caLifetime: 26280h
   # -- Certificate lifetime.
@@ -313,13 +325,13 @@ config:
   mariadbDefaultVersion: "11.8"
   # -- Default MariaDB image
   mariadbImage:
-    repository: docker-registry1.mariadb.com/library/mariadb
-    tag: 11.8.5
+    repository: mariadb
+    tag: 11.8.8
   # -- Default MariaDB image name
-  mariadbImageName: docker-registry1.mariadb.com/library/mariadb
+  mariadbImageName: mariadb
   # -- Default MaxScale image
   maxscaleImage:
-    repository: docker-registry2.mariadb.com/mariadb/maxscale
+    repository: mariadb/maxscale
     tag: 23.08.5
   # -- Default MariaDB exporter image
   exporterImage:
@@ -327,5 +339,5 @@ config:
     tag: v0.15.1
   # -- Default MaxScale exporter image
   exporterMaxscaleImage:
-    repository: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi
+    repository: mariadb/maxscale-prometheus-exporter-ubi
     tag: v0.0.1

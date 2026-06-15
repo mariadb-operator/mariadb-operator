@@ -249,6 +249,18 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
+	// GtidDomainID is gtid_domain_id for all of the MariaDB nodes.
+	// It is immutable.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	GtidDomainID *int `json:"gtidDomainId,omitempty" webhook:"inmutable"`
+	// ServerIDStartIndex sets the start index of the MariaDB nodes. Each subsequent replica will increment this by 1.
+	// It is immutable.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#server_id
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServerIDStartIndex *int `json:"serverIdStartIndex,omitempty" webhook:"inmutable"`
 	// SemiSyncEnabled determines whether semi-synchronous replication is enabled.
 	// Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node
 	// before committing the transaction back to the client.
@@ -459,8 +471,13 @@ func (m *MariaDB) IsReplicationSwitchoverRequired() bool {
 type ReplicationRole string
 
 const (
+	// ReplicationRolePrimary is the primary Pod in a replication cluster.
 	ReplicationRolePrimary ReplicationRole = "Primary"
+	// ReplicationRoleReplica is the replica Pod in a replication cluster.
 	ReplicationRoleReplica ReplicationRole = "Replica"
+	// ReplicationRolePrimaryReplica is the primary Pod in a replica cluster, when using a multi-cluster topology.
+	ReplicationRolePrimaryReplica ReplicationRole = "PrimaryReplica"
+	// ReplicationRoleUnknown is an unknown replication state.
 	ReplicationRoleUnknown ReplicationRole = "Unknown"
 )
 
@@ -502,6 +519,10 @@ type ReplicaStatusVars struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	GtidCurrentPos *string `json:"gtidCurrentPos,omitempty"`
+	// UsingGtid is the GTID position mode (Slave_Pos or Current_Pos)
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	UsingGtid *string `json:"usingGtid,omitempty"`
 }
 
 // EqualErrors determines equality of error codes.
@@ -541,6 +562,10 @@ type ReplicationStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicaToRecover *string `json:"replicaToRecover,omitempty"`
+	// GtidStrictModePaused indicates that gtid_strict_mode has been temporarily paused.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	GtidStrictModePaused *bool `json:"gtidStrictModePaused,omitempty"`
 }
 
 // UseStandaloneProbes indicates whether to use the default non-HA startup and liveness probes.

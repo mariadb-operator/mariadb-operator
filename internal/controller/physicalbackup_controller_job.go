@@ -183,28 +183,34 @@ func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mari
 	}
 
 	var completeJobs []*batchv1.Job
+	var failedJobs []*batchv1.Job
 	for _, job := range jobList.Items {
 		if jobpkg.IsJobComplete(&job) {
 			completeJobs = append(completeJobs, &job)
+		} else if jobpkg.IsJobFailed(&job) {
+			failedJobs = append(failedJobs, &job)
 		}
 	}
 	maxHistory := int(ptr.Deref(backup.Spec.SuccessfulJobsHistoryLimit, 5))
-	if len(completeJobs) <= maxHistory {
-		return nil
-	}
-
-	if err := sortByObjectTime(completeJobs); err != nil {
-		return err
-	}
-
-	for i := maxHistory; i < len(completeJobs); i++ {
-		job := completeJobs[i]
-
-		err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)})
-		if err != nil && !apierrors.IsNotFound(err) {
-			return fmt.Errorf("error deleting Job \"%s\": %v", job.Name, err)
+	if len(completeJobs) > maxHistory {
+		if err := sortByObjectTime(completeJobs); err != nil {
+			return err
 		}
-		logger.V(1).Info("Deleted old Job", "job", job.Name, "physicalbackup", backup.Name)
+
+		if err := deleteOldJobs(ctx, r.Client, completeJobs, maxHistory, logger, backup.Name); err != nil {
+			return err
+		}
+	}
+
+	maxFailedHistory := int(ptr.Deref(backup.Spec.FailedJobsHistoryLimit, 5))
+	if len(failedJobs) > maxFailedHistory {
+		if err := sortByObjectTime(failedJobs); err != nil {
+			return err
+		}
+
+		if err := deleteOldJobs(ctx, r.Client, failedJobs, maxFailedHistory, logger, backup.Name); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -226,6 +232,11 @@ func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, backu
 
 			logger.V(1).Info("PhysicalBackup Job is still running. Requeuing...", "job", job.Name)
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+
+		if jobpkg.IsJobFailed(&job) {
+			logger.V(1).Info("PhysicalBackup Job has failed. Skipping to allow new schedule...", "job", job.Name)
+			continue
 		}
 
 		if !jobpkg.IsJobComplete(&job) {

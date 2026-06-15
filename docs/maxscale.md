@@ -109,7 +109,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+        metallb.io/loadBalancerIPs: 172.18.0.224
 ```
 
 As you can see, the [MaxScale resources](#maxscale-resources) we previously mentioned have a counterpart resource in the `MaxScale` CR. 
@@ -169,7 +169,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+        metallb.io/loadBalancerIPs: 172.18.0.214
 ```
 
 You also need to set a reference in the `MariaDB` resource to make it `MaxScale`-aware. This is explained in the [MariaDB CR](#mariadb-cr) section.
@@ -415,7 +415,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+        metallb.io/loadBalancerIPs: 172.18.0.224
 ```
 
 This results in the reconciliation of the following `Service`:
@@ -425,7 +425,7 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    metallb.universe.tf/loadBalancerIPs: 172.18.0.229
+    metallb.io/loadBalancerIPs: 172.18.0.229
   name: maxscale-galera
 spec:
 ...
@@ -567,7 +567,7 @@ spec:
     metadata:
       metadata:
         annotations:
-          metallb.universe.tf/loadBalancerIPs: 172.18.0.231
+          metallb.io/loadBalancerIPs: 172.18.0.231
 ```
 
 The GUI is exposed via a dedicated Kubernetes `Service` in the same port as the [MaxScale API](#maxscale-api). Once you access, you will need to enter the [MaxScale API](#maxscale-api) credentials configured by `mariadb-operator` in a `Secret`. See the [Authentication](#authentication) section for more details.
