@@ -2008,6 +2008,39 @@ func TestMariadbContainers(t *testing.T) {
 	}
 }
 
+func TestMariadbSidecarContainersRespectPodOpts(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	mariadb := &mariadbv1alpha1.MariaDB{
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+				SidecarContainers: []mariadbv1alpha1.Container{
+					{
+						Name:  "sidecar",
+						Image: "busybox",
+					},
+				},
+			},
+			Galera: &mariadbv1alpha1.Galera{
+				Enabled: true,
+			},
+		},
+	}
+
+	containers, err := builder.mariadbContainers(
+		mariadb,
+		withDataPlane(false),
+		withServiceAccount(false),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error building containers: %v", err)
+	}
+
+	sidecar := containers[1]
+	if hasContainerVolumeMount(sidecar, ServiceAccountVolume) {
+		t.Errorf("did not expect sidecar container to have %q VolumeMount", ServiceAccountVolume)
+	}
+}
+
 func TestMariadbInitContainers(t *testing.T) {
 	tests := []struct {
 		name                string
@@ -2171,6 +2204,45 @@ func TestMariadbInitContainers(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMariadbInitContainersRespectPodOpts(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	mariadb := &mariadbv1alpha1.MariaDB{
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+				InitContainers: []mariadbv1alpha1.Container{
+					{
+						Name:  "init",
+						Image: "busybox",
+					},
+				},
+			},
+			Galera: &mariadbv1alpha1.Galera{
+				Enabled: true,
+			},
+		},
+	}
+
+	initContainers, err := builder.mariadbInitContainers(
+		mariadb,
+		withDataPlane(false),
+		withServiceAccount(false),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error building init containers: %v", err)
+	}
+
+	initContainer := initContainers[0]
+	if hasContainerVolumeMount(initContainer, ServiceAccountVolume) {
+		t.Errorf("did not expect init container to have %q VolumeMount", ServiceAccountVolume)
+	}
+}
+
+func hasContainerVolumeMount(container corev1.Container, name string) bool {
+	return datastructures.Find(container.VolumeMounts, func(volumeMount corev1.VolumeMount) bool {
+		return volumeMount.Name == name
+	}) != nil
 }
 
 func TestMaxscaleContainers(t *testing.T) {
