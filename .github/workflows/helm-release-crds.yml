@@ -19,6 +19,19 @@ jobs:
         id: tag
         run: echo "name=mariadb-operator-crds-$(make helm-crds-version)" >> $GITHUB_OUTPUT
 
+      - name: Previous tag
+        id: prev
+        run: |
+          git fetch --force --tags
+          CUR="${{ steps.tag.outputs.name }}"
+          # Greatest CRDs chart tag strictly below the current one.
+          # sort -V orders ascending, so the line before CUR is its predecessor.
+          PREV=$( { git tag -l 'mariadb-operator-crds-*' \
+              | grep -E '^mariadb-operator-crds-[0-9]+\.[0-9]+\.[0-9]+$'; echo "$CUR"; } \
+            | sort -V | uniq | grep -xF -B1 -- "$CUR" | head -n 1 )
+          [ "$PREV" = "$CUR" ] && PREV=""   # no predecessor -> let GitHub auto-detect
+          echo "name=${PREV}" >> $GITHUB_OUTPUT
+
       - name: Helm generate
         run: make helm-gen
 
@@ -31,6 +44,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: "${{ steps.tag.outputs.name }}"
+          previous_tag: "${{ steps.prev.outputs.name }}"
+          generate_release_notes: true
           files: |
             dist/crds/crds.yaml
         env:
