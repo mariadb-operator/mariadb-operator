@@ -1,0 +1,28 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  replicas: 3
+  replication:
+    enabled: true
+  bootstrapFrom:
+    # Restore closest physical backup, then replay binary logs to targetRecoveryTime.
+    pointInTimeRecoveryRef:
+      name: pitr
+    # Second-level precision — minimises data loss.
+    targetRecoveryTime: "2025-06-18T14:37:52Z"
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 100Gi
+        accessModes:
+          - ReadWriteOnce
+    restoreJob:
+      resources:
+        requests:
+          cpu: "2"
+          memory: 2Gi
+        limits:
+          memory: 4Gi
