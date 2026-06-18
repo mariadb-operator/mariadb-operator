@@ -1,0 +1,25 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
+  replicas: 2
+  mariaDbRef:
+    name: mariadb
+  services:
+    - name: rw-router
+      router: readwritesplit
+      listener:
+        port: 3306
+  monitor:
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+  config:
+    sync:
+      database: mysql
+  auth:
+    generate: true
+  tls:
+    enabled: true
+  metrics:
+    enabled: true

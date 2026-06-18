@@ -1,0 +1,21 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-central
+spec:
+  replicas: 3
+  replication:
+    enabled: true
+    semiSyncEnabled: false   # cross-region latency makes semi-sync impractical
+    primary:
+      autoFailover: true
+  multiCluster:
+    enabled: true
+    primary: mariadb-eu-south
+    members:
+      - name: mariadb-eu-south
+        externalMariaDbRef:
+          name: mariadb-eu-south
+      - name: mariadb-eu-central
+        externalMariaDbRef:
+          name: mariadb-eu-central

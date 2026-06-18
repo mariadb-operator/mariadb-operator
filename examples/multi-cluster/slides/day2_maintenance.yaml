@@ -1,0 +1,20 @@
+# Maintenance mode: fine-grained control over traffic during planned windows.
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  maintenance:
+    enabled: true
+    cordon: true           # reject new connections
+    drainConnections: true # gracefully terminate in-flight queries
+    drainGracePeriodSeconds: 30
+    readOnly: true         # prevent accidental writes
+---
+# Suspend: pause all operator reconciliation for fully manual control.
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  suspend: true

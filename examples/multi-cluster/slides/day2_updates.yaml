@@ -1,0 +1,16 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  updateStrategy:
+    # Default rolling strategy: update replicas first, then the primary last.
+    # Minimizes disruption — reads remain available throughout.
+    type: ReplicasFirstPrimaryLast
+
+    # Pause automatic image updates during a maintenance freeze or staged rollout.
+    # type: Never
+
+    # After upgrading the operator, automatically update the Galera agent sidecar
+    # and init-container images to match the new operator version.
+    autoUpdateDataPlane: true
