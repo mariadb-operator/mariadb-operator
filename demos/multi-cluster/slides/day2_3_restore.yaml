@@ -7,7 +7,7 @@ spec:
   replication:
     enabled: true
   bootstrapFrom:
-    # A) Restore the closest PhysicalBackup snapshot.
+    # A) Restore the closest PhysicalBackup.
     backupRef:
       name: physicalbackup
       kind: PhysicalBackup

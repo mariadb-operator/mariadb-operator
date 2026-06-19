@@ -10,7 +10,6 @@ spec:
     limits:
       cpu: "4"
       memory: 8Gi
-
   # innodb_buffer_pool_size should be 70-80% of the memory limit.
   myCnf: |
     [mariadb]

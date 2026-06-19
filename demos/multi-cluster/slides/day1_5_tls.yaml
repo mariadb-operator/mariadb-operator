@@ -21,3 +21,5 @@ spec:
     # Option C: bring your own CA stored in a Secret.
     serverCASecretRef:
       name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-client-ca

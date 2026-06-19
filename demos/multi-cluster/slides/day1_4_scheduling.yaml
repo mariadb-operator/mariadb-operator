@@ -4,30 +4,24 @@ metadata:
   name: mariadb
 spec:
   replicas: 3
-
   # Schedule each replica on a different node for true HA.
   affinity:
     antiAffinityEnabled: true
-
   # Pin Pods to DB-dedicated nodes (high IOPs, high bandwidth).
   nodeSelector:
     node.kubernetes.io/instance-type: m6in.xlarge
-
   # Spread replicas evenly across availability zones.
   topologySpreadConstraints:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: DoNotSchedule
-
   # Tolerate the taint applied to dedicated DB nodes.
   tolerations:
     - key: "mariadb.com/dedicated"
       operator: "Exists"
       effect: "NoSchedule"
-
   # Limit voluntary disruptions e.g. during upgrades.
   podDisruptionBudget:
     maxUnavailable: "1"
-
   # Prevent eviction under node pressure — treated as a system-level workload.
   priorityClassName: system-node-critical
