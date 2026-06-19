@@ -1,0 +1,34 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  # Root password may be rotated at any point by updating the referred Secret.
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: app
+spec:
+  mariaDbRef:
+    name: mariadb
+  passwordSecretKeyRef:
+    name: app-credentials
+    key: password
+  host: "%"
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Grant
+metadata:
+  name: app
+spec:
+  mariaDbRef:
+    name: mariadb
+  username: app
+  host: "%"
+  database: myapp
+  table: "*"
+  privileges: [SELECT, INSERT, UPDATE, DELETE]

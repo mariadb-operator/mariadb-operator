@@ -1,0 +1,29 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  pointInTimeRecoveryRef:
+    name: pitr          # agent streams binary logs automatically
+  myCnf: |
+    [mariadb]
+    max_binlog_size=256M  # tune to balance RPO vs. server overhead
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PointInTimeRecovery
+metadata:
+  name: pitr
+spec:
+  physicalBackupRef:
+    name: physicalbackup
+  archiveTimeout: 5m
+  storage:
+    s3:
+      bucket: binlogs
+      endpoint: s3.amazonaws.com
+      accessKeyIdSecretKeyRef:
+        name: s3-credentials
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: s3-credentials
+        key: secret-access-key

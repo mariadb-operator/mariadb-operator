@@ -1,0 +1,25 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  replicas: 3
+  replication:
+    enabled: true
+  bootstrapFrom:
+    # A) Restore the closest PhysicalBackup snapshot.
+    backupRef:
+      name: physicalbackup
+      kind: PhysicalBackup
+
+    # B) PITR — restore the closest PhysicalBackup, then replay binary logs up to targetRecoveryTime.
+    pointInTimeRecoveryRef:
+      name: pitr
+    targetRecoveryTime: "2025-06-18T14:37:52Z"
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 100Gi
+        accessModes:
+          - ReadWriteOnce

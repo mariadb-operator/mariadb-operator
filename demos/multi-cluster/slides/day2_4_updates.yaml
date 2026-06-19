@@ -1,0 +1,32 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  updateStrategy:
+    # Default rolling strategy: update replicas first, then the primary last.
+    # Minimizes disruption — reads remain available throughout.
+    type: ReplicasFirstPrimaryLast
+    # After upgrading the operator, automatically update the agent sidecar
+    # and init-container images to match the new operator version.
+    autoUpdateDataPlane: true
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  updateStrategy:
+    # Pause automatic image updates during a maintenance freeze or staged rollout.
+    type: Never
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  updateStrategy:
+    # Manually control which Pods are updated by deleting them individually.
+    # The operator marks the MariaDB as "Pending update" — delete a Pod to trigger
+    # its update, giving full control over the rollout sequence and pace.
+    type: OnDelete

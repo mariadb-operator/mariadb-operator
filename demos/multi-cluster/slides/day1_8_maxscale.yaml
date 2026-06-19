@@ -1,0 +1,29 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
+  replicas: 2
+  mariaDbRef:
+    name: mariadb
+  # Route writes to primary, reads to replicas.
+  services:
+    - name: rw-router
+      router: readwritesplit
+      listener:
+        port: 3306
+  monitor:
+    interval: 2s
+    # Elect a leader among MaxScale instances — only one performs failover.
+    cooperativeMonitoring: majority_of_all
+  config:
+    # Replicate MaxScale config across instances via the mariadb database.
+    sync:
+      database: mysql
+  # Operator manages MaxScale credentials automatically.
+  auth:
+    generate: true
+  tls:
+    enabled: true
+  metrics:
+    enabled: true
