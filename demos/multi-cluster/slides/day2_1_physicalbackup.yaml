@@ -7,6 +7,7 @@ spec:
     name: mariadb
   schedule:
     cron: "0 2 * * *"      # daily at 02:00
+    # onDemand: "1"        # update this identifier to schedule an on-demand backup.
   target: Replica          # zero impact on the primary
   compression: bzip2
   maxRetention: 720h       # 30 days
