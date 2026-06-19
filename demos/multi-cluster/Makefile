@@ -11,6 +11,11 @@ HELM_OCI_REGISTRY ?= oci://ghcr.io/mariadb-operator/charts
 KUBECONFIG_EU_SOUTH ?= /tmp/kubeconfig-eu-south
 KUBECONFIG_EU_CENTRAL ?= /tmp/kubeconfig-eu-central
 
+##@ Install
+
+.PHONY: multi-cluster
+multi-cluster: clusters pki config coredns operator metallb minio ## Install the full multi-cluster demo environment.
+
 ##@ Cluster
 
 .PHONY: cluster-eu-south
@@ -35,19 +40,39 @@ cluster-delete-eu-central: ## Delete eu-central kind cluster.
 .PHONY: clusters-delete
 clusters-delete: cluster-delete-eu-south cluster-delete-eu-central ## Delete all kind clusters.
 
-##@ Kubeconfig
+##@ Config
 
 .PHONY: kubeconfig
 kubeconfig: kind ## Export kubeconfig for all clusters.
 	$(KIND) export kubeconfig --name eu-south --kubeconfig $(KUBECONFIG_EU_SOUTH)
 	$(KIND) export kubeconfig --name eu-central --kubeconfig $(KUBECONFIG_EU_CENTRAL)
 
-##@ PKI
-
 .PHONY: pki
 pki: kubeconfig ## Generate PKI and install the same certificates in both clusters.
 	KUBECONFIG=$(KUBECONFIG_EU_SOUTH) $(MAKE) cert
 	KUBECONFIG=$(KUBECONFIG_EU_CENTRAL) $(MAKE) cert
+
+.PHONY: config-eu-south
+config-eu-south: kubeconfig ## Install common configuration in eu-south.
+	KUBECONFIG=$(KUBECONFIG_EU_SOUTH) kubectl apply -f $(ROOT_DIR)/examples/manifests/config
+
+.PHONY: config-eu-central
+config-eu-central: kubeconfig ## Install common configuration in eu-central.
+	KUBECONFIG=$(KUBECONFIG_EU_CENTRAL) kubectl apply -f $(ROOT_DIR)/examples/manifests/config
+
+.PHONY: config
+config: config-eu-south config-eu-central ## Install common configuration in all clusters.
+
+.PHONY: coredns-eu-south
+coredns-eu-south: kubeconfig ## Patch CoreDNS ConfigMap and restart CoreDNS in eu-south.
+	KUBECONFIG=$(KUBECONFIG_EU_SOUTH) $(CURDIR)/hack/patch_coredns.sh
+
+.PHONY: coredns-eu-central
+coredns-eu-central: kubeconfig ## Patch CoreDNS ConfigMap and restart CoreDNS in eu-central.
+	KUBECONFIG=$(KUBECONFIG_EU_CENTRAL) $(CURDIR)/hack/patch_coredns.sh
+
+.PHONY: coredns
+coredns: coredns-eu-south coredns-eu-central ## Patch CoreDNS in all clusters.
 
 ##@ Deploy
 
@@ -81,13 +106,6 @@ metallb-eu-central: kubeconfig helm ## Install metallb in eu-central.
 .PHONY: metallb
 metallb: metallb-eu-south metallb-eu-central ## Install metallb in all clusters.
 
-.PHONY: minio-eu-south
-minio-eu-south: helm ## Install minio in eu-south.
-	KUBECONFIG=$(KUBECONFIG_EU_SOUTH) MINIO_VERSION=$(MINIO_VERSION) HELM=$(HELM) $(ROOT_DIR)/hack/install_minio.sh
-
-.PHONY: minio-eu-central
-minio-eu-central: helm ## Install minio in eu-central.
-	KUBECONFIG=$(KUBECONFIG_EU_CENTRAL) MINIO_VERSION=$(MINIO_VERSION) HELM=$(HELM) $(ROOT_DIR)/hack/install_minio.sh
-
 .PHONY: minio
-minio: minio-eu-south minio-eu-central ## Install minio in all clusters.
+minio: helm ## Install minio in eu-south.
+	KUBECONFIG=$(KUBECONFIG_EU_SOUTH) MINIO_VERSION=$(MINIO_VERSION) HELM=$(HELM) $(ROOT_DIR)/hack/install_minio.sh
