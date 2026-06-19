@@ -1,0 +1,27 @@
+# Label the ConfigMap with k8s.mariadb.com/watch — any edit triggers a rolling update.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mariadb-config
+  labels:
+    k8s.mariadb.com/watch: ""
+data:
+  my.cnf: |
+    [mariadb]
+    innodb_buffer_pool_size=9600M
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  resources:
+    requests:
+      cpu: "4"
+      memory: 12Gi
+    limits:
+      cpu: "4"
+      memory: 12Gi
+  myCnfConfigMapKeyRef:
+    name: mariadb-config
+    key: my.cnf
