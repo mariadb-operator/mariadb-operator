@@ -1,0 +1,80 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+  storage:
+    size: 1Gi
+  replicas: 2
+  replication:
+    enabled: true
+    gtidDomainId: 0
+    serverIdStartIndex: 10
+    semiSyncEnabled: false
+    replica:
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.10
+  tls:
+    enabled: true
+    required: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    serverCertAdditionalNames:
+      - mariadb-eu-south.mariadb.com
+    clientCASecretRef:
+      name: mariadb-server-ca
+  multiCluster:
+    enabled: true
+    primary: mariadb-eu-south
+    members:
+      - name: mariadb-eu-south
+        externalMariaDbRef:
+          name: mariadb-eu-south
+      - name: mariadb-eu-central
+        externalMariaDbRef:
+          name: mariadb-eu-central
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  host: mariadb-eu-south.mariadb.com
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-server-ca
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-central
+spec:
+  host: mariadb-eu-central.mariadb.com
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-server-ca

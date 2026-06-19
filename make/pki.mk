@@ -260,7 +260,7 @@ cert-minio: ca ## Generates minio private key and certificate for local developm
 	CERT=$(MINIO_PKI_DIR)/tls.crt \
 	KEY=$(MINIO_PKI_DIR)/tls.key \
 	CERT_SUBJECT="/CN=minio.minio.svc.cluster.local" \
-	CERT_ALT_NAMES="subjectAltName=DNS:minio,DNS:minio.minio,DNS:minio.minio.svc.cluster.local" \
+	CERT_ALT_NAMES="subjectAltName=DNS:minio,DNS:minio.minio,DNS:minio.minio.svc.cluster.local,DNS:minio.mariadb.com" \
 	$(MAKE) cert-leaf
 
 # Secrets =================================================================================================================================
