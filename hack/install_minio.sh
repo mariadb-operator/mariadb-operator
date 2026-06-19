@@ -16,7 +16,8 @@ fi
 ${HELM} repo add minio https://charts.min.io/
 ${HELM} repo update minio
 
-CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix/main.go)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+CIDR_PREFIX=$(go run $SCRIPT_DIR/get_kind_cidr_prefix/main.go)
 
 ${HELM} upgrade --install \
   --version $MINIO_VERSION \
