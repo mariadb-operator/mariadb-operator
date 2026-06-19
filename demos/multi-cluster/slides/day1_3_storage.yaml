@@ -1,0 +1,14 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  storage:
+    # StorageClass is immutable, choose carefully at provisioning time.
+    # Local storage (e.g. topolvm) avoids network latency.
+    storageClassName: topolvm-provisioner
+    size: 100Gi
+    # Grow the volume at runtime: bump size and the operator handles the resize.
+    # The StorageClass must have allowVolumeExpansion: true.
+    resizeInUseVolumes: true
+    waitForVolumeResize: true

@@ -1,0 +1,30 @@
+# Standalone — single node (dev, test)
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  replicas: 1
+---
+# Replication — semi-syncrhonous replication, automated primary failover (recommended)
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  replicas: 3
+  replication:
+    enabled: true
+    semiSyncEnabled: true
+    primary:
+      autoFailover: true
+---
+# Galera — synchronous multi-master
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  replicas: 3
+  galera:
+    enabled: true

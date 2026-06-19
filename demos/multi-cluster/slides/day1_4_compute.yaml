@@ -1,0 +1,17 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  resources:
+    requests:
+      cpu: "4"
+      memory: 8Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+
+  # innodb_buffer_pool_size should be 70-80% of the memory limit.
+  myCnf: |
+    [mariadb]
+    innodb_buffer_pool_size=6400M
