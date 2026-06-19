@@ -4,9 +4,9 @@ metadata:
   name: mariadb
 spec:
   storage:
-    # StorageClass is immutable, choose carefully at provisioning time.
+    # Choose any StorageClass available in your cluster.
     # Local storage (e.g. topolvm) avoids network latency.
-    storageClassName: topolvm-provisioner
+    storageClassName: topolvm
     size: 100Gi
     # Grow the volume at runtime: bump size and the operator handles the resize.
     # The StorageClass must have allowVolumeExpansion: true.
