@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36">
   <diagram name="Page-1" id="QWItbx3iXY0n-57w8qC-">
-    <mxGraphModel dx="4040" dy="3069" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="3142" dy="2631" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -163,6 +163,15 @@
           <mxGeometry x="3240" y="429.99999999999994" as="geometry">
             <mxPoint x="16" y="-4" as="offset" />
           </mxGeometry>
+        </mxCell>
+        <mxCell id="_kosXl3Od0K4CEjULI1e-9" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=32;" value="mariadb-eu-south.mariadb.com" vertex="1">
+          <mxGeometry height="30" width="487.92" x="1031" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="_kosXl3Od0K4CEjULI1e-10" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=32;" value="mariadb-eu-central.mariadb.com" vertex="1">
+          <mxGeometry height="30" width="487.92" x="2731" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="_kosXl3Od0K4CEjULI1e-11" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=32;" value="app.mariadb.com" vertex="1">
+          <mxGeometry height="30" width="260" x="2350" y="-240" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
