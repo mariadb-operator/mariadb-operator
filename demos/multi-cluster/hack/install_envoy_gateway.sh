@@ -30,10 +30,8 @@ ${HELM} upgrade --install envoy-gateway \
   oci://docker.io/envoyproxy/gateway-helm \
   --version ${ENVOY_GATEWAY_VERSION} \
   -n envoy-gateway-system --create-namespace \
-  --skip-crds
-
-kubectl wait --for=condition=Available deployment/envoy-gateway \
-  -n envoy-gateway-system --timeout=60s
+  --skip-crds \
+  --set config.envoyGateway.extensionApis.enableBackend=true
 
 kubectl apply -f $MANIFESTS/envoy-proxy.yaml
 kubectl apply -f $MANIFESTS/gateway.yaml
