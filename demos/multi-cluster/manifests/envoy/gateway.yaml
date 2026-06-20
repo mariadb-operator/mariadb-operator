@@ -19,11 +19,9 @@ spec:
   gatewayClassName: mariadb-eg
   listeners:
     - name: mariadb
-      protocol: TLS
+      protocol: TCP
       port: 3306
-      tls:
-        mode: Passthrough
       allowedRoutes:
         kinds:
           - group: gateway.networking.k8s.io
-            kind: TLSRoute
+            kind: TCPRoute
