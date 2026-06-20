@@ -8,13 +8,15 @@ include $(ROOT_DIR)/make/pki.mk
 
 OPERATOR_VERSION ?= 26.6.0
 HELM_OCI_REGISTRY ?= oci://ghcr.io/mariadb-operator/charts
+ENVOY_GATEWAY_VERSION ?= v1.8.1
 KUBECONFIG_EU_SOUTH ?= /tmp/kubeconfig-eu-south
 KUBECONFIG_EU_CENTRAL ?= /tmp/kubeconfig-eu-central
+KUBECONFIG_ENVOY ?= /tmp/kubeconfig-envoy
 
 ##@ Install
 
 .PHONY: multi-cluster
-multi-cluster: clusters pki config coredns operator metallb minio ## Install the full multi-cluster demo environment.
+multi-cluster: host clusters pki config coredns operator metallb minio envoy-gateway ## Install the full multi-cluster demo environment.
 
 ##@ Cluster
 
@@ -26,8 +28,12 @@ cluster-eu-south: ## Create eu-south kind cluster.
 cluster-eu-central: ## Create eu-central kind cluster.
 	$(MAKE) cluster CLUSTER=eu-central
 
+.PHONY: cluster-envoy
+cluster-envoy: ## Create envoy kind cluster.
+	$(MAKE) cluster CLUSTER=envoy
+
 .PHONY: clusters
-clusters: cluster-eu-south cluster-eu-central ## Create all kind clusters.
+clusters: cluster-eu-south cluster-eu-central cluster-envoy ## Create all kind clusters.
 
 .PHONY: cluster-delete-eu-south
 cluster-delete-eu-south: ## Delete eu-south kind cluster.
@@ -37,8 +43,12 @@ cluster-delete-eu-south: ## Delete eu-south kind cluster.
 cluster-delete-eu-central: ## Delete eu-central kind cluster.
 	$(MAKE) cluster-delete CLUSTER=eu-central
 
+.PHONY: cluster-delete-envoy
+cluster-delete-envoy: ## Delete envoy kind cluster.
+	$(MAKE) cluster-delete CLUSTER=envoy
+
 .PHONY: clusters-delete
-clusters-delete: cluster-delete-eu-south cluster-delete-eu-central ## Delete all kind clusters.
+clusters-delete: cluster-delete-eu-south cluster-delete-eu-central cluster-delete-envoy ## Delete all kind clusters.
 
 ##@ Config
 
@@ -46,6 +56,7 @@ clusters-delete: cluster-delete-eu-south cluster-delete-eu-central ## Delete all
 kubeconfig: kind ## Export kubeconfig for all clusters.
 	$(KIND) export kubeconfig --name eu-south --kubeconfig $(KUBECONFIG_EU_SOUTH)
 	$(KIND) export kubeconfig --name eu-central --kubeconfig $(KUBECONFIG_EU_CENTRAL)
+	$(KIND) export kubeconfig --name envoy --kubeconfig $(KUBECONFIG_ENVOY)
 
 .PHONY: pki
 pki: kubeconfig ## Generate PKI and install the same certificates in both clusters.
@@ -73,6 +84,10 @@ coredns-eu-central: kubeconfig ## Patch CoreDNS ConfigMap and restart CoreDNS in
 
 .PHONY: coredns
 coredns: coredns-eu-south coredns-eu-central ## Patch CoreDNS in all clusters.
+
+.PHONY: host
+host: ## Add app.mariadb.com to /etc/hosts.
+	@$(ROOT_DIR)/hack/add_host.sh 1 100 app.mariadb.com
 
 ##@ Deploy
 
@@ -103,8 +118,16 @@ metallb-eu-south: kubeconfig helm ## Install metallb in eu-south.
 metallb-eu-central: kubeconfig helm ## Install metallb in eu-central.
 	KUBECONFIG=$(KUBECONFIG_EU_CENTRAL) METALLB_VERSION=$(METALLB_VERSION) HELM=$(HELM) $(ROOT_DIR)/hack/install_metallb.sh
 
+.PHONY: metallb-envoy
+metallb-envoy: kubeconfig helm ## Install metallb in envoy cluster.
+	KUBECONFIG=$(KUBECONFIG_ENVOY) METALLB_VERSION=$(METALLB_VERSION) HELM=$(HELM) $(ROOT_DIR)/hack/install_metallb.sh
+
 .PHONY: metallb
-metallb: metallb-eu-south metallb-eu-central ## Install metallb in all clusters.
+metallb: metallb-eu-south metallb-eu-central metallb-envoy ## Install metallb in all clusters.
+
+.PHONY: envoy-gateway
+envoy-gateway: helm kubeconfig ## Install Envoy Gateway in the envoy cluster.
+	KUBECONFIG=$(KUBECONFIG_ENVOY) ENVOY_GATEWAY_VERSION=$(ENVOY_GATEWAY_VERSION) HELM=$(HELM) $(CURDIR)/hack/install_envoy_gateway.sh
 
 .PHONY: minio
 minio: helm ## Install minio in eu-south.
