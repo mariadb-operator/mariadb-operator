@@ -5,8 +5,8 @@ metadata:
   namespace: envoy-gateway-system
 spec:
   endpoints:
-    - ip:
-        address: 172.18.1.10
+    - fqdn:
+        hostname: mariadb-eu-south.mariadb.com
         port: 3306
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
@@ -16,12 +16,12 @@ metadata:
   namespace: envoy-gateway-system
 spec:
   endpoints:
-    - ip:
-        address: 172.18.1.15
+    - fqdn:
+        hostname: mariadb-eu-central.mariadb.com
         port: 3306
 ---
-apiVersion: gateway.networking.k8s.io/v1
-kind: TLSRoute
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
 metadata:
   name: mariadb
   namespace: envoy-gateway-system
@@ -29,8 +29,6 @@ spec:
   parentRefs:
     - name: mariadb-gateway
       sectionName: mariadb
-  hostnames:
-    - app.mariadb.com
   rules:
     - backendRefs:
         - group: gateway.envoyproxy.io

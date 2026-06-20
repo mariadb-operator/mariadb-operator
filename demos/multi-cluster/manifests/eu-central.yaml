@@ -47,6 +47,7 @@ spec:
       name: mariadb-server-ca
     serverCertAdditionalNames:
       - mariadb-eu-central.mariadb.com
+      - app.mariadb.com
     clientCASecretRef:
       name: mariadb-server-ca
   multiCluster:

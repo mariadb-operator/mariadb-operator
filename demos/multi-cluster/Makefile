@@ -18,6 +18,15 @@ KUBECONFIG_ENVOY ?= /tmp/kubeconfig-envoy
 .PHONY: multi-cluster
 multi-cluster: host clusters pki config coredns operator metallb minio envoy-gateway ## Install the full multi-cluster demo environment.
 
+##@ App
+
+APP_FLAGS ?= --host=app.mariadb.com --port=3306 \
+	--username=root --password=MariaDB11! --database=test --table=test --timeout=3s \
+	--ca-cert=/tmp/pki/ca/server.crt
+.PHONY: app
+app: ## Run the client app against app.mariadb.com in insert mode.
+	$(GO) run $(ROOT_DIR)/hack/client/*.go $(APP_FLAGS) 
+
 ##@ Cluster
 
 .PHONY: cluster-eu-south
@@ -82,11 +91,17 @@ coredns-eu-south: kubeconfig ## Patch CoreDNS ConfigMap and restart CoreDNS in e
 coredns-eu-central: kubeconfig ## Patch CoreDNS ConfigMap and restart CoreDNS in eu-central.
 	KUBECONFIG=$(KUBECONFIG_EU_CENTRAL) $(CURDIR)/hack/patch_coredns.sh
 
+.PHONY: coredns-envoy
+coredns-envoy: kubeconfig ## Patch CoreDNS ConfigMap and restart CoreDNS in envoy.
+	KUBECONFIG=$(KUBECONFIG_ENVOY) $(CURDIR)/hack/patch_coredns.sh
+
 .PHONY: coredns
-coredns: coredns-eu-south coredns-eu-central ## Patch CoreDNS in all clusters.
+coredns: coredns-eu-south coredns-eu-central coredns-envoy ## Patch CoreDNS in all clusters.
 
 .PHONY: host
 host: ## Add app.mariadb.com to /etc/hosts.
+	@$(ROOT_DIR)/hack/add_host.sh 1 10 mariadb-eu-south.mariadb.com
+	@$(ROOT_DIR)/hack/add_host.sh 1 15 mariadb-eu-central.mariadb.com
 	@$(ROOT_DIR)/hack/add_host.sh 1 100 app.mariadb.com
 
 ##@ Deploy
@@ -107,8 +122,6 @@ operator-eu-central: helm kubeconfig ## Deploy the operator in eu-central via OC
 
 .PHONY: operator
 operator: operator-eu-south operator-eu-central ## Deploy the operator in all clusters.
-
-##@ Install
 
 .PHONY: metallb-eu-south
 metallb-eu-south: kubeconfig helm ## Install metallb in eu-south.
