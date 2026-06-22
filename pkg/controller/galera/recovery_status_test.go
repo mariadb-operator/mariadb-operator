@@ -1186,9 +1186,51 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
-					Seqno: 4,
+					Seqno: 8,
 				},
-				pod: pod0,
+				pod: pod1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "issue 1701 safe to bootstrap on empty node",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 3,
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: false,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: true,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "8489ec18-246a-11f1-b580-d6b7feec7abb",
+								Seqno:           9318958,
+								SafeToBootstrap: true,
+							},
+						},
+					},
+				},
+			},
+			forceBootstrapInPod: nil,
+			wantSource: &bootstrapSource{
+				bootstrap: &recovery.Bootstrap{
+					UUID:  "8489ec18-246a-11f1-b580-d6b7feec7abb",
+					Seqno: 9318958,
+				},
+				pod: pod2,
 			},
 			wantErr: false,
 		},
@@ -1406,9 +1448,9 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 			wantSource: &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
-					Seqno: 6,
+					Seqno: 9,
 				},
-				pod: pod1,
+				pod: pod2,
 			},
 			wantErr: false,
 		},
