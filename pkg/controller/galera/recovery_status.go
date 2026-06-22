@@ -100,13 +100,6 @@ func (rs *recoveryStatus) recovered(pod string) (*recovery.Bootstrap, bool) {
 	return bootstrap, ok
 }
 
-func (rs *recoveryStatus) reset() {
-	rs.mux.Lock()
-	defer rs.mux.Unlock()
-
-	rs.inner = mariadbv1alpha1.GaleraRecoveryStatus{}
-}
-
 func (rs *recoveryStatus) resetBootstrap() {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
