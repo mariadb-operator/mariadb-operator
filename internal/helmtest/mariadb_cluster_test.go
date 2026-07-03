@@ -454,7 +454,9 @@ func TestClusterHelmExtraTemplates(t *testing.T) {
 
 	opts := &helm.Options{
 		SetJsonValues: map[string]string{
-			"extraTemplates[0]": `"apiVersion: v1\nkind: Secret\nmetadata:\n  name: {{ .Release.Name }}-extra-template-secret\ndata:\n  secret: cGFzc3dvcmQ="`,
+			"extraTemplates[0]": `"apiVersion: v1\nkind: Secret\n` +
+				`metadata:\n  name: {{ .Release.Name }}-extra-template-secret\n` +
+				`data:\n  secret: cGFzc3dvcmQ="`,
 		},
 		KubectlOptions: kubectlopts,
 	}
