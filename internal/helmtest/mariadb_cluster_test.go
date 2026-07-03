@@ -10,6 +10,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -420,4 +421,49 @@ func TestClusterHelmPhysicalBackup(t *testing.T) {
 
 	_, err := helm.RenderTemplateE(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/physicalbackup.yaml"})
 	Expect(err).To(HaveOccurred())
+}
+
+func TestClusterHelmExtraManifests(t *testing.T) {
+	RegisterTestingT(t)
+
+	manifestSecretName := "extra-manifest-secret"
+
+	opts := &helm.Options{
+		SetJsonValues: map[string]string{
+			"extraManifests[0]": fmt.Sprintf(
+				`{"apiVersion":"v1","kind":"Secret","metadata":{"name":"%s"},"data":{"secret":"cGFzc3dvcmQ="}}`,
+				manifestSecretName,
+			),
+		},
+		KubectlOptions: kubectlopts,
+	}
+
+	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/resources.yaml"})
+	var manifestSecret corev1.Secret
+	helm.UnmarshalK8SYaml(t, renderedData, &manifestSecret)
+
+	Expect(manifestSecret.Name).To(Equal(manifestSecretName))
+	Expect(manifestSecret.Data).To(HaveKeyWithValue("secret", []byte("password")))
+	Expect(manifestSecret.Labels).To(HaveKeyWithValue("app.kubernetes.io/instance", clusterHelmReleaseName))
+}
+
+func TestClusterHelmExtraTemplates(t *testing.T) {
+	RegisterTestingT(t)
+
+	templateSecretName := fmt.Sprintf("%s-extra-template-secret", clusterHelmReleaseName)
+
+	opts := &helm.Options{
+		SetJsonValues: map[string]string{
+			"extraTemplates[0]": `"apiVersion: v1\nkind: Secret\nmetadata:\n  name: {{ .Release.Name }}-extra-template-secret\ndata:\n  secret: cGFzc3dvcmQ="`,
+		},
+		KubectlOptions: kubectlopts,
+	}
+
+	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/resources.yaml"})
+	var templateSecret corev1.Secret
+	helm.UnmarshalK8SYaml(t, renderedData, &templateSecret)
+
+	Expect(templateSecret.Name).To(Equal(templateSecretName))
+	Expect(templateSecret.Data).To(HaveKeyWithValue("secret", []byte("password")))
+	Expect(templateSecret.Labels).To(HaveKeyWithValue("app.kubernetes.io/instance", clusterHelmReleaseName))
 }

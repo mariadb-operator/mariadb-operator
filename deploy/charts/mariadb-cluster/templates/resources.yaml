@@ -1,0 +1,11 @@
+{{- if or .Values.extraManifests .Values.extraTemplates }}
+{{- $base := fromYaml (include "mariadb-cluster.baseLabels" .) -}}
+{{- range .Values.extraManifests }}
+---
+{{- toYaml (merge . $base) }}
+{{- end }}
+{{- range .Values.extraTemplates }}
+---
+{{- toYaml (merge (fromYaml (tpl . $)) $base) }}
+{{- end }}
+{{- end }}
