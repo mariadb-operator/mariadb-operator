@@ -135,3 +135,12 @@ Generate names for Secret references
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Base for custom raw & templated resources
+*/}}
+{{- define "mariadb-cluster.baseLabels" -}}
+metadata:
+  labels:
+    {{- include "mariadb-cluster.labels" $ | nindent 4 }}
+{{- end }}

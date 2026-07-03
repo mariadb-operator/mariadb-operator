@@ -121,3 +121,21 @@ physicalBackups: []
   #         caSecretKeyRef:
   #           name: minio-ca
   #           key: ca.crt
+# -- Custom raw resources
+extraManifests: []
+  # - apiVersion: v1
+  #   kind: Secret
+  #   metadata:
+  #     name: my-secret
+  #   data:
+  #     secret: cGFzc3dvcmQ=
+
+# -- Custom templated resources
+extraTemplates: []
+  # - |
+  #   apiVersion: v1
+  #   kind: Secret
+  #   metadata:
+  #     name: {{ .Release.Name }}
+  #   data:
+  #     secret: cGFzc3dvcmQ=
