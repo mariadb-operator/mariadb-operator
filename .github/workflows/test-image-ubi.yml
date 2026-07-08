@@ -22,10 +22,10 @@ jobs:
           docker run --rm ${{ inputs.mariadb_image }} mariadbd --version
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version-file: "go.mod"
           cache: true
@@ -50,7 +50,7 @@ jobs:
 
       - name: Tell the MariaDB Folks that failed
         if: ${{ failure() && contains(inputs.mariadb_image, 'mariadb-foundation') }}
-        uses: zulip/github-actions-zulip/send-message@v2
+        uses: zulip/github-actions-zulip/send-message@f675f2b4eb2a95fae974215476dcb7ad8dfeff6b
         with:
           api-key: ${{ secrets.MARIADB_ZULIP_API_KEY }}
           email: "mariadb-operator-bot@mariadb.zulipchat.com"

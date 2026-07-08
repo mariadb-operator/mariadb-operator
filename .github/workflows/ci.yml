@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Detect no-op changes
         id: noop
-        uses: fkirc/skip-duplicate-actions@v5.3.1
+        uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           paths_ignore: '["*.md","*.md.gotmpl",".github/**","docs/**","examples/**"]'
@@ -32,16 +32,16 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version-file: "go.mod"
           cache: true
 
       - name: GolangCI Lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee
         with:
           version: ${{ env.GOLANGCI_VERSION }}
 
@@ -52,10 +52,10 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Find typos
-        uses: crate-ci/typos@v1.47.0
+        uses: crate-ci/typos@f8a58b6b53f2279f71eb605f03a4ae4d10608f45
         with:
           files: ./api ./cmd ./internal ./pkg
           config: ./.typos.toml
@@ -67,10 +67,10 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version-file: "go.mod"
           cache: true
@@ -88,10 +88,10 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version-file: "go.mod"
           cache: true
@@ -107,10 +107,10 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version-file: "go.mod"
           cache: true
@@ -162,13 +162,13 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Generate
         run: make gen
 
       - name: Check diff
-        uses: mmontes11/diff-porcelain@v0.0.1
+        uses: mmontes11/diff-porcelain@898356c9a485a2085830d7fb29742fc11762648d
         with:
           message: Generated artifacts are not up to date. Run 'make gen' and commit the changes.
 
