@@ -402,11 +402,15 @@ func (b *BackupCommand) MariadbOperatorBackup() (*Command, error) {
 }
 
 func (b *BackupCommand) MariadbOperatorCopyBinary(copyBinaryTo string) *Command {
-	return NewBashCommand([]string{
-		"set -euo pipefail",
-		fmt.Sprintf("mkdir -p %s", filepath.Dir(copyBinaryTo)),
-		fmt.Sprintf("cp /bin/mariadb-operator %s", copyBinaryTo),
-		fmt.Sprintf("chmod 0755 %s", copyBinaryTo),
+	return NewCommand(nil, []string{
+		"backup",
+		"copy-binary",
+		"--path",
+		b.Path,
+		"--target-file-path",
+		b.TargetFilePath,
+		"--copy-binary-to",
+		copyBinaryTo,
 	})
 }
 

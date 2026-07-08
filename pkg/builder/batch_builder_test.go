@@ -1088,7 +1088,17 @@ func TestPhysicalBackupJobUsesStreamingUploadForS3(t *testing.T) {
 
 	assert.Len(t, job.Spec.Template.Spec.InitContainers, 1)
 	assert.Equal(t, "mariadb-operator", job.Spec.Template.Spec.InitContainers[0].Name)
-	assert.Contains(t, job.Spec.Template.Spec.InitContainers[0].Args[0], "cp /bin/mariadb-operator /backup/bin/mariadb-operator")
+	assert.Nil(t, job.Spec.Template.Spec.InitContainers[0].Command)
+	assert.Equal(t, []string{
+		"backup",
+		"copy-binary",
+		"--path",
+		"/backup",
+		"--target-file-path",
+		"/backup/0-backup-target.txt",
+		"--copy-binary-to",
+		"/backup/bin/mariadb-operator",
+	}, job.Spec.Template.Spec.InitContainers[0].Args)
 
 	assert.Len(t, job.Spec.Template.Spec.Containers, 1)
 	container := job.Spec.Template.Spec.Containers[0]
