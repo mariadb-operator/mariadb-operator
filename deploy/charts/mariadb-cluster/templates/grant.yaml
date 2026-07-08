@@ -12,5 +12,8 @@ spec:
   mariaDbRef:
     name: {{ include "mariadb-cluster.fullname" $ }}
     namespace: {{ include "mariadb-cluster.namespace" $ }}
-  {{- include "mariadb-cluster.omitKeys" (dict "object" . "keys" (list "name" "namespace" "mariaDbRef") "nindent" 2) }}
+    {{- if hasKey . "waitForIt" }}
+    waitForIt: {{ .waitForIt }}
+    {{- end }}
+  {{- include "mariadb-cluster.omitKeys" (dict "object" . "keys" (list "name" "namespace" "mariaDbRef" "waitForIt") "nindent" 2) }}
 {{- end }}

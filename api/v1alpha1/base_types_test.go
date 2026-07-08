@@ -344,14 +344,14 @@ var _ = Describe("Base types", func() {
 			Entry(
 				"certIssuerRef",
 				&tlsValidationItem{
-					certIssuerRef: &cmmeta.ObjectReference{Name: "cert-issuer"},
+					certIssuerRef: &cmmeta.IssuerReference{Name: "cert-issuer"},
 				},
 				false,
 			),
 			Entry(
 				"certIssuerRef and caSecretRef",
 				&tlsValidationItem{
-					certIssuerRef: &cmmeta.ObjectReference{Name: "cert-issuer"},
+					certIssuerRef: &cmmeta.IssuerReference{Name: "cert-issuer"},
 					caSecretRef:   &LocalObjectReference{Name: "ca-secret"},
 				},
 				false,
@@ -367,7 +367,7 @@ var _ = Describe("Base types", func() {
 				"certSecretRef and certIssuerRef",
 				&tlsValidationItem{
 					certSecretRef: &LocalObjectReference{Name: "cert-secret"},
-					certIssuerRef: &cmmeta.ObjectReference{Name: "cert-issuer"},
+					certIssuerRef: &cmmeta.IssuerReference{Name: "cert-issuer"},
 				},
 				true,
 			),

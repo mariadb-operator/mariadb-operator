@@ -1,0 +1,24 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  metrics:
+    enabled: true
+    # Operator provisions a multi-target Prometheus exporter
+    exporter:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          memory: 512Mi
+    # Operator manages exporter credentials automatically.
+    username: monitoring
+    passwordSecretKeyRef:
+      name: mariadb
+      key: password
+    # Operator registers exporter metrics in Prometheus automatically.
+    serviceMonitor:
+      interval: 10s
+      scrapeTimeout: 10s

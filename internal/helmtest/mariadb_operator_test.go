@@ -334,7 +334,7 @@ func testOperatorHelmTemplates(t *testing.T, opts *helm.Options, expectedTemplat
 func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 	RegisterTestingT(t)
 
-	repository := "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"
+	repository := "ghcr.io/mariadb-operator/mariadb-operator"
 	tag := "v1.0.0"
 	digest := "sha256:abc123def456"
 
@@ -373,7 +373,7 @@ func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 
 func TestOperatorHelmConfigMap(t *testing.T) {
 	RegisterTestingT(t)
-	repository := "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"
+	repository := "ghcr.io/mariadb-operator/mariadb-operator"
 	tag := "v1.0.0"
 	opts := &helm.Options{
 		SetValues: map[string]string{
@@ -435,4 +435,195 @@ func TestOperatorHelmPprof(t *testing.T) {
 		Protocol:      "TCP",
 		ContainerPort: 6060,
 	}))
+}
+
+func TestOperatorHelmRevisionHistoryLimit(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
+	}
+
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
+	var deployment appsv1.Deployment
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	// Check default revision history limit
+	Expect(deployment.Spec.RevisionHistoryLimit).ToNot(BeNil())
+	Expect(*deployment.Spec.RevisionHistoryLimit).To(Equal(int32(10)))
+
+	// Test with custom revision history limit
+	opts = &helm.Options{
+		SetValues: map[string]string{
+			"revisionHistoryLimit": "5",
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
+	}
+
+	deploymentData = helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	Expect(deployment.Spec.RevisionHistoryLimit).ToNot(BeNil())
+	Expect(*deployment.Spec.RevisionHistoryLimit).To(Equal(int32(5)))
+}
+
+func TestOperatorHelmStrategy(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"strategy.type":                         "RollingUpdate",
+			"strategy.rollingUpdate.maxSurge":       "1",
+			"strategy.rollingUpdate.maxUnavailable": "0",
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
+	}
+
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
+	var deployment appsv1.Deployment
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	Expect(deployment.Spec.Strategy.Type).To(Equal(appsv1.RollingUpdateDeploymentStrategyType))
+	Expect(deployment.Spec.Strategy.RollingUpdate).ToNot(BeNil())
+	Expect(deployment.Spec.Strategy.RollingUpdate.MaxSurge.String()).To(Equal("1"))
+	Expect(deployment.Spec.Strategy.RollingUpdate.MaxUnavailable.String()).To(Equal("0"))
+}
+
+func TestWebhookHelmRevisionHistoryLimit(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"webhook.enabled": `true`,
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
+	}
+
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/webhook/deployment.yaml"})
+	var deployment appsv1.Deployment
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	// Check default revision history limit
+	Expect(deployment.Spec.RevisionHistoryLimit).ToNot(BeNil())
+	Expect(*deployment.Spec.RevisionHistoryLimit).To(Equal(int32(10)))
+
+	// Test with custom revision history limit
+	opts = &helm.Options{
+		SetValues: map[string]string{
+			"webhook.enabled":              `true`,
+			"webhook.revisionHistoryLimit": "3",
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
+	}
+
+	deploymentData = helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/webhook/deployment.yaml"})
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	Expect(deployment.Spec.RevisionHistoryLimit).ToNot(BeNil())
+	Expect(*deployment.Spec.RevisionHistoryLimit).To(Equal(int32(3)))
+}
+
+func TestWebhookHelmStrategy(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"webhook.enabled":       `true`,
+			"webhook.strategy.type": "Recreate",
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
+	}
+
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/webhook/deployment.yaml"})
+	var deployment appsv1.Deployment
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	Expect(deployment.Spec.Strategy.Type).To(Equal(appsv1.RecreateDeploymentStrategyType))
+}
+
+func TestCertControllerHelmRevisionHistoryLimit(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"certController.enabled": `true`,
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
+	}
+
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/cert-controller/deployment.yaml"})
+	var deployment appsv1.Deployment
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	// Check default revision history limit
+	Expect(deployment.Spec.RevisionHistoryLimit).ToNot(BeNil())
+	Expect(*deployment.Spec.RevisionHistoryLimit).To(Equal(int32(10)))
+
+	// Test with custom revision history limit
+	opts = &helm.Options{
+		SetValues: map[string]string{
+			"certController.enabled":              `true`,
+			"certController.revisionHistoryLimit": "7",
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
+	}
+
+	deploymentData = helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/cert-controller/deployment.yaml"})
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	Expect(deployment.Spec.RevisionHistoryLimit).ToNot(BeNil())
+	Expect(*deployment.Spec.RevisionHistoryLimit).To(Equal(int32(7)))
+}
+
+func TestCertControllerHelmStrategy(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"certController.enabled":                               `true`,
+			"certController.strategy.type":                         "RollingUpdate",
+			"certController.strategy.rollingUpdate.maxSurge":       "25%",
+			"certController.strategy.rollingUpdate.maxUnavailable": "25%",
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
+	}
+
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/cert-controller/deployment.yaml"})
+	var deployment appsv1.Deployment
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	Expect(deployment.Spec.Strategy.Type).To(Equal(appsv1.RollingUpdateDeploymentStrategyType))
+	Expect(deployment.Spec.Strategy.RollingUpdate).ToNot(BeNil())
+	Expect(deployment.Spec.Strategy.RollingUpdate.MaxSurge.String()).To(Equal("25%"))
+	Expect(deployment.Spec.Strategy.RollingUpdate.MaxUnavailable.String()).To(Equal("25%"))
 }

@@ -113,7 +113,7 @@ type ContainerTemplate struct {
 	// VolumeMounts to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty" webhook:"inmutable"`
+	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty"`
 	// LivenessProbe to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -1073,7 +1073,7 @@ type tlsValidationItem struct {
 	caFieldPath         string
 	certSecretRef       *LocalObjectReference
 	certFieldPath       string
-	certIssuerRef       *cmmeta.ObjectReference
+	certIssuerRef       *cmmeta.IssuerReference
 	certIssuerFieldPath string
 }
 
@@ -1097,4 +1097,12 @@ func validateTLSCert(item *tlsValidationItem) error {
 		)
 	}
 	return nil
+}
+
+// Cordoning defines the parameters for cordoning a resource, resulting in the connections being blocked.
+type Cordoning struct {
+	// Cordon blocks connections to the resource.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Cordon bool `json:"cordon,omitempty"`
 }

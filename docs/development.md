@@ -31,7 +31,7 @@ Run the operator locally in your machine using `go run`. It requires the followi
 - [go](https://go.dev/doc/install)
 - [docker](https://www.docker.com/)
 
-This flavour uses [KIND](https://kind.sigs.k8s.io/) and [MetalLB](https://metallb.universe.tf/) under the hood to provision Kubernetes clusters and assign local IPs to `LoadBalancer` `Services`. It has some [limitations](https://kind.sigs.k8s.io/docs/user/loadbalancer/) in Mac and Windows which will make the operator unable to connect to MariaDB via the `LoadBalancer` `Service`, leading to errors when reconciling SQL-related resources. Alternatively, use the [devcontainer](#devcontainer) flavour.
+This flavour uses [KIND](https://kind.sigs.k8s.io/) and [MetalLB](https://metallb.io) under the hood to provision Kubernetes clusters and assign local IPs to `LoadBalancer` `Services`. It has some [limitations](https://kind.sigs.k8s.io/docs/user/loadbalancer/) in Mac and Windows which will make the operator unable to connect to MariaDB via the `LoadBalancer` `Service`, leading to errors when reconciling SQL-related resources. Alternatively, use the [devcontainer](#devcontainer) flavour.
 
 ## Getting started
 
@@ -86,7 +86,7 @@ You can configure the network connectivity so the operator is able to resolve DN
 make net
 ```
 
-This connectivity leverages [MetalLB](https://metallb.universe.tf/) to assign local IPs to the `LoadBalancer` `Services` for the operator to connect to MariaDB. For this to happen, these local IPs need to be within the docker CIDR, which can be queried using:
+This connectivity leverages [MetalLB](https://metallb.io) to assign local IPs to the `LoadBalancer` `Services` for the operator to connect to MariaDB. For this to happen, these local IPs need to be within the docker CIDR, which can be queried using:
 ```bash
 make cidr
 172.18.0.0/16

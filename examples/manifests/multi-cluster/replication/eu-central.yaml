@@ -1,0 +1,96 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-central
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+  storage:
+    size: 1Gi
+  replicas: 2
+  bootstrapFrom:
+    s3:
+      bucket: multi-cluster
+      prefix: eu-south
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+    backupContentType: Physical
+  replication:
+    enabled: true
+    gtidDomainId: 1
+    serverIdStartIndex: 20
+    # Prevent timeouts from replica ACKs in cross-regional setups.
+    semiSyncEnabled: false
+    # primary:
+    #   podIndex: 0
+    replica:
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.15
+  tls:
+    enabled: true
+    required: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    serverCertAdditionalNames:
+      - 172.18.1.15
+    clientCASecretRef:
+      name: mariadb-server-ca
+  multiCluster:
+    enabled: true
+    primary: mariadb-eu-south
+    members:
+      - name: mariadb-eu-south
+        externalMariaDbRef:
+          name: mariadb-eu-south
+      - name: mariadb-eu-central
+        externalMariaDbRef:
+          name: mariadb-eu-central
+  # Enable maintenance mode on the primary cluster before initiating a cluster switchover.
+  # This prevents new writes to the primary, allowing the replica cluster to fully sync.
+  # maintenance:
+  #   # Configure maintenance mode
+  #   enabled: true
+  #   # Do not allow connections through
+  #   cordon: true
+  #   # Drain long-running connections. Does not affect replication connections and such
+  #   drainConnections: true
+  #   # Drain after 30 seconds
+  #   drainGracePeriodSeconds: 30
+  #   # Set database to read_only
+  #   readOnly: true
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-central
+spec:
+  host: mariadb-eu-central-primary.default.svc.cluster.local
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-server-ca

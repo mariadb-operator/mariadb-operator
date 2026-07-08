@@ -58,6 +58,8 @@ const (
 	ConditionReasonUpdating              string = "Updating"
 	ConditionReasonUpdated               string = "Updated"
 	ConditionReasonSuspended             string = "Suspended"
+	ConditionReasonMaintenance           string = "Maintenance"
+	ConditionReasonCordoned              string = "Cordoned"
 
 	ConditionReasonMaxScaleNotReady string = "MaxScaleNotReady"
 	ConditionReasonMaxScaleReady    string = "MaxScaleReady"

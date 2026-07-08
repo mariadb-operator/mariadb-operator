@@ -2,9 +2,15 @@
 
 set -euo pipefail
 
-CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix/main.go)
-IP="${CIDR_PREFIX}.0.$1"
-HOSTNAME=$2
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <3 octet> <4 octet> <hostname>"
+    exit 1
+fi
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+CIDR_PREFIX=$(go run $SCRIPT_DIR/get_kind_cidr_prefix/main.go)
+IP="${CIDR_PREFIX}.$1.$2"
+HOSTNAME=$3
 
 if grep -q "^$IP\s*$HOSTNAME" /etc/hosts; then
   echo "\"$HOSTNAME\" host already exists in /etc/hosts"

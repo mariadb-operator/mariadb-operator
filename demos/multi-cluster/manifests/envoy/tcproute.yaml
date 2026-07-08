@@ -1,0 +1,41 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: eu-south
+  namespace: envoy-gateway-system
+spec:
+  endpoints:
+    - fqdn:
+        hostname: mariadb-eu-south.mariadb.com
+        port: 3306
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: eu-central
+  namespace: envoy-gateway-system
+spec:
+  endpoints:
+    - fqdn:
+        hostname: mariadb-eu-central.mariadb.com
+        port: 3306
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: mariadb
+  namespace: envoy-gateway-system
+spec:
+  parentRefs:
+    - name: mariadb-gateway
+      sectionName: mariadb
+  rules:
+    - backendRefs:
+        - group: gateway.envoyproxy.io
+          kind: Backend
+          name: eu-south
+          weight: 100
+        - group: gateway.envoyproxy.io
+          kind: Backend
+          name: eu-central
+          weight: 0

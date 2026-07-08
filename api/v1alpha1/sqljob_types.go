@@ -136,7 +136,3 @@ type SqlJobList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []SqlJob `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&SqlJob{}, &SqlJobList{})
-}

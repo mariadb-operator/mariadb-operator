@@ -22,7 +22,7 @@ type CertOpts struct {
 	Lifetime              *time.Duration
 	RenewBeforePercentage *int32
 	Usages                []certmanagerv1.KeyUsage
-	IssuerRef             *cmmeta.ObjectReference
+	IssuerRef             *cmmeta.IssuerReference
 }
 
 type CertOpt func(*CertOpts)
@@ -63,7 +63,7 @@ func WithUsages(usages ...certmanagerv1.KeyUsage) CertOpt {
 	}
 }
 
-func WithIssuerRef(issuerRef cmmeta.ObjectReference) CertOpt {
+func WithIssuerRef(issuerRef cmmeta.IssuerReference) CertOpt {
 	return func(o *CertOpts) {
 		o.IssuerRef = ptr.To(issuerRef)
 	}

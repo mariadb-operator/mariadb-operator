@@ -9,6 +9,11 @@ spec:
   {{- if .Values.certController.ha.enabled }}
   replicas: {{ .Values.certController.ha.replicas}}
   {{- end }}
+  {{- with .Values.certController.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.certController.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "mariadb-operator-cert-controller.selectorLabels" . | nindent 6 }}
@@ -82,7 +87,7 @@ spec:
             - containerPort: 8081
               protocol: TCP
               name: health
-          env: 
+          env:
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName }}
           {{- with .Values.certController.extraVolumeMounts }}

@@ -189,7 +189,3 @@ func (m *UserList) ListItems() []client.Object {
 	}
 	return items
 }
-
-func init() {
-	SchemeBuilder.Register(&User{}, &UserList{})
-}

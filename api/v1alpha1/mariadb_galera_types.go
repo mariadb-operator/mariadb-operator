@@ -113,7 +113,7 @@ type GaleraRecovery struct {
 	Enabled bool `json:"enabled"`
 	// MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%).
 	// If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is initiated.
-	// It defaults to '1' replica, and it is highly recommendeded to keep this value at '1' in most cases.
+	// It defaults to '1' replica, and it is highly recommended to keep this value at '1' in most cases.
 	// If set to more than one replica, the cluster recovery process may restart the healthy replicas as well.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -373,6 +373,25 @@ type GaleraSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Config GaleraConfig `json:"config,omitempty"`
+	// GtidDomainID is the domain ID to be used in GTID mode, enabled when the multi-cluster topology is used.
+	// For example: if you set this to `0`, the 'wsrep_gtid_domain_id' will be 0, while the replicas (if 3) will have 'gtid_domain_id' 1,2,3.
+	// Make sure it has a different value on each the member of a multi-cluster topology.
+	// See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	GtidDomainID *int `json:"gtidDomainId,omitempty" webhook:"inmutable"`
+	// ServerID is the server ID to be used in GTID mode, enabled when the multi-cluster topology is used.
+	// Make sure it has a different value on each the member of a multi-cluster topology.
+	// See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerID *int `json:"serverId,omitempty" webhook:"inmutable"`
+	// ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+	// This will be utilized as password of the replication user, when the multi-cluster topology is enabled.
+	// By default, a random password will be generated.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ReplPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"replPasswordSecretKeyRef,omitempty"`
 }
 
 // GaleraBootstrapStatus indicates when and in which Pod the cluster bootstrap process has been performed.

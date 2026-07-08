@@ -332,6 +332,7 @@ func handleBackupMetaBytes(ctx context.Context, backupLogger logr.Logger, fileBy
 	if err != nil {
 		return fmt.Errorf("error parsing GTID in metadata file: %v", err)
 	}
+	// TODO: support multiple GTID domain IDs
 	gtid, err := replication.ParseGtid(rawGTID)
 	if err != nil {
 		return fmt.Errorf("error parsing GTID %s: %v", rawGTID, err)

@@ -3,7 +3,8 @@ CLUSTER ?= mdb
 ##@ Cluster
 
 KIND_CONFIG ?= hack/config/kind.yaml
-KIND_IMAGE ?= kindest/node:v1.35.0
+# Build custom image with: kind build node-image --type release --image kindest/node:1.36.1 1.36.1
+KIND_IMAGE ?= kindest/node:v1.36.1
 
 .PHONY: cluster
 cluster: kind ## Create a single node kind cluster.
@@ -102,7 +103,7 @@ TRUST_MANAGER_VERSION ?= "v0.16.0"
 install-trust-manager: helm cluster-ctx install-cert-manager ## Install trust-manager helm chart.
 	@TRUST_MANAGER_VERSION=$(TRUST_MANAGER_VERSION) HELM=$(HELM) ./hack/install_trust_manager.sh
 
-METALLB_VERSION ?= "0.14.9"
+METALLB_VERSION ?= "0.15.3"
 .PHONY: install-metallb
 install-metallb: helm cluster-ctx ## Install metallb helm chart.
 	@METALLB_VERSION=$(METALLB_VERSION) HELM=$(HELM) ./hack/install_metallb.sh

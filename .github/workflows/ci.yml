@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Find typos
-        uses: crate-ci/typos@v1.44.0
+        uses: crate-ci/typos@v1.47.0
         with:
           files: ./api ./cmd ./internal ./pkg
           config: ./.typos.toml
@@ -100,7 +100,6 @@ jobs:
         run: |
           make helm-crds
           make test
-
   integration-test:
     name: Integration tests
     runs-on: ubuntu-latest
@@ -140,13 +139,17 @@ jobs:
           make net
           make install-azurite
 
+      - name: Run basic integration tests
+        if: ${{ steps.test.outputs.type == 'basic' }}
+        run: make test-int-basic
+
       - name: Run integration tests
         if: ${{ steps.test.outputs.type == 'full' }}
         run: make test-int
 
-      - name: Run basic integration tests
-        if: ${{ steps.test.outputs.type == 'basic' }}
-        run: make test-int-basic
+      - name: Run multi-cluster integration tests
+        if: ${{ steps.test.outputs.type == 'full' }}
+        run: make test-int-multi-cluster
 
       - name: Post Test Debugging (on failure)
         if: failure()

@@ -105,7 +105,7 @@ spec:
   secretName: app-connection
 ```
 
-If you prefer to provide your own password, you can opt-out from random password generation by either not providing the `generate` field or setting it to `false`. This enables the use of GitOps tools like [sealed-secrets](https://github.com/bitnami-labs/sealed-secrets) or [external-secrets](https://github.com/external-secrets/external-secrets) to seed the password.
+If you prefer to provide your own password, you can opt-out from random password generation by either not providing the `generate` field or setting it to `false`. This enables the use of GitOps tools like [sealed-secrets](https://github.com/bitnami/sealed-secrets) or [external-secrets](https://github.com/external-secrets/external-secrets) to seed the password.
 
 ## Secret template
 
