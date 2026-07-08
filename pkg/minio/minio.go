@@ -221,6 +221,18 @@ func (c *Client) PutObjectWithOptions(ctx context.Context, fileName string, read
 	return err
 }
 
+func (c *Client) PutObjectStreamWithOptions(ctx context.Context, fileName string, reader io.Reader, partSize uint64) error {
+	putOpts, err := c.putObjectOptions()
+	if err != nil {
+		return err
+	}
+	putOpts.PartSize = partSize
+	prefixedFilePath := c.PrefixedFileName(fileName)
+
+	_, err = c.PutObject(ctx, c.bucket, prefixedFilePath, reader, -1, *putOpts)
+	return err
+}
+
 func (c *Client) FPutObjectWithOptions(ctx context.Context, fileName string) error {
 	putOpts, err := c.putObjectOptions()
 	if err != nil {

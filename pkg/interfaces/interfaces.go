@@ -56,6 +56,7 @@ type MariaDBObject interface {
 
 type BlobStorage interface {
 	PutObjectWithOptions(ctx context.Context, fileName string, reader io.Reader, size int64) error
+	PutObjectStreamWithOptions(ctx context.Context, fileName string, reader io.Reader, partSize uint64) error
 	FPutObjectWithOptions(ctx context.Context, fileName string) error
 	GetObjectWithOptions(ctx context.Context, fileName string) (io.ReadCloser, error)
 	FGetObjectWithOptions(ctx context.Context, fileName string) error

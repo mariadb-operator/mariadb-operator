@@ -299,6 +299,49 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFi
 	return NewBashCommand(cmds), nil
 }
 
+func (b *BackupCommand) MariadbStreamingBackup(mariadb *mariadbv1alpha1.MariaDB, backupFile string,
+	targetPodIndex int, operatorBinaryPath string) (*Command, error) {
+	if b.Database != nil {
+		return nil, errors.New("database option not supported in physical backups")
+	}
+
+	host := statefulset.PodFQDNWithService(mariadb.ObjectMeta, targetPodIndex, mariadb.InternalServiceKey().Name)
+	connFlags, err := ConnectionFlags(
+		&b.CommandOpts,
+		mariadb,
+		WithHostConnectionFlag(host),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
+	args := strings.Join(b.mariadbBackupArgs(mariadb, targetPodIndex), " ")
+	uploadStreamCmd := b.buildUploadStreamCommand(operatorBinaryPath)
+
+	cmds := []string{
+		"set -euo pipefail",
+		fmt.Sprintf(
+			"echo 💾 Writing target file: %s",
+			b.TargetFilePath,
+		),
+		fmt.Sprintf(
+			"printf \"%s\" > %s",
+			backupFile,
+			b.TargetFilePath,
+		),
+		fmt.Sprintf(
+			"echo 💾 Streaming backup: %s",
+			backupFile,
+		),
+		fmt.Sprintf(
+			"mariadb-backup %s %s | %s",
+			connFlags,
+			args,
+			uploadStreamCmd,
+		),
+	}
+	return NewBashCommand(cmds), nil
+}
+
 func (b *BackupCommand) MariadbBackupMeta() *Command {
 	cmds := []string{
 		"set -euo pipefail",
@@ -358,6 +401,15 @@ func (b *BackupCommand) MariadbOperatorBackup() (*Command, error) {
 	args = append(args, b.physicalBackupArgs()...)
 
 	return NewCommand(nil, args), nil
+}
+
+func (b *BackupCommand) MariadbOperatorCopyBinary(copyBinaryTo string) *Command {
+	return NewBashCommand([]string{
+		"set -euo pipefail",
+		fmt.Sprintf("mkdir -p %s", filepath.Dir(copyBinaryTo)),
+		fmt.Sprintf("cp /bin/mariadb-operator %s", copyBinaryTo),
+		fmt.Sprintf("chmod 0755 %s", copyBinaryTo),
+	})
 }
 
 func (b *BackupCommand) MariadbOperatorRestore(copyBinaryTo *string) (*Command, error) {
@@ -580,6 +632,34 @@ func (b *BackupCommand) buildStreamCommand(operatorBinaryPath string) string {
 	}
 	args = append(args, b.s3Args()...)
 	args = append(args, b.absArgs()...)
+	return strings.Join(args, " ")
+}
+
+func (b *BackupCommand) buildUploadStreamCommand(operatorBinaryPath string) string {
+	args := []string{
+		operatorBinaryPath,
+		"backup",
+		"upload-stream",
+		"--path",
+		b.Path,
+		"--target-file-path",
+		b.TargetFilePath,
+		"--backup-content-type",
+		string(b.BackupContentType),
+		"--max-retention",
+		b.MaxRetentionDuration.String(),
+	}
+	if b.Compression != "" {
+		args = append(args, []string{
+			"--compression",
+			string(b.Compression),
+		}...)
+	}
+	if b.LogLevel != "" {
+		args = append(args, "--log-level", b.LogLevel)
+	}
+	args = append(args, b.s3Args()...)
+	args = append(args, b.physicalBackupArgs()...)
 	return strings.Join(args, " ")
 }
 

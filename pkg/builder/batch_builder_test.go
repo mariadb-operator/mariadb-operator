@@ -997,9 +997,8 @@ func TestPhysicalBackupJobInitContainers(t *testing.T) {
 			backup := &mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
-						S3: &mariadbv1alpha1.S3{
-							Bucket:   "test",
-							Endpoint: "test",
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
 						},
 					},
 					Compression: mariadbv1alpha1.CompressBzip2,
@@ -1026,6 +1025,87 @@ func TestPhysicalBackupJobInitContainers(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPhysicalBackupJobUsesStreamingUploadForS3(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name:      "test-backup-job",
+		Namespace: "test-namespace",
+	}
+	backup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-backup",
+			Namespace: "test-namespace",
+		},
+		Spec: mariadbv1alpha1.PhysicalBackupSpec{
+			Storage: mariadbv1alpha1.PhysicalBackupStorage{
+				S3: &mariadbv1alpha1.S3{
+					Bucket:   "test",
+					Endpoint: "test",
+					AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{Name: "s3"},
+						Key:                  "access-key-id",
+					},
+					SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{Name: "s3"},
+						Key:                  "secret-access-key",
+					},
+				},
+			},
+			Compression: mariadbv1alpha1.CompressGzip,
+		},
+	}
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test-namespace",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			PointInTimeRecoveryRef: &mariadbv1alpha1.LocalObjectReference{
+				Name: "pitr",
+			},
+			Replication: &mariadbv1alpha1.Replication{
+				Enabled: true,
+			},
+			Storage: mariadbv1alpha1.Storage{
+				Size: ptr.To(resource.MustParse("1Gi")),
+			},
+		},
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "node1",
+		},
+	}
+
+	job, err := builder.BuildPhysicalBackupJob(key, backup, mariadb, pod, "physicalbackup-20260708120000.xb.gz")
+	assert.NoError(t, err)
+	assert.NotNil(t, job)
+
+	assert.Len(t, job.Spec.Template.Spec.InitContainers, 1)
+	assert.Equal(t, "mariadb-operator", job.Spec.Template.Spec.InitContainers[0].Name)
+	assert.Contains(t, job.Spec.Template.Spec.InitContainers[0].Args[0], "cp /bin/mariadb-operator /backup/bin/mariadb-operator")
+
+	assert.Len(t, job.Spec.Template.Spec.Containers, 1)
+	container := job.Spec.Template.Spec.Containers[0]
+	assert.Equal(t, "mariadb", container.Name)
+	assert.Contains(t, container.Args[0], "mariadb-backup")
+	assert.Contains(t, container.Args[0], "| /backup/bin/mariadb-operator backup upload-stream")
+	assert.Contains(t, container.Args[0], "--compression gzip")
+	assert.Contains(t, container.Args[0], "--physical-backup-meta")
+	assert.Contains(t, container.Args[0], "--physical-backup-name test-backup")
+	assert.NotContains(t, container.Args[0], "> /backup/physicalbackup-20260708120000.xb.gz")
+
+	var envNames []string
+	for _, env := range container.Env {
+		envNames = append(envNames, env.Name)
+	}
+	assert.Contains(t, envNames, S3AccessKeyId)
+	assert.Contains(t, envNames, S3SecretAccessKey)
 }
 
 func TestRestoreJobImagePullSecrets(t *testing.T) {

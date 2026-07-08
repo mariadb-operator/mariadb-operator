@@ -1119,6 +1119,43 @@ func TestBuildStreamCommand(t *testing.T) {
 	assert.Contains(t, cmd, "--s3")
 }
 
+func TestBuildUploadStreamCommand(t *testing.T) {
+	backupCmd := &BackupCommand{
+		BackupOpts: BackupOpts{
+			Path:                 "/backups",
+			TargetFilePath:       "/backups/0-backup-target.txt",
+			BackupFullDirPath:    "/backups/full",
+			BackupContentType:    mariadbv1alpha1.BackupContentTypePhysical,
+			MaxRetentionDuration: time.Hour,
+			Compression:          mariadbv1alpha1.CompressGzip,
+			LogLevel:             "debug",
+			PhysicalBackupMeta:   true,
+			PhysicalBackupKey: &types.NamespacedName{
+				Name:      "physical-backup",
+				Namespace: "default",
+			},
+			S3:         true,
+			S3Bucket:   "bucket",
+			S3Endpoint: "endpoint",
+			S3Region:   "auto",
+			S3Prefix:   "prefix",
+			S3TLS:      true,
+		},
+	}
+
+	cmd := backupCmd.buildUploadStreamCommand("/backup/bin/mariadb-operator")
+	assert.True(t, strings.HasPrefix(cmd, "/backup/bin/mariadb-operator backup upload-stream"))
+	assert.Contains(t, cmd, "--path /backups")
+	assert.Contains(t, cmd, "--target-file-path /backups/0-backup-target.txt")
+	assert.Contains(t, cmd, "--backup-content-type Physical")
+	assert.Contains(t, cmd, "--max-retention 1h0m0s")
+	assert.Contains(t, cmd, "--compression gzip")
+	assert.Contains(t, cmd, "--log-level debug")
+	assert.Contains(t, cmd, "--s3")
+	assert.Contains(t, cmd, "--physical-backup-meta")
+	assert.Contains(t, cmd, "--physical-backup-name physical-backup")
+}
+
 func TestMariadbOperatorPITR(t *testing.T) {
 	startGtid := mustParseGtid(t, "0-10-1")
 	targetTime := time.Now()

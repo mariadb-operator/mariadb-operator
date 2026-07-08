@@ -15,6 +15,7 @@ import (
 type BackupStorage interface {
 	List(ctx context.Context) ([]string, error)
 	Push(ctx context.Context, fileName string) error
+	PushStream(ctx context.Context, fileName string, reader io.Reader, partSize uint64) error
 	Pull(ctx context.Context, fileName string) error
 	Delete(ctx context.Context, fileName string) error
 	shouldProcessBackupFile(fileName string, logger logr.Logger) bool
@@ -51,6 +52,18 @@ func (f *FileSystemBackupStorage) List(ctx context.Context) ([]string, error) {
 
 func (f *FileSystemBackupStorage) Push(ctx context.Context, fileName string) error {
 	return nil // noop
+}
+
+func (f *FileSystemBackupStorage) PushStream(ctx context.Context, fileName string, reader io.Reader, _ uint64) error {
+	filePath := GetFilePath(f.basePath, fileName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, reader)
+	return err
 }
 
 func (f *FileSystemBackupStorage) Pull(ctx context.Context, fileName string) error {
@@ -132,6 +145,10 @@ func (s *BlobBackupStorage) List(ctx context.Context) ([]string, error) {
 
 func (s *BlobBackupStorage) Push(ctx context.Context, fileName string) error {
 	return s.client.FPutObjectWithOptions(ctx, fileName)
+}
+
+func (s *BlobBackupStorage) PushStream(ctx context.Context, fileName string, reader io.Reader, partSize uint64) error {
+	return s.client.PutObjectStreamWithOptions(ctx, fileName, reader, partSize)
 }
 
 func (s *BlobBackupStorage) Pull(ctx context.Context, fileName string) error {

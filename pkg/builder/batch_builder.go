@@ -205,7 +205,13 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
-	backupCmd, err := cmd.MariadbBackup(mariadb, backupFilepath, *podIndex)
+	streamingBackup := physicalBackupShouldStream(backup)
+	var backupCmd *command.Command
+	if streamingBackup {
+		backupCmd, err = cmd.MariadbStreamingBackup(mariadb, backupFile, *podIndex, batchOperatorBinaryPath)
+	} else {
+		backupCmd, err = cmd.MariadbBackup(mariadb, backupFilepath, *podIndex)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup command: %v", err)
 	}
@@ -221,11 +227,33 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	volumes, volumeMounts := jobPhysicalBackupVolumesWithSA(volume, backup.Spec.Storage.S3, backup.Spec.Storage.AzureBlob, mariadb, podIndex)
 
 	var initContainers []corev1.Container
+	var containers []corev1.Container
+
+	if streamingBackup {
+		operatorCopyContainer, err := b.jobMariadbOperatorContainer(
+			cmd.MariadbOperatorCopyBinary(batchOperatorBinaryPath),
+			volumeMounts,
+			nil,
+			jobResources(backup.Spec.Resources),
+			mariadb,
+			b.env,
+			backup.Spec.SecurityContext,
+		)
+		if err != nil {
+			return nil, err
+		}
+		initContainers = append(initContainers, *operatorCopyContainer)
+	}
+
+	mariadbBackupEnv := physicalBackupJobEnv(mariadb)
+	if streamingBackup {
+		mariadbBackupEnv = append(mariadbBackupEnv, s3Env(backup.Spec.Storage.S3)...)
+	}
 	mariadbBackupContainer, err := b.jobMariadbContainer(
 		backupCmd,
 		b.env,
 		volumeMounts,
-		physicalBackupJobEnv(mariadb),
+		mariadbBackupEnv,
 		jobResources(backup.Spec.Resources),
 		mariadb,
 		backup.Spec.SecurityContext,
@@ -233,8 +261,12 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	if err != nil {
 		return nil, err
 	}
-	initContainers = append(initContainers, *mariadbBackupContainer)
-	if mariadb.IsPointInTimeRecoveryEnabled() {
+	if streamingBackup {
+		containers = append(containers, *mariadbBackupContainer)
+	} else {
+		initContainers = append(initContainers, *mariadbBackupContainer)
+	}
+	if !streamingBackup && mariadb.IsPointInTimeRecoveryEnabled() {
 		mariadbBackupMetaContainer, err := b.jobMariadbContainerWithName(
 			"backup-meta",
 			cmd.MariadbBackupMeta(),
@@ -250,17 +282,20 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		}
 		initContainers = append(initContainers, *mariadbBackupMetaContainer)
 	}
-	operatorContainer, err := b.jobMariadbOperatorContainer(
-		operatorCmd,
-		volumeMounts,
-		append(s3Env(backup.Spec.Storage.S3), absEnv(backup.Spec.Storage.AzureBlob)...),
-		jobResources(backup.Spec.Resources),
-		mariadb,
-		b.env,
-		backup.Spec.SecurityContext,
-	)
-	if err != nil {
-		return nil, err
+	if !streamingBackup {
+		operatorContainer, err := b.jobMariadbOperatorContainer(
+			operatorCmd,
+			volumeMounts,
+			append(s3Env(backup.Spec.Storage.S3), absEnv(backup.Spec.Storage.AzureBlob)...),
+			jobResources(backup.Spec.Resources),
+			mariadb,
+			b.env,
+			backup.Spec.SecurityContext,
+		)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, *operatorContainer)
 	}
 
 	securityContext, err := b.buildPodSecurityContextWithUserGroup(backup.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
@@ -302,7 +337,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 					ImagePullSecrets:   batchImagePullSecrets(mariadb, backup.Spec.ImagePullSecrets),
 					Volumes:            volumes,
 					InitContainers:     initContainers,
-					Containers:         []corev1.Container{*operatorContainer},
+					Containers:         containers,
 					Affinity:           affinity,
 					Tolerations:        backup.Spec.Tolerations,
 					SecurityContext:    securityContext,
@@ -1123,6 +1158,10 @@ func backupShouldCleanupTargetFile(backup *mariadbv1alpha1.Backup) bool {
 
 func physicalBackupShouldCleanupTargetFile(pyhisicalBackup *mariadbv1alpha1.PhysicalBackup) bool {
 	return pyhisicalBackup.Spec.Storage.S3 != nil && pyhisicalBackup.Spec.StagingStorage != nil
+}
+
+func physicalBackupShouldStream(physicalBackup *mariadbv1alpha1.PhysicalBackup) bool {
+	return physicalBackup.Spec.Storage.S3 != nil && physicalBackup.Spec.StagingStorage == nil
 }
 
 func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
