@@ -101,14 +101,14 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
 		"Directory path where the physical backup is located. Only considered when backup-content-type is Physical.")
-	RootCmd.Flags().BoolVar(&physicalBackupMeta, "physical-backup-meta", false,
+	RootCmd.PersistentFlags().BoolVar(&physicalBackupMeta, "physical-backup-meta", false,
 		"Enable tracking physical backup metadata in the PhysicalBackup custom resource. Only considered when backup-content-type is Physical.")
-	RootCmd.Flags().StringVar(&physicalBackupName, "physical-backup-name", "",
+	RootCmd.PersistentFlags().StringVar(&physicalBackupName, "physical-backup-name", "",
 		"PhysicalBackup custom resource name to track physical backup metadata. Only considered when physical-backup-meta is enabled.")
-	RootCmd.Flags().StringVar(&physicalBackupNamespace, "physical-backup-namespace", "",
+	RootCmd.PersistentFlags().StringVar(&physicalBackupNamespace, "physical-backup-namespace", "",
 		"PhysicalBackup custom resource namespace to track physical backup metadata. Only considered when physical-backup-meta is enabled.")
 
-	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
+	RootCmd.PersistentFlags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
 
 	RootCmd.AddCommand(restoreCommand)
