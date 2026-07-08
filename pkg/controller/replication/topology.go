@@ -114,7 +114,8 @@ type singleClusterTopology struct {
 }
 
 func newSingleClusterTopology(mariadb *mariadbv1alpha1.MariaDB, userSqlReconciler *userSqlReconciler, client client.Client,
-	refResolver *refresolver.RefResolver, logger logr.Logger) *singleClusterTopology {
+	refResolver *refresolver.RefResolver, logger logr.Logger,
+) *singleClusterTopology {
 	return &singleClusterTopology{
 		Client:            client,
 		mariadb:           mariadb,
@@ -162,7 +163,8 @@ func (r *singleClusterTopology) ConfigurePrimary(ctx context.Context, client *sq
 }
 
 func (r *singleClusterTopology) ConfigureReplica(ctx context.Context, client *sql.Client,
-	primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error {
+	primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt,
+) error {
 	r.logger.Info("Configuring replica")
 
 	opts := ConfigureReplicaOpts{
@@ -202,7 +204,8 @@ func (r *singleClusterTopology) ConfigureReplica(ctx context.Context, client *sq
 }
 
 func (r *singleClusterTopology) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	primaryPodIndex int, opts ...sql.ChangeMasterOpt) error {
+	primaryPodIndex int, opts ...sql.ChangeMasterOpt,
+) error {
 	r.logger.V(1).Info("Changing master")
 
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
@@ -264,7 +267,8 @@ type multiClusterTopology struct {
 
 func newMultiClusterTopology(mariadb *mariadbv1alpha1.MariaDB, singleCluster *singleClusterTopology,
 	userSqlReconciler *userSqlReconciler, client client.Client, refResolver *refresolver.RefResolver,
-	logger logr.Logger) *multiClusterTopology {
+	logger logr.Logger,
+) *multiClusterTopology {
 	return &multiClusterTopology{
 		Client:            client,
 		mariadb:           mariadb,
@@ -299,7 +303,8 @@ func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql
 }
 
 func (m *multiClusterTopology) ConfigureReplica(ctx context.Context, client *sql.Client, primaryPodIndex int,
-	replicaOpts ...ConfigureReplicaOpt) error {
+	replicaOpts ...ConfigureReplicaOpt,
+) error {
 	opts := slices.Clone(replicaOpts)
 	// keep binary logs in replicas: when promoted to new primary, they will have binary logs to dump to the replica cluster
 	opts = append(opts, WithResetMaster(false))
@@ -338,7 +343,7 @@ func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, clie
 		return fmt.Errorf("error resetting local slave: %v", err)
 	}
 
-	if err := client.DisableReadOnly(ctx); err != nil {
+	if err := client.EnableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling read_only: %v", err)
 	}
 	if err := m.userSqlReconciler.reconcileReplUserSql(ctx, client); err != nil {
@@ -399,7 +404,8 @@ func (m *multiClusterTopology) configurePrimaryReplicaConnection(ctx context.Con
 }
 
 func (m *multiClusterTopology) configureSecondaryReplica(ctx context.Context, client *sql.Client, primaryPodIndex int,
-	replicaOpts ...ConfigureReplicaOpt) error {
+	replicaOpts ...ConfigureReplicaOpt,
+) error {
 	m.logger.Info("Configuring secondary replica")
 
 	opts := ConfigureReplicaOpts{}
