@@ -120,10 +120,6 @@ Please create a PR and add your company or project to our [ADOPTERS.md file](./A
 
 We welcome and encourage contributions to this project! Please check our [contributing](./CONTRIBUTING.md) and [development](./docs/development.md) guides. PRs welcome!
 
-## Star history
-
-[![Star history](https://api.star-history.com/svg?repos=mariadb-operator/mariadb-operator&type=Date)](https://star-history.com/#mariadb-operator/mariadb-operator&Date)
-
 ## Community
 
 - [Why MariaDB Operator 25.10 Is a Big Deal for Stateful Workloads on Kubernetes](https://www.mrplanb.com/blog/mariadb-operator-25-10-stateful-kubernetes) - Mr.PlanB blog, October 2025
