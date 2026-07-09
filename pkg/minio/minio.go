@@ -1,6 +1,7 @@
 package minio
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"encoding/base64"
@@ -102,6 +103,15 @@ type Client struct {
 	MinioOpts
 	basePath string
 	bucket   string
+}
+
+const multipartAbortTimeout = 2 * time.Minute
+
+type multipartUploader interface {
+	NewMultipartUpload(ctx context.Context, bucket, object string, opts minio.PutObjectOptions) (string, error)
+	PutObjectPart(ctx context.Context, bucket, object, uploadID string, partID int, data io.Reader, size int64, opts minio.PutObjectPartOptions) (minio.ObjectPart, error)
+	CompleteMultipartUpload(ctx context.Context, bucket, object, uploadID string, parts []minio.CompletePart, opts minio.PutObjectOptions) (minio.UploadInfo, error)
+	AbortMultipartUpload(ctx context.Context, bucket, object, uploadID string) error
 }
 
 func NewMinioClientFromS3Config(
@@ -229,8 +239,89 @@ func (c *Client) PutObjectStreamWithOptions(ctx context.Context, fileName string
 	putOpts.PartSize = partSize
 	prefixedFilePath := c.PrefixedFileName(fileName)
 
-	_, err = c.PutObject(ctx, c.bucket, prefixedFilePath, reader, -1, *putOpts)
-	return err
+	core := minio.Core{Client: c.Client}
+	return putObjectMultipartStream(ctx, core, c.bucket, prefixedFilePath, reader, partSize, *putOpts)
+}
+
+func putObjectMultipartStream(ctx context.Context, uploader multipartUploader, bucket, object string, src io.Reader,
+	configuredPartSize uint64, putOpts minio.PutObjectOptions) (err error) {
+	totalPartsCount, partSize, _, err := minio.OptimalPartInfo(-1, configuredPartSize)
+	if err != nil {
+		return err
+	}
+
+	uploadID, err := uploader.NewMultipartUpload(ctx, bucket, object, putOpts)
+	if err != nil {
+		return err
+	}
+
+	completed := false
+	defer func() {
+		if completed {
+			return
+		}
+		abortCtx, cancel := context.WithTimeout(context.Background(), multipartAbortTimeout)
+		defer cancel()
+		if abortErr := uploader.AbortMultipartUpload(abortCtx, bucket, object, uploadID); abortErr != nil {
+			abortErr = fmt.Errorf("error aborting multipart upload: %w", abortErr)
+			if err != nil {
+				err = errors.Join(err, abortErr)
+			} else {
+				err = abortErr
+			}
+		}
+	}()
+
+	partBuf := make([]byte, partSize)
+	var completeParts []minio.CompletePart
+	for partNumber := 1; ; partNumber++ {
+		if partNumber > totalPartsCount {
+			return fmt.Errorf("multipart stream exceeds maximum part count %d for part size %d", totalPartsCount, partSize)
+		}
+
+		length, readErr := io.ReadFull(src, partBuf)
+		if readErr == io.EOF {
+			if partNumber == 1 {
+				return errors.New("cannot upload empty multipart stream")
+			}
+			break
+		}
+		if readErr != nil && readErr != io.ErrUnexpectedEOF {
+			return readErr
+		}
+
+		part, err := uploader.PutObjectPart(ctx, bucket, object, uploadID, partNumber, bytes.NewReader(partBuf[:length]),
+			int64(length), minio.PutObjectPartOptions{
+				SSE:                  putOpts.ServerSideEncryption,
+				DisableContentSha256: putOpts.DisableContentSha256,
+			})
+		if err != nil {
+			return err
+		}
+		completeParts = append(completeParts, minio.CompletePart{
+			ETag:              part.ETag,
+			PartNumber:        part.PartNumber,
+			ChecksumCRC32:     part.ChecksumCRC32,
+			ChecksumCRC32C:    part.ChecksumCRC32C,
+			ChecksumSHA1:      part.ChecksumSHA1,
+			ChecksumSHA256:    part.ChecksumSHA256,
+			ChecksumCRC64NVME: part.ChecksumCRC64NVME,
+		})
+
+		if readErr == io.ErrUnexpectedEOF {
+			break
+		}
+	}
+
+	completeOpts := minio.PutObjectOptions{
+		ServerSideEncryption: putOpts.ServerSideEncryption,
+		AutoChecksum:         putOpts.AutoChecksum,
+	}
+	if _, err := uploader.CompleteMultipartUpload(ctx, bucket, object, uploadID, completeParts, completeOpts); err != nil {
+		return err
+	}
+	completed = true
+	return nil
 }
 
 func (c *Client) FPutObjectWithOptions(ctx context.Context, fileName string) error {
