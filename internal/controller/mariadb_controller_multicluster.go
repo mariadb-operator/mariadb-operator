@@ -297,13 +297,32 @@ func (r *MariaDBReconciler) shouldReconcileMultiCluster(ctx context.Context, mdb
 }
 
 func composeGtids(rawGtid, rawExternalGtid string) (string, error) {
-	gtid, err := replication.ParseGtid(rawGtid)
+	gtids, err := parseGtids(rawGtid)
 	if err != nil {
 		return "", fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
 	}
-	externalGtid, err := replication.ParseGtid(rawExternalGtid)
+	externalGtids, err := parseGtids(rawExternalGtid)
 	if err != nil {
 		return "", fmt.Errorf("error parsing external GTID %s: %v", rawExternalGtid, err)
 	}
-	return replication.GtidsToString(*gtid, *externalGtid), nil
+
+	externalDomains := make(map[uint32]bool, len(externalGtids))
+	merged := make([]replication.Gtid, 0, len(gtids)+len(externalGtids))
+	for _, gtid := range externalGtids {
+		externalDomains[gtid.DomainID] = true
+		merged = append(merged, gtid)
+	}
+	for _, gtid := range gtids {
+		if !externalDomains[gtid.DomainID] {
+			merged = append(merged, gtid)
+		}
+	}
+	return replication.GtidsToString(merged...), nil
+}
+
+func parseGtids(rawGtid string) ([]replication.Gtid, error) {
+	if rawGtid == "" {
+		return nil, nil
+	}
+	return replication.ParseAllGtids(rawGtid)
 }
