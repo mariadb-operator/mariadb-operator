@@ -199,10 +199,10 @@ Validation-only admission webhooks (no defaulting webhooks — defaults are set 
 
 ### Kubernetes best practices
 
-- **Owner references**: always set them on child resources so they are garbage-collected with their parent. `pkg/builder` does this via `controllerutil.SetControllerReference` — another reason to build children there.
+- **Owner references**: always set on child resources for GC; `pkg/builder` does this (see Builder) — another reason to build children there.
 - **Finalizers**: use them for ordered cleanup on deletion (the generic SQL reconciler already implements this flow). Use `client.IgnoreNotFound()` when deleting resources in finalizers.
 - **Reconcile idempotency**: every reconcile must converge without side effects on re-run. Read first (`Get`), then `Create`/`Patch` — never assume state.
-- **Status subresource**: patch status separately from spec (`r.Status().Patch`); never mutate spec during status updates.
+- **Status subresource**: patch status separately from spec, never mutate spec during status updates (see Status patching).
 - **Requeue with backoff**: return `ctrl.Result{RequeueAfter: ...}` for expected wait conditions. The SQL reconciler adds a random offset (`RequeueMaxOffset`) to spread requeues and avoid thundering herds — preserve that.
 - **Concurrency limits**: controllers set `controller.Options{MaxConcurrentReconciles: n}`; the heavy ones (MariaDB, MaxScale, PhysicalBackup) expose per-controller `--*-max-concurrent-reconciles` flags (default 10) in `cmd/controller/main.go`.
 - **Leader election**: available via `--leader-elect` but **disabled by default**; do not write logic that assumes a single active operator instance unless it is gated on it.
@@ -265,10 +265,10 @@ Where to look when working on a specific feature (read the doc first — it is c
 ## Gotchas and Non-obvious Rules
 
 - **Versioned module path**: imports are `github.com/mariadb-operator/mariadb-operator/v26/...`. Major version bumps change this prefix repo-wide.
-- **`inmutable` is not a typo to fix**: the immutability webhook tags and file (`pkg/webhook/inmutable_webhook.go`) intentionally use this spelling. `.typos.toml` configures the typo checker; CI runs it, so gratuitous "fixes" of recognized words will be flagged anyway.
+- **`inmutable` is not a typo to fix**: intentional spelling in the immutability webhook (see Webhooks and immutability). `.typos.toml` configures the typo checker and CI runs it, so gratuitous "fixes" get flagged anyway.
 - **Phase order is load-bearing**: adding/moving phases in `mariadb_controller.go` changes bootstrap and recovery semantics. Understand a phase's dependencies before repositioning it.
 - **Chart RBAC is NOT generated — promote it manually**: `//+kubebuilder:rbac:` markers only regenerate `config/rbac/role.yaml` (via `make manifests`/`make gen`). The Helm chart's RBAC under `deploy/charts/mariadb-operator/templates/` is templated (Helm conditionals like `currentNamespaceOnly`), so codegen cannot write it. When you add or change RBAC markers, manually replicate the new rules into the chart's templated RBAC files — `operator/rbac.yaml` (cluster-wide) **and** `operator/rbac-namespace.yaml` (namespace-scoped), plus the `cert-controller`/`webhook` variants if they are affected. The Artifacts CI job will not catch a missing promotion; a chart-deployed operator will fail at runtime with authorization errors.
-- **`make gen` output depends on `VERSION`**: `-dev` versions generate a reduced artifact set. CI runs the release flavor — if the Artifacts job fails but your local `make gen` was clean, check your `VERSION`.
+- **`make gen` output depends on `VERSION`** (see Codegen): if the Artifacts job fails but your local `make gen` was clean, check your `VERSION` — CI runs the release flavor, not `-dev`.
 - **CRD size budget**: the combined CRDs must stay under 900KB (`make crd-size`). Large inlined OpenAPI schemas (e.g. embedding full PodSpec-like structs) can blow the 1MB Kubernetes limit; the repo uses trimmed-down local copies of Kubernetes types in `api/v1alpha1/kubernetes_types.go` partly for this reason.
 - **Single multi-command binary**: `cmd/controller` root command *is* the operator; `webhook` and `cert-controller` are subcommands, `backup` nests a `restore` subcommand, and `agent`/`init` have `replication`/`galera` subcommands.
 - **Related images are external**: MariaDB, MaxScale and exporter images are not built here — they come from `RELATED_IMAGE_*` env vars set at deploy time (defaults in the root `Makefile`).
@@ -284,7 +284,7 @@ Where to look when working on a specific feature (read the doc first — it is c
 ### Secrets and credentials
 
 - Never commit passwords, tokens, private keys or certificates. Credentials are always consumed via `SecretKeyRef`-style references; generated passwords come from `pkg/password`.
-- Never log secret values, and never write them into status, events, annotations or error messages.
+- Never write secret values into status, events, annotations or error messages (see Logging for what counts as a secret and the never-log rule).
 - Test fixtures use obviously fake credentials (e.g. `MariaDB11!`); keep it that way.
 
 ### Backward compatibility
@@ -297,11 +297,10 @@ Where to look when working on a specific feature (read the doc first — it is c
 
 ### Database availability and data loss
 
-- Reconciliation must be idempotent and convergent; never assume state — read, then create/patch.
 - Be extremely careful in replica recovery, switchover and Galera recovery logic (`pkg/replication/`, `pkg/galera/`, `pkg/controller/galera/`): wrong sequencing risks split-brain or unrecoverable clusters. Quorum-affecting operations must check cluster state first.
 - When changing primaries or writing to a primary, ensure replicas are in sync (`WaitForReplicaGtid`) before proceeding.
 - Do not weaken backup/restore semantics: PITR depends on gapless binlog archival; restore flows coordinate multi-step sequences that must not be interrupted mid-way.
-- Finalizers implement ordered cleanup (SQL resources, PVCs, snapshots). Do not remove or reorder finalizer logic casually; use `client.IgnoreNotFound` during cleanup.
+- Do not remove or reorder finalizer logic casually — it implements ordered cleanup of SQL resources, PVCs and snapshots (mechanism under Kubernetes best practices).
 
 ### Rolling restarts
 
@@ -311,5 +310,5 @@ Where to look when working on a specific feature (read the doc first — it is c
 
 ### CI is the gate
 
-- Every PR must pass all CI checks: lint, typos, build, unit tests, integration tests, and the generated-artifacts diff check. Run `make gen && make lint && make test` (and ideally `make test-int-basic`) before pushing.
+- Every PR must pass all CI checks (see CI — what a PR must pass); run `make gen && make lint && make test` before pushing.
 - Never merge with a red Artifacts job by hand-editing generated files — fix the source and regenerate.
