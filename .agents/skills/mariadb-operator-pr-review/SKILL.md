@@ -156,6 +156,11 @@ compatibility starts at MEDIUM and rises with blast radius.
 - Preemptive `docs/` or `examples/` updates without matching code.
 - Auto-formatted whitespace differences — CI enforces formatting.
 
+## Delivery
+
+**By default, reply the review back to the user in your response — do not post it to GitHub.** Post it (e.g.
+`gh pr comment`) only when the user explicitly asks you to.
+
 ## Output format
 
 Render the review as **GitHub-flavored Markdown** — clean enough to drop straight into a PR comment. Use the
