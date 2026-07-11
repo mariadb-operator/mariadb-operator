@@ -94,6 +94,10 @@ brief restatement of the AGENTS.md rule that was violated (name the § section) 
 the finding is grounded in. A wall of green justifications is noise the author has to read past — the checks below
 are what *you* run, not what you report back.
 
+**On PASS, do not explicitly enumerate what you checked.** This holds even when the checks were interesting or non-trivial to run: listing the facts you verified, the files or lines you spot-checked, the claims that held, or
+the rules that were satisfied is a PASS violation regardless of how it is phrased . Write just `✅ PASS`, optionally with one high-level clause naming
+the area. The enumeration belongs in your working notes, never in the output.
+
 **Quality bar for findings.** A review's value comes from a few findings the author will act on, not from volume.
 Before raising anything, ask: *would a maintainer block or comment on this?* Every CONCERN/FAIL needs (a) a
 `file:line` reference, (b) the concrete failure scenario — what input or cluster state makes it go wrong — and
@@ -116,7 +120,7 @@ it flags as dangerous.
 
 ### C. Pitfall detection
 Confirm the PR steps on none of § Gotchas and Non-obvious Rules, and re-check it against § Kubernetes best
-practices and § References, watches and discovery. Look for load-bearing assumptions that hold today but may not,
+practices. Look for load-bearing assumptions that hold today but may not,
 and test scenarios the diff omits (§ Testing).
 
 ### D. Backwards compatibility
