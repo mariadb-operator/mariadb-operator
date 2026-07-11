@@ -93,30 +93,45 @@ explicit "post it" answer. This is the hard gate described above — nothing in 
 
 ## Step 5 — Post
 
-**Prefer the project-scoped GitHub MCP tools** (names like `mcp__github-mariadb-operator__add_issue_comment`,
-`mcp__github-mariadb-operator__pull_request_review_write`, `mcp__github-mariadb-operator__add_comment_to_pending_review`).
-These may show up as deferred tools — if so, load their schema with `ToolSearch` (e.g.
-`ToolSearch({query: "select:mcp__github-mariadb-operator__add_issue_comment", max_results: 1})`) before calling
-them. If that MCP server isn't connected, fall back to the plain `mcp__github__*` tools if they're pointed at
-the right repo, otherwise use the `gh` CLI.
+Try each option in this order, falling through only when the previous one is unavailable:
+
+1. **Project-scoped GitHub MCP tools** (names like `mcp__github-mariadb-operator__add_issue_comment`,
+   `mcp__github-mariadb-operator__pull_request_review_write`,
+   `mcp__github-mariadb-operator__add_comment_to_pending_review`). These may show up as deferred tools — if so,
+   load their schema with `ToolSearch` (e.g.
+   `ToolSearch({query: "select:mcp__github-mariadb-operator__add_issue_comment", max_results: 1})`) before
+   calling them.
+2. **`gh` CLI with the project-specific token**, if the `mariadb-operator` MCP server isn't connected. Use
+   `GITHUB_TOKEN_MARIADB_OPERATOR` explicitly rather than the ambient `gh auth` session (see commands below).
+3. **Generic GitHub MCP tools** (`mcp__github__*`), if neither of the above is available.
+4. **`gh` CLI with default credentials** (plain `gh auth`, no explicit token) as the last resort, if none of the above work.
 
 **Plain comment:**
-- MCP: `add_issue_comment` with `owner`, `repo`, `issue_number`, `body` — works for both issues and PRs.
-- gh CLI fallback, authenticated with the project token rather than the ambient `gh auth` session:
+- MCP (project-scoped or generic): `add_issue_comment` with `owner`, `repo`, `issue_number`, `body` — works for
+  both issues and PRs.
+- gh CLI with the project token:
   ```bash
   GH_TOKEN="$GITHUB_TOKEN_MARIADB_OPERATOR" gh issue comment <n> --repo mariadb-operator/mariadb-operator --body "<text>"
   # or for a PR:
   GH_TOKEN="$GITHUB_TOKEN_MARIADB_OPERATOR" gh pr comment <n> --repo mariadb-operator/mariadb-operator --body "<text>"
   ```
-  Pass the body via `--body-file` (write it to the scratchpad directory first) instead of `--body` when it's
-  long or has quoting-sensitive characters — safer than fighting shell escaping.
+- gh CLI with default credentials (drop the `GH_TOKEN` override, rely on ambient `gh auth`):
+  ```bash
+  gh issue comment <n> --repo mariadb-operator/mariadb-operator --body "<text>"
+  # or for a PR:
+  gh pr comment <n> --repo mariadb-operator/mariadb-operator --body "<text>"
+  ```
+  For either gh CLI variant, pass the body via `--body-file` (write it to the scratchpad directory first)
+  instead of `--body` when it's long or has quoting-sensitive characters — safer than fighting shell escaping.
 
 **Formal review with inline comments:**
-- MCP: use `pull_request_review_write` to create a pending review, `add_comment_to_pending_review` once per
-  finding (each needs `path`, `line`, and the finding's body), then submit the pending review with its overall
-  verdict (comment / approve / request changes) via `pull_request_review_write`.
-- There's no clean `gh` CLI equivalent for multi-inline-comment reviews — if MCP isn't available and the user
-  wants inline comments, say so and offer the plain-comment fallback instead of improvising something fragile.
+- MCP (project-scoped or generic): use `pull_request_review_write` to create a pending review,
+  `add_comment_to_pending_review` once per finding (each needs `path`, `line`, and the finding's body), then
+  submit the pending review with its overall verdict (comment / approve / request changes) via
+  `pull_request_review_write`.
+- There's no clean `gh` CLI equivalent for multi-inline-comment reviews — if no MCP server is available and the
+  user wants inline comments, say so and offer the plain-comment fallback instead of improvising something
+  fragile.
 
 After posting, confirm back to the user with a link or reference to what was just published — don't just say
 "done".
