@@ -94,7 +94,7 @@ brief restatement of the AGENTS.md rule that was violated (name the § section) 
 the finding is grounded in. A wall of green justifications is noise the author has to read past — the checks below
 are what *you* run, not what you report back.
 
-**On PASS, do not explicitly enumerate what you checked.** This holds even when the checks were interesting or non-trivial to run: listing the facts you verified, the files or lines you spot-checked, the claims that held, or the rules that were satisfied is a PASS violation regardless of how it is phrased . Write just `✅ PASS`, optionally with one high-level clause naming the area. The enumeration belongs in your working notes, never in the output.
+**On PASS, do not explicitly enumerate what you checked.** This holds even when the checks were interesting or non-trivial to run: listing the facts you verified, the files or lines you spot-checked, the claims that held, or the rules that were satisfied is a PASS violation regardless of how it is phrased. Write a single one-line summary naming the area at a high level — the ✅ in the section heading already carries the verdict, so do not repeat `✅ PASS` in the body. The enumeration belongs in your working notes, never in the output.
 
 **Quality bar for findings.** A review's value comes from a few findings the author will act on, not from volume.
 Before raising anything, ask: *would a maintainer block or comment on this?* Every CONCERN/FAIL needs (a) a
@@ -156,19 +156,13 @@ compatibility starts at MEDIUM and rises with blast radius.
 - Preemptive `docs/` or `examples/` updates without matching code.
 - Auto-formatted whitespace differences — CI enforces formatting.
 
-## Output boundaries
-
-**Present the review in the conversation — do not post it to GitHub** (no `gh pr review`, `gh pr comment`, or
-review-submitting API calls) unless the user explicitly asks you to publish it. A posted review is visible to the
-PR author and other maintainers; that's the user's call, not yours.
-
 ## Output format
 
-Render the review as **GitHub-flavored Markdown** — clean enough to drop straight into a PR comment (see
-Output boundaries: don't actually post it unless asked). Use the emoji legend below so the verdict is scannable
-at a glance. For any dimension that is **PASS**, write just the verdict emoji and label (optionally a single short
-clause) — no `file:line` lists, no recap of what passed. Reserve justification, references and failure scenarios
-for **CONCERN / FAIL**.
+Render the review as **GitHub-flavored Markdown** — clean enough to drop straight into a PR comment. Use the
+emoji legend below so the verdict is scannable at a glance. For any dimension that is **PASS**, write a single
+one-line summary naming the area at a high level — the ✅ in the section heading already carries the verdict, so
+do not repeat `✅ PASS` in the body. No `file:line` lists, no recap of what passed. Reserve justification,
+references and failure scenarios for **CONCERN / FAIL**.
 
 **Emoji legend:**
 
