@@ -6,7 +6,7 @@ Guidance for AI coding agents working in `mariadb-operator`. Read this before ma
 
 `mariadb-operator` is a Kubernetes operator that manages the full lifecycle of MariaDB: provisioning, high availability (MariaDB native replication and Galera), multi-cluster topologies, backups (logical and physical), point-in-time recovery, users/grants/databases as code, MaxScale proxying, TLS, metrics and updates.
 
-- **Module**: `github.com/mariadb-operator/mariadb-operator/v26` — all internal imports use the `/v26` suffix
+- **Module**: `github.com/mariadb-operator/mariadb-operator/v26`.
 - **API group**: `k8s.mariadb.com/v1alpha1`
 - **Stack**: Go, controller-runtime, Kubebuilder markers + controller-gen, Ginkgo v2/Gomega, envtest, KIND, Helm
 - **Docs**: `docs/*.md` (feature-oriented, one file per topic — read the relevant one before touching a feature)
@@ -277,7 +277,7 @@ Where to look when working on a specific feature (read the doc first — it is c
 ## Gotchas and Non-obvious Rules
 
 - **Versioned module path**: imports are `github.com/mariadb-operator/mariadb-operator/v26/...`. Major version bumps change this prefix repo-wide.
-- **`inmutable` is not a typo to fix**: intentional spelling in the immutability webhook (see Webhooks and immutability). `.typos.toml` configures the typo checker and CI runs it, so gratuitous "fixes" get flagged anyway.
+- **`inmutable` is not a typo to fix**: intentional spelling in the immutability webhook (see Webhooks and immutability).
 - **Phase order is load-bearing**: adding/moving phases in `mariadb_controller.go` changes bootstrap and recovery semantics. Understand a phase's dependencies before repositioning it.
 - **Chart RBAC is NOT generated — promote it manually**: `//+kubebuilder:rbac:` markers only regenerate `config/rbac/role.yaml` (via `make manifests`/`make gen`). The Helm chart's RBAC under `deploy/charts/mariadb-operator/templates/` is templated (Helm conditionals like `currentNamespaceOnly`), so codegen cannot write it. When you add or change RBAC markers, manually replicate the new rules into the chart's templated RBAC files — `operator/rbac.yaml` (cluster-wide) **and** `operator/rbac-namespace.yaml` (namespace-scoped), plus the `cert-controller`/`webhook` variants if they are affected. The Artifacts CI job will not catch a missing promotion; a chart-deployed operator will fail at runtime with authorization errors.
 - **`make gen` output depends on `VERSION`** (see Codegen): if the Artifacts job fails but your local `make gen` was clean, check your `VERSION` — CI runs the release flavor, not `-dev`.
