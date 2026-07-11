@@ -54,7 +54,7 @@ Then, from the local checkout, pull the surrounding context the diff alone can't
 For large PRs, spend attention proportional to risk: read HA/backup/CRD/webhook/builder changes line by line first,
 then controllers, then everything else. Diff stats (`gh pr diff <n> --name-only`) tell you where to start.
 
-Don't read generated files to review their contents (§ Gotchas → Token savers) — for review, only their *presence
+Don't read generated files to review their contents (§ Token Savers) — for review, only their *presence
 or absence* in the diff matters: a change to `api/v1alpha1/` types with no regenerated artifacts is a quick reject.
 
 ## Step 1 — Triage
