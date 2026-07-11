@@ -86,7 +86,11 @@ or absence* in the diff matters: a change to `api/v1alpha1/` types with no regen
 
 ## Step 2 — Evaluate five dimensions
 
-For each dimension give a verdict of **PASS / CONCERN / FAIL** with specific `file:line` references.
+For each dimension give a verdict of **PASS / CONCERN / FAIL**. **On PASS, state the verdict and stop** — a
+one-line reason at most; do not enumerate everything you checked or restate the diff. Spend words only where
+there is something to fix: every CONCERN/FAIL gets specific `file:line` references and the failure scenario.
+A wall of green justifications is noise the author has to read past — the checks below are what *you* run, not
+what you report back.
 
 **Quality bar for findings.** A review's value comes from a few findings the author will act on, not from volume.
 Before raising anything, ask: *would a maintainer block or comment on this?* Every CONCERN/FAIL needs (a) a
@@ -158,7 +162,9 @@ PR author and other maintainers; that's the user's call, not yours.
 
 ## Output format
 
-Use this exact structure:
+Use this exact structure. For any dimension that is **PASS**, write just the verdict (optionally a single short
+clause) — no `file:line` lists, no recap of what passed. Reserve justification, references and failure scenarios
+for **CONCERN / FAIL**.
 
 ```
 PR Review:
@@ -167,20 +173,19 @@ Summary:
 <1-2 sentences: what the PR does and why>
 
 Correctness:
-<PASS / CONCERN / FAIL> — <justification with file:line references>
+<PASS, or CONCERN / FAIL — justification with file:line references and failure scenario>
 
 Safety:
-<PASS / CONCERN / FAIL> — <justification with file:line references>
+<PASS, or CONCERN / FAIL — justification with file:line references and failure scenario>
 
 Pitfall Detection:
-<PASS / CONCERN / FAIL> — <justification with file:line references>
+<PASS, or CONCERN / FAIL — justification with file:line references and failure scenario>
 
 Backwards Compatibility:
-<PASS / CONCERN / FAIL>
-<bullets; classify each finding as additive / behavioral / breaking>
+<PASS, or CONCERN / FAIL — bullets classifying each finding as additive / behavioral / breaking>
 
 Code Quality:
-<PASS / CONCERN / FAIL> — <justification with file:line references>
+<PASS, or CONCERN / FAIL — justification with file:line references>
 
 Overall Assessment:
 <Approve / Approve with notes / Request changes / Block>
