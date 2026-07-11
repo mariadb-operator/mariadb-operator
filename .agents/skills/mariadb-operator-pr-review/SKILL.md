@@ -76,6 +76,7 @@ or absence* in the diff matters: a change to `api/v1alpha1/` types with no regen
 - RBAC markers added/changed without the manual Helm chart promotion — no CI job catches this
   (§ Gotchas → Chart RBAC is NOT generated).
 - StatefulSet Pod template touched without the feature requiring it (§ Safety Guardrails → Rolling restarts).
+- Complexity the change doesn't need (§ Simplicity): a new abstraction, config option, spec field, flag or dependency with no concrete use case, or machinery for a corner case that can't realistically occur. Treat this like any other defect — name the simpler alternative.
 
 ## Step 2 — Evaluate five dimensions
 
