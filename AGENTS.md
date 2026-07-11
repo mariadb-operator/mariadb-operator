@@ -11,6 +11,16 @@ Guidance for AI coding agents working in `mariadb-operator`. Read this before ma
 - **Stack**: Go, controller-runtime, Kubebuilder markers + controller-gen, Ginkgo v2/Gomega, envtest, KIND, Helm
 - **Docs**: `docs/*.md` (feature-oriented, one file per topic — read the relevant one before touching a feature)
 
+## Simplicity
+
+This project is **highly biased towards simplicity and against over-engineering** — every line merged is a line maintained:
+
+- Prefer the simplest implementation that solves the actual problem; reuse existing patterns before introducing new abstractions, layers or dependencies.
+- Complexity without a clear outcome is a red flag — speculative flexibility and unrealistic corner cases included.
+- New config options, spec fields, flags and dependencies multiply the test matrix and maintenance burden — justify them with a concrete use case.
+
+In scope decisions and reviews, treat unjustified complexity as a defect.
+
 ### CRDs
 
 | Kind | Purpose |
@@ -30,6 +40,8 @@ Guidance for AI coding agents working in `mariadb-operator`. Read this before ma
 
 ```
 mariadb-operator/
+├── .agents/skills/          # Agent skills (SKILL.md per dir); .claude/skills is a symlink to it so both
+│                            #   OpenCode and Claude Code auto-discover them
 ├── api/v1alpha1/            # CRD types, kubebuilder markers, defaults, indexes (*_indexes.go), helpers
 ├── cmd/                     # Entrypoints (single binary, cobra subcommands)
 │   ├── controller/          # Root cmd = operator; subcommands: webhook, cert-controller
