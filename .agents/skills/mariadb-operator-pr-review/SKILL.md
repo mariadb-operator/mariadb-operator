@@ -162,36 +162,59 @@ PR author and other maintainers; that's the user's call, not yours.
 
 ## Output format
 
-Use this exact structure. For any dimension that is **PASS**, write just the verdict (optionally a single short
+Render the review as **GitHub-flavored Markdown** — clean enough to drop straight into a PR comment (see
+Output boundaries: don't actually post it unless asked). Use the emoji legend below so the verdict is scannable
+at a glance. For any dimension that is **PASS**, write just the verdict emoji and label (optionally a single short
 clause) — no `file:line` lists, no recap of what passed. Reserve justification, references and failure scenarios
 for **CONCERN / FAIL**.
 
+**Emoji legend:**
+
+- Dimension verdict: ✅ PASS · ⚠️ CONCERN · ❌ FAIL
+- Overall assessment: ✅ Approve · 📝 Approve with notes · 🔧 Request changes · 🚫 Block
+- Risk level: 🟢 LOW · 🟡 MEDIUM · 🔴 HIGH
+
+Use this exact structure:
+
+```markdown
+## 🔍 PR Review
+
+> <1-2 sentences: what the PR does and why>
+
+### Verdict at a glance
+
+| Dimension | Result |
+|---|---|
+| Correctness | ✅ PASS |
+| Safety | ✅ PASS |
+| Pitfall Detection | ⚠️ CONCERN |
+| Backwards Compatibility | ✅ PASS |
+| Code Quality | ✅ PASS |
+
+**Overall:** 📝 Approve with notes — **Risk:** 🟡 MEDIUM
+
+---
+
+### ✅ Correctness
+<verdict; on CONCERN/FAIL add justification with `file:line` references and failure scenario>
+
+### ✅ Safety
+<verdict; on CONCERN/FAIL add justification with `file:line` references and failure scenario>
+
+### ⚠️ Pitfall Detection
+<verdict; on CONCERN/FAIL add justification with `file:line` references and failure scenario>
+
+### ✅ Backwards Compatibility
+<verdict; on CONCERN/FAIL bullets classifying each finding as additive / behavioral / breaking>
+
+### ✅ Code Quality
+<verdict; on CONCERN/FAIL add justification with `file:line` references>
+
+---
+
+### 📋 Suggested before merge
+<actionable items as a checklist, or "None">
 ```
-PR Review:
 
-Summary:
-<1-2 sentences: what the PR does and why>
-
-Correctness:
-<PASS, or CONCERN / FAIL — justification with file:line references and failure scenario>
-
-Safety:
-<PASS, or CONCERN / FAIL — justification with file:line references and failure scenario>
-
-Pitfall Detection:
-<PASS, or CONCERN / FAIL — justification with file:line references and failure scenario>
-
-Backwards Compatibility:
-<PASS, or CONCERN / FAIL — bullets classifying each finding as additive / behavioral / breaking>
-
-Code Quality:
-<PASS, or CONCERN / FAIL — justification with file:line references>
-
-Overall Assessment:
-<Approve / Approve with notes / Request changes / Block>
-
-Risk level: <LOW / MEDIUM / HIGH>
-
-Suggested before merge:
-<actionable items, or "None">
-```
+Match the emoji in each dimension heading and in the summary table to that dimension's actual verdict, and set
+the **Overall** and **Risk** emoji accordingly — the table and the section headings must agree.
