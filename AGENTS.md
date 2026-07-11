@@ -9,7 +9,7 @@ Guidance for AI coding agents working in `mariadb-operator`. Read this before ma
 - **Module**: `github.com/mariadb-operator/mariadb-operator/v26`.
 - **API group**: `k8s.mariadb.com/v1alpha1`
 - **Stack**: Go, controller-runtime, Kubebuilder markers + controller-gen, Ginkgo v2/Gomega, envtest, KIND, Helm
-- **Docs**: `docs/*.md` (feature-oriented, one file per topic — read the relevant one before touching a feature)
+- **Docs**: `docs/*.md` (feature-oriented, one file per topic — see Feature Map)
 
 ## Simplicity
 
@@ -236,7 +236,7 @@ Validation-only admission webhooks (no defaulting webhooks — defaults are set 
 
 ## Feature Map
 
-Where to look when working on a specific feature (read the doc first — it is cheaper than exploring code):
+Where to look when working on a specific feature:
 
 | Feature | Docs | Key code |
 |---------|------|----------|
@@ -278,13 +278,11 @@ Where to look when working on a specific feature (read the doc first — it is c
 
 - **Phase order is load-bearing**: adding/moving phases in `mariadb_controller.go` changes bootstrap and recovery semantics. Understand a phase's dependencies before repositioning it.
 - **Chart RBAC is NOT generated — promote it manually**: `//+kubebuilder:rbac:` markers only regenerate `config/rbac/role.yaml` (via `make manifests`/`make gen`). The Helm chart's RBAC under `deploy/charts/mariadb-operator/templates/` is templated (Helm conditionals like `currentNamespaceOnly`), so codegen cannot write it. When you add or change RBAC markers, manually replicate the new rules into the chart's templated RBAC files — `operator/rbac.yaml` (cluster-wide) **and** `operator/rbac-namespace.yaml` (namespace-scoped), plus the `cert-controller`/`webhook` variants if they are affected. The Artifacts CI job will not catch a missing promotion; a chart-deployed operator will fail at runtime with authorization errors.
-- **`make gen` output depends on `VERSION`** (see Codegen): if the Artifacts job fails but your local `make gen` was clean, check your `VERSION` — CI runs the release flavor, not `-dev`.
 - **CRD size budget**: the combined CRDs must stay under 900KB (`make crd-size`). Large inlined OpenAPI schemas (e.g. embedding full PodSpec-like structs) can blow the 1MB Kubernetes limit; the repo uses trimmed-down local copies of Kubernetes types in `api/v1alpha1/kubernetes_types.go` partly for this reason.
 - **Single multi-command binary**: `cmd/controller` root command *is* the operator; `webhook` and `cert-controller` are subcommands, `backup` nests a `restore` subcommand, and `agent`/`init` have `replication`/`galera` subcommands.
 - **Related images are external**: MariaDB, MaxScale and exporter images are not built here — they come from `RELATED_IMAGE_*` env vars set at deploy time (defaults in the root `Makefile`).
 - **Suspend vs maintenance**: `spec.suspend` stops reconciliation entirely; `spec.maintenance` keeps reconciling while cordoning/draining/setting read-only. Don't conflate them.
 - **Webhooks don't default**: defaulting happens in the controller's `Spec` phase (`setSpecDefaults`) and API helper methods, not in mutating webhooks (there are none).
-- **Token savers**: don't read generated files (`docs/api_reference.md`, `deploy/**`, `config/crd/bases/**`, `zz_generated.deepcopy.go`, `pkg/embed/mariadb-docker/`) — consult the source types instead. `csi-driver-host-path/` is a vendored submodule; ignore it. Prefer `docs/<feature>.md` over code exploration for feature semantics, and `make help` over reading `make/*.mk`.
 
 ## Safety Guardrails
 
@@ -315,7 +313,6 @@ Where to look when working on a specific feature (read the doc first — it is c
 
 - **Avoid touching the StatefulSet Pod template unless the feature requires it.** Any Pod template change triggers a rolling update of every MariaDB cluster managed by an upgraded operator (per `spec.updateStrategy`). Prefer changes that don't alter the template hash (e.g. lazily-read Secrets/ConfigMaps, agent API calls) over env/volume/container mutations.
 - The same applies to Services and selector labels: churn there can drop client connections (cordon logic manipulates endpoint selectors deliberately — don't interfere with it accidentally).
-- Root password rotation and TLS rotation are engineered to avoid restarts where possible; preserve that property.
 
 ### CI is the gate
 
