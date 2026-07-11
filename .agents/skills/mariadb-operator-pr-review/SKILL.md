@@ -87,10 +87,12 @@ or absence* in the diff matters: a change to `api/v1alpha1/` types with no regen
 ## Step 2 — Evaluate five dimensions
 
 For each dimension give a verdict of **PASS / CONCERN / FAIL**. **On PASS, state the verdict and stop** — a
-one-line reason at most; do not enumerate everything you checked or restate the diff. Spend words only where
-there is something to fix: every CONCERN/FAIL gets specific `file:line` references and the failure scenario.
-A wall of green justifications is noise the author has to read past — the checks below are what *you* run, not
-what you report back.
+one-line reason at most, and even that names the area at a high level, never the individual checks, `file:line`s,
+or AGENTS.md rules you verified. Do not enumerate what you checked or restate the diff. Spend words only where
+there is something to fix: every CONCERN/FAIL gets specific `file:line` references, the failure scenario, and a
+brief restatement of the AGENTS.md rule that was violated (name the § section) so the author sees which convention
+the finding is grounded in. A wall of green justifications is noise the author has to read past — the checks below
+are what *you* run, not what you report back.
 
 **Quality bar for findings.** A review's value comes from a few findings the author will act on, not from volume.
 Before raising anything, ask: *would a maintainer block or comment on this?* Every CONCERN/FAIL needs (a) a
@@ -99,36 +101,34 @@ Before raising anything, ask: *would a maintainer block or comment on this?* Eve
 either verify it in the code (read callers, check the pre-change version) or drop it. Style opinions that
 golangci-lint doesn't enforce are not findings.
 
+Each dimension below names *what to assess* and *which AGENTS.md section(s) hold the rules*. AGENTS.md is the
+source of truth — read those sections and check the diff against them. Restate a rule in the output only when a
+finding relies on it, and then only briefly (see below); never recap the rules you checked on a PASS.
+
 ### A. Correctness
-Does the code do what the PR claims? Sound control flow, valid API usage, edge cases (nil/empty/zero, boundaries,
-races), correct pointer/generic/interface use. Then, for each pattern in § Architecture and Code Patterns that the
-diff touches — phase placement, sub-reconcilers, the generic SQL reconciler, status patching, conditions, builder,
-refs/watches/discovery, error handling — open that section and verify the diff follows the pattern rather than
-re-implementing or bypassing it.
+Does the code do what the PR claims, with sound control flow, valid API usage, and correct handling of edge cases
+(nil/empty/zero, boundaries, races, pointer/generic/interface use)? Where the diff touches a pattern documented in
+§ Architecture and Code Patterns, verify it follows that pattern rather than re-implementing or bypassing it.
 
 ### B. Safety
-Check the diff against every subsection of § Safety Guardrails that applies. Give line-by-line scrutiny to the
-areas it singles out as dangerous: HA sequencing (replica recovery, switchover, Galera recovery), backup/restore/
-PITR, finalizer ordering, Pod template and Service/selector churn, and secret handling (§ Logging defines what
-counts as a secret). Also verify reconcile idempotency and concurrency behavior per § Kubernetes best practices.
+Check the diff against the applicable subsections of § Safety Guardrails, with line-by-line scrutiny of the areas
+it flags as dangerous.
 
 ### C. Pitfall detection
-What subtle problems might surface later? Walk § Gotchas and Non-obvious Rules top to bottom and confirm the PR
-steps on none of them. Re-check the diff against § Kubernetes best practices (reconcile idempotency, requeue
-behavior) and § References, watches and discovery (optional-API gating). Also look for load-bearing assumptions
-that hold today but may not, and test scenarios the diff omits (§ Testing).
+Confirm the PR steps on none of § Gotchas and Non-obvious Rules, and re-check it against § Kubernetes best
+practices and § References, watches and discovery. Look for load-bearing assumptions that hold today but may not,
+and test scenarios the diff omits (§ Testing).
 
 ### D. Backwards compatibility
-Check the diff against every rule in § Safety Guardrails → Backward compatibility. Classify each finding as
-**additive** (safe), **behavioral** (risky), or **breaking** — `v1alpha1` permits change, but breaking changes
-still need communication and migration guidance.
+Check the diff against § Safety Guardrails → Backward compatibility. Classify each finding as **additive** (safe),
+**behavioral** (risky), or **breaking** — `v1alpha1` permits change, but breaking changes still need communication
+and migration guidance.
 
 ### E. Code quality
-Is the code well-written, maintainable and consistent with the surrounding codebase (naming, structure, imports,
-error-handling idioms)? Lint rules are defined in `.golangci.yml` and enforced by CI (§ CI — what a PR must pass) —
-don't hand-verify what CI already checks; flag only what lint cannot see. Tests must be present and tiered with the
-Ginkgo labels described in § Testing. The change should be appropriately scoped: no dead code, leftover debug, or
-over-engineering.
+Is the code well-written, maintainable and consistent with the surrounding codebase? Don't hand-verify what
+golangci-lint/CI already checks (§ CI — what a PR must pass); flag only what lint cannot see. Confirm tests are
+present and tiered per § Testing, and that the change is appropriately scoped (no dead code, leftover debug, or
+over-engineering).
 
 ## Step 3 — Verdict
 
