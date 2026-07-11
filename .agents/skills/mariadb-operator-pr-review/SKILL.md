@@ -67,6 +67,12 @@ or absence* in the diff matters: a change to `api/v1alpha1/` types with no regen
 - Scale the review to the change: a dependabot bump or a docs typo does not need the full five-dimension pass —
   say so and move on. Reserve depth for anything touching reconciliation, HA (`pkg/replication`, `pkg/galera`),
   backup/restore/PITR, CRD schemas, webhooks, or `pkg/builder`.
+- Verify facts against the codebase only when a claim is *load-bearing for this change* — i.e. the change's
+  correctness or safety depends on it. Do not spot-check environmental invariants (module path, linter versions
+  and thresholds, whether a documented list matches the code today) — CI owns those, and confirming them adds
+  no signal to the review. For docs/guidance/tooling PRs (`AGENTS.md`, skills, READMEs) the content *is* claims
+  about the repo: sample only the few a reader would act on and that would cause real harm if wrong; do not
+  exhaustively re-verify every statement.
 
 **Quick rejects** — if any fire, surface it prominently up front:
 
@@ -138,7 +144,7 @@ compatibility starts at MEDIUM and rises with blast radius.
 
 - Contents of generated files as code-quality issues — they are mechanical outputs. (Their *absence* from a
   CRD-changing PR is still a valid finding.)
-- Anything § Gotchas declares intentional (e.g. the `inmutable` spelling).
+- Anything § Gotchas declares intentional.
 - Missing godoc on internal functions — not a project convention.
 - Dependabot Go-module bumps — trusted automation.
 - Preemptive `docs/` or `examples/` updates without matching code.
