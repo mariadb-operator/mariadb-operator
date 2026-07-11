@@ -174,8 +174,7 @@ Use this exact structure:
 
 ```markdown
 ## 🔍 PR Review
-
-> <1-2 sentences: what the PR does and why>
+<1-2 sentences: what the PR does and why>
 
 ### Verdict at a glance
 
