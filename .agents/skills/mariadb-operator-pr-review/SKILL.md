@@ -94,9 +94,7 @@ brief restatement of the AGENTS.md rule that was violated (name the § section) 
 the finding is grounded in. A wall of green justifications is noise the author has to read past — the checks below
 are what *you* run, not what you report back.
 
-**On PASS, do not explicitly enumerate what you checked.** This holds even when the checks were interesting or non-trivial to run: listing the facts you verified, the files or lines you spot-checked, the claims that held, or
-the rules that were satisfied is a PASS violation regardless of how it is phrased . Write just `✅ PASS`, optionally with one high-level clause naming
-the area. The enumeration belongs in your working notes, never in the output.
+**On PASS, do not explicitly enumerate what you checked.** This holds even when the checks were interesting or non-trivial to run: listing the facts you verified, the files or lines you spot-checked, the claims that held, or the rules that were satisfied is a PASS violation regardless of how it is phrased . Write just `✅ PASS`, optionally with one high-level clause naming the area. The enumeration belongs in your working notes, never in the output.
 
 **Quality bar for findings.** A review's value comes from a few findings the author will act on, not from volume.
 Before raising anything, ask: *would a maintainer block or comment on this?* Every CONCERN/FAIL needs (a) a

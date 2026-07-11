@@ -276,15 +276,12 @@ Where to look when working on a specific feature (read the doc first — it is c
 
 ## Gotchas and Non-obvious Rules
 
-- **Versioned module path**: imports are `github.com/mariadb-operator/mariadb-operator/v26/...`. Major version bumps change this prefix repo-wide.
-- **`inmutable` is not a typo to fix**: intentional spelling in the immutability webhook (see Webhooks and immutability).
 - **Phase order is load-bearing**: adding/moving phases in `mariadb_controller.go` changes bootstrap and recovery semantics. Understand a phase's dependencies before repositioning it.
 - **Chart RBAC is NOT generated — promote it manually**: `//+kubebuilder:rbac:` markers only regenerate `config/rbac/role.yaml` (via `make manifests`/`make gen`). The Helm chart's RBAC under `deploy/charts/mariadb-operator/templates/` is templated (Helm conditionals like `currentNamespaceOnly`), so codegen cannot write it. When you add or change RBAC markers, manually replicate the new rules into the chart's templated RBAC files — `operator/rbac.yaml` (cluster-wide) **and** `operator/rbac-namespace.yaml` (namespace-scoped), plus the `cert-controller`/`webhook` variants if they are affected. The Artifacts CI job will not catch a missing promotion; a chart-deployed operator will fail at runtime with authorization errors.
 - **`make gen` output depends on `VERSION`** (see Codegen): if the Artifacts job fails but your local `make gen` was clean, check your `VERSION` — CI runs the release flavor, not `-dev`.
 - **CRD size budget**: the combined CRDs must stay under 900KB (`make crd-size`). Large inlined OpenAPI schemas (e.g. embedding full PodSpec-like structs) can blow the 1MB Kubernetes limit; the repo uses trimmed-down local copies of Kubernetes types in `api/v1alpha1/kubernetes_types.go` partly for this reason.
 - **Single multi-command binary**: `cmd/controller` root command *is* the operator; `webhook` and `cert-controller` are subcommands, `backup` nests a `restore` subcommand, and `agent`/`init` have `replication`/`galera` subcommands.
 - **Related images are external**: MariaDB, MaxScale and exporter images are not built here — they come from `RELATED_IMAGE_*` env vars set at deploy time (defaults in the root `Makefile`).
-- **envtest binaries**: integration tests need `setup-envtest`-managed binaries (`make envtest` installs; `KUBEBUILDER_ASSETS` is derived automatically in `make/dev.mk`).
 - **Suspend vs maintenance**: `spec.suspend` stops reconciliation entirely; `spec.maintenance` keeps reconciling while cordoning/draining/setting read-only. Don't conflate them.
 - **Webhooks don't default**: defaulting happens in the controller's `Spec` phase (`setSpecDefaults`) and API helper methods, not in mutating webhooks (there are none).
 - **Token savers**: don't read generated files (`docs/api_reference.md`, `deploy/**`, `config/crd/bases/**`, `zz_generated.deepcopy.go`, `pkg/embed/mariadb-docker/`) — consult the source types instead. `csi-driver-host-path/` is a vendored submodule; ignore it. Prefer `docs/<feature>.md` over code exploration for feature semantics, and `make help` over reading `make/*.mk`.
