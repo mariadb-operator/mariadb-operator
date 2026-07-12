@@ -127,10 +127,31 @@ func Unique[T comparable](elements ...T) []T {
 	return result
 }
 
+// repeatableFlags are CLI flags whose mariadb-dump semantics let the user pass
+// the option multiple times, each value adding another table to the ignore list
+// rather than overriding the previous one. UniqueArgs must keep every distinct
+// occurrence of these flags; collapsing them to the last one would silently drop
+// user-supplied entries as well as operator-injected defaults that share the same
+// flag name (e.g. --ignore-table=mysql.global_priv and the Galera mysql.wsrep_*
+// exclusions). See https://github.com/mariadb-operator/mariadb-operator/issues/1691
+// and https://github.com/mariadb-operator/mariadb-operator/issues/1757.
+//
+// Only flags documented as repeatable by mariadb-dump are listed here. Options
+// that take a single space-separated value and are last-wins (e.g. mariadb-backup
+// --databases-exclude) must NOT be added: keeping several occurrences would not
+// merge them, the tool would still honour only the last one.
+var repeatableFlags = map[string]struct{}{
+	"--ignore-table":      {},
+	"--ignore-table-data": {},
+}
+
 // UniqueArgs returns unique CLI arguments with smart deduplication:
-//   - For exact duplicates (same string), keeps the first occurrence to preserve order
+//   - For repeatable flags (e.g. --ignore-table) every distinct occurrence is
+//     kept regardless of value; only exact-string duplicates are folded.
+//   - For other exact duplicates (same string), keeps the first occurrence to
+//     preserve order.
 //   - For flag name conflicts with different values (e.g., --flag vs --flag=value),
-//     keeps the last occurrence so user-specified args can override defaults
+//     keeps the last occurrence so user-specified args can override defaults.
 func UniqueArgs(args ...string) []string {
 	type occurrence struct {
 		index int
@@ -146,26 +167,41 @@ func UniqueArgs(args ...string) []string {
 
 	// Determine which index to keep for each flag
 	keepIndex := make(map[int]bool)
-	for _, occurrences := range flagOccurrences {
+	for flagName, occurrences := range flagOccurrences {
 		if len(occurrences) == 1 {
 			keepIndex[occurrences[0].index] = true
-		} else {
-			// Check if all args are identical (exact duplicates)
-			allSame := true
-			first := occurrences[0].arg
-			for _, occ := range occurrences[1:] {
-				if occ.arg != first {
-					allSame = false
-					break
+			continue
+		}
+
+		if _, repeatable := repeatableFlags[flagName]; repeatable {
+			// Repeatable flags: keep every distinct full-string occurrence,
+			// collapsing only exact-string duplicates so argv does not grow when
+			// user args overlap with operator defaults.
+			seen := make(map[string]bool, len(occurrences))
+			for _, occ := range occurrences {
+				if !seen[occ.arg] {
+					seen[occ.arg] = true
+					keepIndex[occ.index] = true
 				}
 			}
-			if allSame {
-				// Keep first for exact duplicates (preserve order)
-				keepIndex[occurrences[0].index] = true
-			} else {
-				// Keep last for value overrides (user args win)
-				keepIndex[occurrences[len(occurrences)-1].index] = true
+			continue
+		}
+
+		// Check if all args are identical (exact duplicates)
+		allSame := true
+		first := occurrences[0].arg
+		for _, occ := range occurrences[1:] {
+			if occ.arg != first {
+				allSame = false
+				break
 			}
+		}
+		if allSame {
+			// Keep first for exact duplicates (preserve order)
+			keepIndex[occurrences[0].index] = true
+		} else {
+			// Keep last for value overrides (user args win)
+			keepIndex[occurrences[len(occurrences)-1].index] = true
 		}
 	}
 
