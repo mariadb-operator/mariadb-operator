@@ -405,6 +405,71 @@ func TestUniqueArgs(t *testing.T) {
 			},
 		},
 		{
+			// mariadb-dump's --ignore-table is repeatable: each instance adds
+			// another table to ignore. UniqueArgs must not collapse distinct
+			// values (#1691).
+			name: "repeatable --ignore-table flags are preserved",
+			args: []string{
+				"--single-transaction",
+				"--all-databases",
+				"--ignore-table=mysql.help_category",
+				"--ignore-table=mysql.help_relation",
+				"--ignore-table=mysql.help_topic",
+			},
+			wantElements: []string{
+				"--single-transaction",
+				"--all-databases",
+				"--ignore-table=mysql.help_category",
+				"--ignore-table=mysql.help_relation",
+				"--ignore-table=mysql.help_topic",
+			},
+		},
+		{
+			// Operator-injected --ignore-table defaults (global_priv, Galera
+			// wsrep_*) must survive alongside user-supplied --ignore-table args
+			// instead of being collapsed to a single value (#1757).
+			name: "operator and user --ignore-table flags coexist",
+			args: []string{
+				"--all-databases",
+				"--ignore-table=mysql.global_priv",
+				"--ignore-table=mysql.wsrep_cluster",
+				"--ignore-table=mysql.wsrep_streaming_log",
+				"--ignore-table=wordpress.custom",
+			},
+			wantElements: []string{
+				"--all-databases",
+				"--ignore-table=mysql.global_priv",
+				"--ignore-table=mysql.wsrep_cluster",
+				"--ignore-table=mysql.wsrep_streaming_log",
+				"--ignore-table=wordpress.custom",
+			},
+		},
+		{
+			// Exact-string repeats of a repeatable flag are still collapsed so we
+			// don't grow argv when defaults overlap with user args.
+			name: "repeatable flag exact duplicates are collapsed",
+			args: []string{
+				"--ignore-table=mysql.global_priv",
+				"--ignore-table=mysql.help_category",
+				"--ignore-table=mysql.global_priv",
+			},
+			wantElements: []string{
+				"--ignore-table=mysql.global_priv",
+				"--ignore-table=mysql.help_category",
+			},
+		},
+		{
+			name: "repeatable --ignore-table-data flags are preserved",
+			args: []string{
+				"--ignore-table-data=db_c.t1",
+				"--ignore-table-data=db_c.t2",
+			},
+			wantElements: []string{
+				"--ignore-table-data=db_c.t1",
+				"--ignore-table-data=db_c.t2",
+			},
+		},
+		{
 			name: "mixed exact and value duplicates",
 			args: []string{
 				"--single-transaction",
