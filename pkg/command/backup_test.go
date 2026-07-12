@@ -146,6 +146,10 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--routines",
 				"--all-databases",
 				"--skip-add-locks",
+				"--ignore-table=mysql.wsrep_cluster",
+				"--ignore-table=mysql.wsrep_cluster_members",
+				"--ignore-table=mysql.wsrep_streaming_log",
+				"--ignore-table=mysql.wsrep_allowlist",
 			},
 		},
 		{
@@ -219,9 +223,53 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--routines",
 				"--all-databases",
 				"--skip-add-locks",
+				"--ignore-table=mysql.wsrep_cluster",
+				"--ignore-table=mysql.wsrep_cluster_members",
+				"--ignore-table=mysql.wsrep_streaming_log",
+				"--ignore-table=mysql.wsrep_allowlist",
 				"--ignore-table=mysql.global_priv",
 				"--verbose",
 				"--add-drop-table",
+			},
+		},
+		{
+			// Galera-managed wsrep_* exclusions (#1757) coexist with the operator's
+			// global_priv exclusion and user-supplied repeatable --ignore-table args (#1758)
+			// instead of collapsing to a single --ignore-table value.
+			name: "Galera wsrep exclusions coexist with user ignore-table",
+			backupCmd: &BackupCommand{
+				BackupOpts{
+					ExtraOpts: []string{
+						"--ignore-table=wordpress.argtest_one",
+						"--ignore-table=wordpress.argtest_two",
+					},
+				},
+			},
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					IgnoreGlobalPriv: ptr.To(true),
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--all-databases",
+				"--skip-add-locks",
+				"--ignore-table=mysql.wsrep_cluster",
+				"--ignore-table=mysql.wsrep_cluster_members",
+				"--ignore-table=mysql.wsrep_streaming_log",
+				"--ignore-table=mysql.wsrep_allowlist",
+				"--ignore-table=mysql.global_priv",
+				"--ignore-table=wordpress.argtest_one",
+				"--ignore-table=wordpress.argtest_two",
 			},
 		},
 		{
@@ -348,6 +396,10 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--routines",
 				"--databases db1 db2 db3",
 				"--skip-add-locks",
+				"--ignore-table=mysql.wsrep_cluster",
+				"--ignore-table=mysql.wsrep_cluster_members",
+				"--ignore-table=mysql.wsrep_streaming_log",
+				"--ignore-table=mysql.wsrep_allowlist",
 				"--ignore-table=mysql.global_priv",
 				"--verbose",
 				"--add-drop-table",
@@ -489,6 +541,78 @@ func TestMariadbBackupArgs(t *testing.T) {
 				"--databases-exclude='lost+found'",
 				"--slave-info",
 				"--safe-slave-backup",
+			},
+		},
+		{
+			// mariadb-backup's --databases-exclude is last-wins, so a user-supplied value
+			// must be merged with the built-in lost+found exclusion into a single flag
+			// instead of overriding it (#1758).
+			name: "user databases-exclude merged with lost+found",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					ExtraOpts: []string{"--databases-exclude=mysql"},
+				},
+			},
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			targetPodIndex: 0,
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found mysql'",
+			},
+		},
+		{
+			name: "multiple quoted databases-exclude merged with lost+found",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					ExtraOpts: []string{
+						"--databases-exclude='mysql sys'",
+						"--databases-exclude=test",
+						"--compress",
+					},
+				},
+			},
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			targetPodIndex: 0,
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found mysql sys test'",
+				"--compress",
+			},
+		},
+		{
+			// mariadb-backup also accepts the space-separated long-option form, which must
+			// be merged as well instead of overriding lost+found.
+			name: "space-separated databases-exclude merged with lost+found",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					ExtraOpts: []string{"--databases-exclude mysql"},
+				},
+			},
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			targetPodIndex: 0,
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found mysql'",
+			},
+		},
+		{
+			// A single quote in a user-supplied value must not break out of the
+			// single-quoted shell fragment that reaches bash -c.
+			name: "databases-exclude value with single quote is shell-escaped",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					ExtraOpts: []string{`--databases-exclude=od'd`},
+				},
+			},
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			targetPodIndex: 0,
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				`--databases-exclude='lost+found od'\''d'`,
 			},
 		},
 	}
