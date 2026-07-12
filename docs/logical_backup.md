@@ -545,6 +545,18 @@ Also, to avoid situations where `mysql.global_priv` is unreplicated, all the ent
 - Rely on the [`User`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml) and [`Grant`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml) CRs to create additional users and grants. Refer to the [SQL resource documentation](./sql_resources.md) for further detail.
 
 
+#### `mysql.wsrep_*`
+
+Galera manages its own set of system tables in the `mysql` database: `mysql.wsrep_cluster`, `mysql.wsrep_cluster_members`, `mysql.wsrep_streaming_log` and `mysql.wsrep_allowlist`. These tables hold Galera cluster runtime state and are recreated by Galera when a node bootstraps.
+
+A logical dump taken with `--all-databases` includes these tables, so the backup file contains a `DROP TABLE IF EXISTS` statement for each of them. On restore, Galera denies `DROP` on the `wsrep_*` tables even to `root`, so the restore aborts:
+
+```text
+ERROR 1142 (42000) at line 2646: DROP command denied to user 'root'@'...' for table `mysql`.`wsrep_streaming_log`
+```
+
+This makes disaster recovery from a default logical backup of a Galera cluster impossible. To address this, when backing up `MariaDB` instances with Galera enabled, the operator automatically excludes these tables from the dump using the `--ignore-table` option with `mariadb-dump`. Since Galera recreates them on bootstrap, no cluster state is lost.
+
 #### `LOCK TABLES` 
 
 Galera is not compatible with the `LOCK TABLES` statement:
@@ -566,7 +578,7 @@ mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD} --host=${MARI
 > If you are using Galera or planning to migrate to a Galera instance, make sure you understand the [Galera backup limitations](#galera-backup-limitations) and use the following command instead:
 
 ```bash
-mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD} --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases --skip-add-locks --ignore-table=mysql.global_priv > backup.2024-08-26T12:24:34Z.sql
+mariadb-dump --user=${MARIADB_USER} --password=${MARIADB_PASSWORD} --host=${MARIADB_HOST} --single-transaction --events --routines --all-databases --skip-add-locks --ignore-table=mysql.global_priv --ignore-table=mysql.wsrep_cluster --ignore-table=mysql.wsrep_cluster_members --ignore-table=mysql.wsrep_streaming_log --ignore-table=mysql.wsrep_allowlist > backup.2024-08-26T12:24:34Z.sql
 ```
 
 2. Ensure that your backup file is named in the following format: `backup.2024-08-26T12:24:34Z.sql`. If the file name does not follow this format, it will be ignored by the operator.
