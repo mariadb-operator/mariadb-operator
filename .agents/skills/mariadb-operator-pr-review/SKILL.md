@@ -27,11 +27,28 @@ project's architecture, patterns, gotchas and guardrails. This skill deliberatel
 rules — it tells you *how to run a review that checks a diff against them*. Throughout, "§ <name>" refers to a
 section of AGENTS.md. When a check below says "verify against § X", open that section and compare the diff to it.
 
+## GitHub credentials
+
+Whenever this skill calls GitHub — fetching PR context or delivering a review — pick the access method in this
+order, falling through only when the previous one is unavailable:
+
+1. **Project-scoped GitHub MCP tools** (names like `mcp__github-mariadb-operator__*`). These may show up as
+   deferred tools — if so, load their schema with `ToolSearch` (e.g.
+   `ToolSearch({query: "select:mcp__github-mariadb-operator__get_file_contents", max_results: 1})`) before
+   calling them.
+2. **`gh` CLI with the project-specific token**, if the `mariadb-operator` MCP server isn't connected. Use
+   `GITHUB_MARIADB_OPERATOR_TOKEN` explicitly (`GH_TOKEN="$GITHUB_MARIADB_OPERATOR_TOKEN" gh ...`) rather than
+   the ambient `gh auth` session.
+3. **Generic GitHub MCP tools** (`mcp__github__*`), if neither of the above is available.
+4. **`gh` CLI with default credentials** (plain `gh auth`, no explicit token) as the last resort, if none of the above work.
+
 ---
 
 ## Step 0 — Gather context
 
-Given a PR URL or number, collect (via `gh` or MCP GitHub tools):
+Given a PR URL or number, collect it via the access method chosen in the [GitHub credentials](#github-credentials)
+section (the `gh` invocations below assume that method — add the `GH_TOKEN` override or swap in the equivalent
+MCP tool as appropriate):
 
 ```bash
 gh pr view <n> --json title,body,author,state,additions,deletions,files,labels,baseRefName
@@ -159,7 +176,8 @@ compatibility starts at MEDIUM and rises with blast radius.
 ## Delivery
 
 **By default, reply the review back to the user in your response — do not post it to GitHub.** Post it (e.g.
-`gh pr comment`) only when the user explicitly asks you to.
+`gh pr comment`, using the access method from the [GitHub credentials](#github-credentials) section) only when
+the user explicitly asks you to.
 
 ## Output format
 

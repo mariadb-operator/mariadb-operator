@@ -13,7 +13,7 @@ metadata:
   version: "1.0"
 compatibility: >
   Requires either the project-scoped GitHub MCP server (tools named mcp__github-mariadb-operator__*) or the
-  gh CLI authenticated via a GITHUB_TOKEN_MARIADB_OPERATOR environment variable.
+  gh CLI authenticated via a GITHUB_MARIADB_OPERATOR_TOKEN environment variable.
 allowed-tools: Bash(gh:*), AskUserQuestion
 ---
 
@@ -39,6 +39,23 @@ visible to the whole team. Before calling any tool that actually publishes somet
 If the user asks you to "just post it" up front, still show the rendered text and get one explicit confirmation
 before the tool call — the instruction to post is not itself the confirmation of *what* gets posted, since you
 may have formatted or summarized content since they last saw it.
+
+## GitHub credentials
+
+Whenever this skill calls GitHub — posting a comment or a formal review — pick the access method in this order,
+falling through only when the previous one is unavailable:
+
+1. **Project-scoped GitHub MCP tools** (names like `mcp__github-mariadb-operator__add_issue_comment`,
+   `mcp__github-mariadb-operator__pull_request_review_write`,
+   `mcp__github-mariadb-operator__add_comment_to_pending_review`). These may show up as deferred tools — if so,
+   load their schema with `ToolSearch` (e.g.
+   `ToolSearch({query: "select:mcp__github-mariadb-operator__add_issue_comment", max_results: 1})`) before
+   calling them.
+2. **`gh` CLI with the project-specific token**, if the `mariadb-operator` MCP server isn't connected. Use
+   `GITHUB_MARIADB_OPERATOR_TOKEN` explicitly (`GH_TOKEN="$GITHUB_MARIADB_OPERATOR_TOKEN" gh ...`) rather than
+   the ambient `gh auth` session.
+3. **Generic GitHub MCP tools** (`mcp__github__*`), if neither of the above is available.
+4. **`gh` CLI with default credentials** (plain `gh auth`, no explicit token) as the last resort, if none of the above work.
 
 ## Step 1 — Resolve the target
 
@@ -93,27 +110,16 @@ explicit "post it" answer. This is the hard gate described above — nothing in 
 
 ## Step 5 — Post
 
-Try each option in this order, falling through only when the previous one is unavailable:
-
-1. **Project-scoped GitHub MCP tools** (names like `mcp__github-mariadb-operator__add_issue_comment`,
-   `mcp__github-mariadb-operator__pull_request_review_write`,
-   `mcp__github-mariadb-operator__add_comment_to_pending_review`). These may show up as deferred tools — if so,
-   load their schema with `ToolSearch` (e.g.
-   `ToolSearch({query: "select:mcp__github-mariadb-operator__add_issue_comment", max_results: 1})`) before
-   calling them.
-2. **`gh` CLI with the project-specific token**, if the `mariadb-operator` MCP server isn't connected. Use
-   `GITHUB_TOKEN_MARIADB_OPERATOR` explicitly rather than the ambient `gh auth` session (see commands below).
-3. **Generic GitHub MCP tools** (`mcp__github__*`), if neither of the above is available.
-4. **`gh` CLI with default credentials** (plain `gh auth`, no explicit token) as the last resort, if none of the above work.
+Pick the access method per the [GitHub credentials](#github-credentials) section, then post with it.
 
 **Plain comment:**
 - MCP (project-scoped or generic): `add_issue_comment` with `owner`, `repo`, `issue_number`, `body` — works for
   both issues and PRs.
 - gh CLI with the project token:
   ```bash
-  GH_TOKEN="$GITHUB_TOKEN_MARIADB_OPERATOR" gh issue comment <n> --repo mariadb-operator/mariadb-operator --body "<text>"
+  GH_TOKEN="$GITHUB_MARIADB_OPERATOR_TOKEN" gh issue comment <n> --repo mariadb-operator/mariadb-operator --body "<text>"
   # or for a PR:
-  GH_TOKEN="$GITHUB_TOKEN_MARIADB_OPERATOR" gh pr comment <n> --repo mariadb-operator/mariadb-operator --body "<text>"
+  GH_TOKEN="$GITHUB_MARIADB_OPERATOR_TOKEN" gh pr comment <n> --repo mariadb-operator/mariadb-operator --body "<text>"
   ```
 - gh CLI with default credentials (drop the `GH_TOKEN` override, rely on ambient `gh auth`):
   ```bash
