@@ -3,6 +3,7 @@
 ## Table of contents
 <!-- toc -->
 - [Root Password](#root-password)
+- [Custom Container Isolation](#custom-container-isolation)
 <!-- /toc -->
 
 ## Root Password
@@ -89,3 +90,73 @@ kubectl patch secret mariadb -p '{"data":{"root-password":"<new-password-base64>
 ```
 
 Make sure the new password is base64 encoded. The operator will then automatically trigger the password rotation process.
+
+## Custom Container Isolation
+
+Additional `initContainers` and `sidecarContainers` historically inherit the complete MariaDB environment and volume-mount set. This remains the default when `inheritance` or `inheritance.policy` is omitted, so existing resources keep their expanded `PodSpec` without changes.
+
+Each additional container can independently select one of these policies:
+
+| Policy | Behavior |
+| --- | --- |
+| `Legacy` | Inherit every MariaDB environment variable and volume mount, then append the container's authored values. This is also the behavior when the policy is omitted. |
+| `Isolated` | Start with empty environment-variable and volume-mount lists. Only values authored directly on that container are included. |
+| `Selected` | Inherit only the explicitly named semantic groups, in a deterministic order, then append the container's authored values. |
+
+The environment-variable groups are:
+
+| Group | Contents |
+| --- | --- |
+| `Runtime` | Non-secret MariaDB and Pod runtime metadata. |
+| `TLS` | TLS paths and settings. Available only when TLS is enabled. |
+| `Replication` | Replication settings. Available only when replication is enabled. |
+| `RootPassword` | The root-password Secret reference or empty-password setting. Select this group only when the container requires root access. |
+| `User` | Environment variables authored in `spec.env`. |
+
+The volume-mount groups are:
+
+| Group | Contents |
+| --- | --- |
+| `Config` | Generated MariaDB configuration. |
+| `TLS` | TLS certificates and keys. |
+| `Storage` | The MariaDB data directory. |
+| `Replication` | Generated replication configuration. |
+| `AgentAuth` | Data-plane agent authentication material. |
+| `ServiceAccount` | The projected data-plane service-account token. |
+| `Galera` | Generated Galera configuration. |
+| `PointInTimeRecovery` | Point-in-time recovery storage TLS CA mounts. |
+| `User` | Volume mounts authored in `spec.volumeMounts`. |
+
+Unknown, duplicate, unavailable, or contradictory selections are rejected. `Isolated` and `Selected` also reject duplicate environment-variable names and duplicate mount paths instead of relying on list ordering. New groups are never implicitly included by `Selected`.
+
+The following sidecar receives runtime metadata but no root password, data directory, configuration, TLS keys, or service-account token:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  sidecarContainers:
+    - name: observer
+      image: busybox:1.36
+      command: ["sh", "-c", "sleep infinity"]
+      inheritance:
+        policy: Selected
+        env:
+          - Runtime
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        privileged: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
+  storage:
+    size: 1Gi
+```
+
+Apply the updated CRDs before upgrading the controller. Downgrading to a version whose CRDs do not contain `inheritance` or the custom-container `securityContext` is unsupported while resources use those fields.
