@@ -131,8 +131,11 @@ func validateContainerVolumeMountGroups(mariadb *mariadbv1alpha1.MariaDB,
 			if !mariadb.IsReplicationEnabled() {
 				return unavailableContainerGroup(path.Index(index), group)
 			}
-		case mariadbv1alpha1.ContainerVolumeMountGroupAgentAuth,
-			mariadbv1alpha1.ContainerVolumeMountGroupServiceAccount:
+		case mariadbv1alpha1.ContainerVolumeMountGroupAgentAuth:
+			if !containerAgentBasicAuthAvailable(mariadb) {
+				return unavailableContainerGroup(path.Index(index), group)
+			}
+		case mariadbv1alpha1.ContainerVolumeMountGroupServiceAccount:
 			if !mariadb.IsHAEnabled() {
 				return unavailableContainerGroup(path.Index(index), group)
 			}
@@ -153,6 +156,11 @@ func validateContainerVolumeMountGroups(mariadb *mariadbv1alpha1.MariaDB,
 		}
 	}
 	return nil
+}
+
+func containerAgentBasicAuthAvailable(mariadb *mariadbv1alpha1.MariaDB) bool {
+	_, agent, err := mariadb.GetDataPlaneAgent()
+	return err == nil && agent.HasBasicAuthSecret()
 }
 
 func validateContainerAuthoredValues(container *mariadbv1alpha1.Container, path *field.Path) error {

@@ -393,7 +393,10 @@ func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mar
 		if err != nil {
 			return nil, err
 		}
-		volumeMounts, err = mariadbVolumeMounts(mdb, opts...)
+		// Preserve the exact historical custom-container output. Pod options were
+		// not propagated to legacy custom containers before inheritance policies
+		// were introduced.
+		volumeMounts, err = mariadbVolumeMounts(mdb)
 		if err != nil {
 			return nil, err
 		}

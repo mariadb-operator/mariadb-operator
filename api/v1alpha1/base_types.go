@@ -398,6 +398,15 @@ type Agent struct {
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
 }
 
+// HasBasicAuthSecret reports whether the agent has usable basic-auth password material.
+func (r *Agent) HasBasicAuthSecret() bool {
+	if r == nil {
+		return false
+	}
+	basicAuth := ptr.Deref(r.BasicAuth, BasicAuth{})
+	return basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero()
+}
+
 // SetDefaults sets reasonable defaults.
 func (r *Agent) SetDefaults(mariadb *MariaDB, env *environment.OperatorEnv) error {
 	if r.Image == "" {

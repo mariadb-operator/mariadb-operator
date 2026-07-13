@@ -2,7 +2,6 @@ package builder
 
 import (
 	"fmt"
-	"reflect"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
@@ -278,8 +277,7 @@ func containerAgentAuthVolumeMountGroup(mariadb *mariadbv1alpha1.MariaDB,
 	if err != nil {
 		return nil, false, fmt.Errorf("error getting data-plane agent: %v", err)
 	}
-	basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
-	if !basicAuth.Enabled || reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero() {
+	if !agent.HasBasicAuthSecret() {
 		return nil, false, nil
 	}
 	return []corev1.VolumeMount{{Name: AgentAuthVolume, MountPath: AgentAuthVolumeMount}}, true, nil

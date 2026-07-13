@@ -48,6 +48,59 @@ var _ = Describe("Custom container inheritance validation", func() {
 	})
 
 	DescribeTable(
+		"matches AgentAuth availability to usable agent basic-auth material",
+		func(agent mariadbv1alpha1.Agent, shouldSucceed bool) {
+			mariadb := &mariadbv1alpha1.MariaDB{}
+			mariadb.Spec.Replication = &mariadbv1alpha1.Replication{
+				Enabled: true,
+				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+					Agent: agent,
+				},
+			}
+			mariadb.Spec.SidecarContainers = []mariadbv1alpha1.Container{{
+				Image: "busybox:1.36",
+				Inheritance: &mariadbv1alpha1.ContainerInheritance{
+					Policy: mariadbv1alpha1.ContainerInheritanceSelected,
+					VolumeMounts: []mariadbv1alpha1.ContainerVolumeMountGroup{
+						mariadbv1alpha1.ContainerVolumeMountGroupAgentAuth,
+					},
+				},
+			}}
+
+			err := validateContainers(mariadb)
+			if shouldSucceed {
+				Expect(err).ToNot(HaveOccurred())
+				return
+			}
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("spec.sidecarContainers[0].inheritance.volumeMounts[0]"))
+		},
+		Entry(
+			"accepts enabled basic auth with a password Secret reference",
+			mariadbv1alpha1.Agent{BasicAuth: &mariadbv1alpha1.BasicAuth{
+				Enabled: true,
+				PasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{Name: "agent-auth"},
+						Key:                  "password",
+					},
+				},
+			}},
+			true,
+		),
+		Entry(
+			"rejects Kubernetes auth only",
+			mariadbv1alpha1.Agent{KubernetesAuth: &mariadbv1alpha1.KubernetesAuth{Enabled: true}},
+			false,
+		),
+		Entry(
+			"rejects basic auth without a password Secret reference",
+			mariadbv1alpha1.Agent{BasicAuth: &mariadbv1alpha1.BasicAuth{Enabled: true}},
+			false,
+		),
+	)
+
+	DescribeTable(
 		"rejects invalid selections",
 		func(mariadb *mariadbv1alpha1.MariaDB, expectedPath string) {
 			err := validateContainers(mariadb)

@@ -121,7 +121,7 @@ The volume-mount groups are:
 | `TLS` | TLS certificates and keys. |
 | `Storage` | The MariaDB data directory. |
 | `Replication` | Generated replication configuration. |
-| `AgentAuth` | Data-plane agent authentication material. |
+| `AgentAuth` | Data-plane agent basic-auth password material. Available only when Agent `basicAuth` is enabled and has a nonempty password Secret reference; Kubernetes authentication alone does not make this group available. |
 | `ServiceAccount` | The projected data-plane service-account token. |
 | `Galera` | Generated Galera configuration. |
 | `PointInTimeRecovery` | Point-in-time recovery storage TLS CA mounts. |

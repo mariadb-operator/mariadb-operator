@@ -1,11 +1,13 @@
 package builder
 
 import (
+	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -351,6 +353,28 @@ func TestExtraContainerInheritanceValidation(t *testing.T) {
 			wantError: "is not available",
 		},
 		{
+			name: "agent auth group with Kubernetes auth only",
+			mariadb: testContainerInheritanceMariaDBWithAgent(mariadbv1alpha1.Agent{
+				KubernetesAuth: &mariadbv1alpha1.KubernetesAuth{Enabled: true},
+			}),
+			container: selectedTestContainer(&mariadbv1alpha1.ContainerInheritance{
+				Policy:       mariadbv1alpha1.ContainerInheritanceSelected,
+				VolumeMounts: []mariadbv1alpha1.ContainerVolumeMountGroup{mariadbv1alpha1.ContainerVolumeMountGroupAgentAuth},
+			}),
+			wantError: "is not available",
+		},
+		{
+			name: "agent auth group without a password Secret reference",
+			mariadb: testContainerInheritanceMariaDBWithAgent(mariadbv1alpha1.Agent{
+				BasicAuth: &mariadbv1alpha1.BasicAuth{Enabled: true},
+			}),
+			container: selectedTestContainer(&mariadbv1alpha1.ContainerInheritance{
+				Policy:       mariadbv1alpha1.ContainerInheritanceSelected,
+				VolumeMounts: []mariadbv1alpha1.ContainerVolumeMountGroup{mariadbv1alpha1.ContainerVolumeMountGroupAgentAuth},
+			}),
+			wantError: "is not available",
+		},
+		{
 			name:    "duplicate authored env",
 			mariadb: testContainerInheritanceMariaDB(),
 			container: &mariadbv1alpha1.Container{
@@ -400,34 +424,102 @@ func TestExtraContainerInheritanceValidation(t *testing.T) {
 	}
 }
 
-func TestLegacyExtraContainersRespectPodOptions(t *testing.T) {
+func TestLegacyExtraContainersPreserveHistoricalOutputWithPodOptions(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	mariadb := testContainerInheritanceMariaDB()
-	mariadb.Spec.Replication = &mariadbv1alpha1.Replication{Enabled: true}
-	mariadb.Spec.InitContainers = []mariadbv1alpha1.Container{*selectedTestContainer(nil)}
-	mariadb.Spec.SidecarContainers = []mariadbv1alpha1.Container{*selectedTestContainer(nil)}
-
-	containers, err := builder.mariadbContainers(
-		mariadb,
-		withDataPlane(false),
-		withServiceAccount(false),
-	)
-	if err != nil {
-		t.Fatalf("unexpected error building legacy sidecar with Pod options: %v", err)
+	mariadb.Spec.Replication = &mariadbv1alpha1.Replication{
+		Enabled: true,
+		ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+			Agent: mariadbv1alpha1.Agent{
+				BasicAuth: &mariadbv1alpha1.BasicAuth{
+					Enabled: true,
+					PasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: testSecretKeySelector("agent-auth", "password"),
+					},
+				},
+			},
+		},
 	}
-	initContainers, err := builder.mariadbInitContainers(
-		mariadb,
-		withDataPlane(false),
-		withServiceAccount(false),
-	)
-	if err != nil {
-		t.Fatalf("unexpected error building legacy init container with Pod options: %v", err)
+	container := mariadbv1alpha1.Container{
+		Name:    "legacy-extra",
+		Image:   "busybox:1.36",
+		Command: []string{"sh", "-c"},
+		Args:    []string{"true"},
+		Env:     []mariadbv1alpha1.EnvVar{{Name: "EXPLICIT", Value: "value"}},
+		VolumeMounts: []mariadbv1alpha1.VolumeMount{
+			{Name: "explicit", MountPath: "/explicit", ReadOnly: true},
+		},
+	}
+	pitr := &mariadbv1alpha1.PointInTimeRecovery{
+		Spec: mariadbv1alpha1.PointInTimeRecoverySpec{
+			PointInTimeRecoveryStorage: mariadbv1alpha1.PointInTimeRecoveryStorage{
+				S3: &mariadbv1alpha1.S3{
+					TLS: &mariadbv1alpha1.TLSConfig{
+						Enabled:        true,
+						CASecretKeyRef: ptr.To(testSecretKeySelector("pitr-ca", "ca.crt")),
+					},
+				},
+			},
+		},
 	}
 
-	for _, container := range []corev1.Container{containers[len(containers)-1], initContainers[0]} {
-		if hasVolumeMount(container.VolumeMounts, ServiceAccountMountPath) ||
-			hasVolumeMount(container.VolumeMounts, AgentAuthVolumeMount) {
-			t.Errorf("legacy container ignored Pod volume options: %#v", container.VolumeMounts)
+	tests := []struct {
+		name string
+		opts []mariadbPodOpt
+	}{
+		{name: "default options"},
+		{
+			name: "PITR and restricted Pod options",
+			opts: []mariadbPodOpt{
+				withPointInTimeRecovery(pitr),
+				withDataPlane(false),
+				withServiceAccount(false),
+				withExtraVolumeMounts([]corev1.VolumeMount{{Name: "optioned", MountPath: "/optioned"}}),
+			},
+		},
+	}
+	inheritanceValues := []*mariadbv1alpha1.ContainerInheritance{
+		nil,
+		{},
+		{Policy: mariadbv1alpha1.ContainerInheritanceLegacy},
+	}
+
+	for _, inheritance := range inheritanceValues {
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				legacyContainer := container
+				legacyContainer.Inheritance = inheritance
+				mariadb.Spec.InitContainers = []mariadbv1alpha1.Container{legacyContainer}
+				mariadb.Spec.SidecarContainers = []mariadbv1alpha1.Container{legacyContainer}
+
+				expected := historicalExtraContainer(t, mariadb, &legacyContainer)
+				expectedBytes, err := json.Marshal(expected)
+				if err != nil {
+					t.Fatalf("unexpected error marshaling historical container: %v", err)
+				}
+
+				containers, err := builder.mariadbContainers(mariadb, test.opts...)
+				if err != nil {
+					t.Fatalf("unexpected error building legacy sidecar: %v", err)
+				}
+				initContainers, err := builder.mariadbInitContainers(mariadb, test.opts...)
+				if err != nil {
+					t.Fatalf("unexpected error building legacy init container: %v", err)
+				}
+
+				for _, actual := range []corev1.Container{containers[len(containers)-1], initContainers[0]} {
+					actualBytes, err := json.Marshal(actual)
+					if err != nil {
+						t.Fatalf("unexpected error marshaling built container: %v", err)
+					}
+					if string(actualBytes) != string(expectedBytes) {
+						t.Errorf("legacy container output changed:\nwant: %s\ngot:  %s", expectedBytes, actualBytes)
+					}
+					if hasVolumeMount(actual.VolumeMounts, S3PKIMountPath) || hasVolumeMount(actual.VolumeMounts, "/optioned") {
+						t.Errorf("legacy container inherited Pod-option mounts: %#v", actual.VolumeMounts)
+					}
+				}
+			})
 		}
 	}
 }
@@ -485,6 +577,35 @@ func TestIsolatedContainersExcludeExpandedPodSecretsAndMounts(t *testing.T) {
 	}
 }
 
+func historicalExtraContainer(t *testing.T, mariadb *mariadbv1alpha1.MariaDB,
+	container *mariadbv1alpha1.Container) corev1.Container {
+	t.Helper()
+	env, err := mariadbEnv(mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error building historical env: %v", err)
+	}
+	env = append(env, kadapter.ToKubernetesSlice(container.Env)...)
+
+	volumeMounts, err := mariadbVolumeMounts(mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error building historical volume mounts: %v", err)
+	}
+	volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(container.VolumeMounts)...)
+
+	historical := corev1.Container{
+		Name:         container.Name,
+		Image:        container.Image,
+		Command:      container.Command,
+		Args:         container.Args,
+		Env:          env,
+		VolumeMounts: volumeMounts,
+	}
+	if container.Resources != nil {
+		historical.Resources = container.Resources.ToKubernetesType()
+	}
+	return historical
+}
+
 func testContainerInheritanceMariaDB() *mariadbv1alpha1.MariaDB {
 	return &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{Name: "mariadb", Namespace: "default"},
@@ -497,6 +618,17 @@ func testContainerInheritanceMariaDB() *mariadbv1alpha1.MariaDB {
 			TLS: &mariadbv1alpha1.TLS{Enabled: true},
 		},
 	}
+}
+
+func testContainerInheritanceMariaDBWithAgent(agent mariadbv1alpha1.Agent) *mariadbv1alpha1.MariaDB {
+	mariadb := testContainerInheritanceMariaDB()
+	mariadb.Spec.Replication = &mariadbv1alpha1.Replication{
+		Enabled: true,
+		ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+			Agent: agent,
+		},
+	}
+	return mariadb
 }
 
 func testSecretKeySelector(name, key string) mariadbv1alpha1.SecretKeySelector {
