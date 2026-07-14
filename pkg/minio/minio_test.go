@@ -255,6 +255,52 @@ func TestPrefix(t *testing.T) {
 	}
 }
 
+func TestDualStackEnabled(t *testing.T) {
+	tests := []struct {
+		name     string
+		endpoint string
+		want     bool
+	}{
+		{
+			name:     "standard AWS regional endpoint",
+			endpoint: "s3.eu-central-1.amazonaws.com",
+			want:     false,
+		},
+		{
+			name:     "global AWS endpoint",
+			endpoint: "s3.amazonaws.com",
+			want:     false,
+		},
+		{
+			name:     "explicit dual-stack endpoint",
+			endpoint: "s3.dualstack.eu-central-1.amazonaws.com",
+			want:     true,
+		},
+		{
+			name:     "explicit FIPS dual-stack endpoint",
+			endpoint: "s3-fips.dualstack.us-east-1.amazonaws.com",
+			want:     true,
+		},
+		{
+			name:     "non-AWS S3-compatible endpoint",
+			endpoint: "minio:9000",
+			want:     false,
+		},
+		{
+			name:     "empty endpoint",
+			endpoint: "",
+			want:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := dualStackEnabled(tt.endpoint); got != tt.want {
+				t.Errorf("unexpected dual-stack decision for %q, got: %t want: %t", tt.endpoint, got, tt.want)
+			}
+		})
+	}
+}
 func TestS3GetSSEC(t *testing.T) {
 	// Valid 32-byte key for AES-256
 	validKey := make([]byte, 32)
