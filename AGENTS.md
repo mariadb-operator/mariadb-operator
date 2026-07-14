@@ -77,9 +77,11 @@ mariadb-operator/
 ├── examples/                # Example manifests (incl. multi-cluster/) and Flux GitOps setup
 ├── hack/                    # Dev/CI scripts (install_*.sh, config/, manifests/)
 ├── make/                    # Modular Makefiles: build, deploy, deps, dev, docs, gen, helm, net, pki, azure
-├── test/e2e/                # E2E tests (Ginkgo) + test/utils/
+├── test/e2e/                # E2E tests (Ginkgo) + test/utils/ — do NOT add new E2E tests for now
 └── csi-driver-host-path/    # Vendored submodule — ignore
 ```
+
+**Ignore `.gitignore`d paths.** Anything listed in `.gitignore` (vendored, generated or transient dirs) is **not** part of this repository — do not index, read for context, or modify it; changes there are never committed.
 
 ## Makefile Targets
 
@@ -217,7 +219,7 @@ Validation-only admission webhooks (no defaulting webhooks — defaults are set 
 - **Status subresource**: patch status separately from spec, never mutate spec during status updates (see Status patching).
 - **Requeue with backoff**: return `ctrl.Result{RequeueAfter: ...}` for expected wait conditions. The SQL reconciler adds a random offset (`RequeueMaxOffset`) to spread requeues and avoid thundering herds — preserve that.
 - **Concurrency limits**: controllers set `controller.Options{MaxConcurrentReconciles: n}`; the heavy ones (MariaDB, MaxScale, PhysicalBackup) expose per-controller `--*-max-concurrent-reconciles` flags (default 10) in `cmd/controller/main.go`.
-- **Leader election**: available via `--leader-elect` but **disabled by default**; do not write logic that assumes a single active operator instance unless it is gated on it.
+- **Leader election**: only one instance reconciles at a time (single replica by default; enabling HA in the chart, `ha.enabled`, runs multiple replicas with `--leader-elect`, which guarantees a single leader), so don't guard against separate instances racing — but a controller still reconciles objects in parallel (`MaxConcurrentReconciles`), so keep reconcile logic idempotent and free of cross-object shared state.
 - **RBAC markers**: declare permissions with `//+kubebuilder:rbac:` markers next to the reconciler that needs them, then `make manifests`. Remember the manual promotion into the Helm chart (see Gotchas).
 
 ### Error handling
@@ -233,6 +235,14 @@ Validation-only admission webhooks (no defaulting webhooks — defaults are set 
 - Reserve `Info` for state changes an operator of the system cares about; use `logger.V(1).Info(...)` for debug-level detail.
 - Include CR identity (the logger from the reconcile context already carries name/namespace) rather than re-formatting it into the message.
 - **Never log passwords, tokens, certificates or SQL statements containing credentials.**
+
+### Events
+
+Surface user-visible state transitions as Kubernetes Events (visible in `kubectl describe` / `kubectl get events`), in addition to conditions and logs — they are the primary way operators observe what the reconciler did.
+
+- Controllers hold an `events.EventRecorder` (`k8s.io/client-go/tools/events`, not the legacy `record.EventRecorder`) in a `Recorder` field, obtained from the manager via `mgr.GetEventRecorder("<name>")` and wired per subsystem in `cmd/controller/main.go`. Sub-reconcilers (`pkg/controller/galera`, `replication`, `certificate`, `maintenance`) get one via constructor injection.
+- **Reason and action strings are centralized**: reason constants (`Reason*`) live in `api/v1alpha1/event_types.go` and action constants (`Action*`, e.g. `ActionReconciling`) in `api/v1alpha1/event_actions.go` — reuse an existing constant or add one there; never inline a string literal.
+- Emit with `Eventf(regarding, related, eventtype, reason, action, note, args...)`: pass a `Reason*` constant for `reason`, an `Action*` constant for `action`, and `corev1.EventTypeNormal` / `corev1.EventTypeWarning` for the type. Never put secrets in the note (same rule as Logging).
 
 ## Feature Map
 
@@ -260,6 +270,17 @@ Where to look when working on a specific feature:
 
 - **Unit** (`make test`): Ginkgo/Gomega over `api/`, `pkg/`, `internal/helmtest/` (chart rendering via terratest), `internal/webhook/` (envtest).
 - **Integration** (`make test-int`): `internal/controller/*_test.go` against envtest, bootstrapped by `suite_test.go`. Ginkgo labels tier the suite: `basic` (PR smoke set), `multi-cluster` (separate target), `flaky`, `finalizer`. Requires a KIND cluster prepared with `make install`, `make install-minio`, `make net` (+ `make install-azurite` for Azure specs).
+
+### Local cluster connectivity
+
+Whether you `make run` the operator or `make test-int`, the binary runs **on your host** while the KIND cluster (and its MariaDB pods) runs inside a container — and the SQL client (`pkg/sql`) connects to the pods over their internal Kubernetes FQDNs.
+
+Because of that host-to-container split, connectivity to the pods has to be simulated. That is what `make net` (`install-metallb` + `host`) provides:
+
+- **MetalLB** assigns each MariaDB test Service a `type: LoadBalancer` IP pinned via a `metallb.io/loadBalancerIPs` annotation, using an IP derived from the KIND Docker network CIDR (`pkg/docker`, `hack/get_kind_cidr_prefix`). Those IPs are routable from the host because KIND's Docker bridge is directly reachable.
+- **`/etc/hosts`** entries (added by `make net` → `hack/add_host.sh`) map the in-cluster FQDNs to those MetalLB IPs, so the host-side `sql.Open` resolves them.
+
+Implications when writing integration tests: `make net` is a hard prerequisite (connections fail without it); a new MariaDB in a spec needs a unique pinned LB IP.
 
 ## CI — what a PR must pass
 
