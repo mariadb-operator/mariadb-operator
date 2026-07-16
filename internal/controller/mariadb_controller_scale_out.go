@@ -18,6 +18,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -383,11 +384,34 @@ func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, 
 		}
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	if failureErr := replicaPhysicalBackupFailure(&physicalBackup); failureErr != nil {
+		return ctrl.Result{}, failureErr
+	}
 	if !physicalBackup.IsComplete() {
 		logger.V(1).Info("Replica PhysicalBackup job not completed. Requeuing")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func replicaPhysicalBackupFailure(physicalBackup *mariadbv1alpha1.PhysicalBackup) error {
+	completeCondition := meta.FindStatusCondition(
+		physicalBackup.Status.Conditions,
+		mariadbv1alpha1.ConditionTypeComplete,
+	)
+	if completeCondition == nil {
+		return nil
+	}
+	if completeCondition.Reason != mariadbv1alpha1.ConditionReasonJobFailed &&
+		completeCondition.Reason != mariadbv1alpha1.ConditionReasonSnapshotFailed {
+		return nil
+	}
+	return fmt.Errorf(
+		"%w: PhysicalBackup '%s' failed: %s",
+		errReplicaRecoveryArtifactFailed,
+		physicalBackup.Name,
+		completeCondition.Message,
+	)
 }
 
 func (r *MariaDBReconciler) createReplicaPhysicalBackup(ctx context.Context, key types.NamespacedName,

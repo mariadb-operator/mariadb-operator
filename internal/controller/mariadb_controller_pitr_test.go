@@ -48,9 +48,9 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 			Expect(k8sClient.Create(testCtx, pitr)).To(Succeed())
 
 			DeferCleanup(func() {
-				deleteMariadb(key, false)
-				deletePhysicalBackup(key)
 				deletePitr(key)
+				deletePhysicalBackup(key)
+				deleteMariadb(key, true)
 			})
 		})
 
@@ -90,9 +90,9 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 			Expect(k8sClient.Create(testCtx, pitr)).To(Succeed())
 
 			DeferCleanup(func() {
-				deleteMariadb(key, false)
-				deletePhysicalBackup(key)
 				deletePitr(key)
+				deletePhysicalBackup(key)
+				deleteMariadb(key, true)
 			})
 		})
 

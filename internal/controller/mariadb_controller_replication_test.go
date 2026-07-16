@@ -37,7 +37,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		By("Creating MariaDB with replication")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key, false)
+			deleteMariadb(key, true)
 		})
 	})
 
@@ -375,7 +375,7 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 		By("Creating MariaDB with replication")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key, false)
+			deleteMariadb(key, true)
 		})
 
 		By("Expecting MariaDB to be ready eventually")
@@ -494,7 +494,7 @@ var _ = Describe("MariaDB replication scale out", Ordered, func() {
 		By("Creating MariaDB with replication")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key, false)
+			deleteMariadb(key, true)
 		})
 
 		By("Expecting MariaDB to be ready eventually")

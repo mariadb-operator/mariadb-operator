@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -397,10 +398,10 @@ func testCleanupInitialData(ctx context.Context) {
 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
 	Expect(k8sClient.Get(ctx, testSSECKey, &ssec)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &ssec)).To(Succeed())
-	deleteMariadb(testMdbkey, false)
+	deleteMariadb(testMdbkey, true)
 	Expect(k8sClient.Get(ctx, testEMdbkey, &emdb)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &emdb)).To(Succeed())
-	deleteMariadb(testEmulateExternalMdbkey, false)
+	deleteMariadb(testEmulateExternalMdbkey, true)
 	Expect(k8sClient.Get(ctx, testEmulatedExternalPwdKey, &externalPassword)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &externalPassword)).To(Succeed())
 }
@@ -1220,6 +1221,36 @@ func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 		return apierrors.IsNotFound(err)
 	}, testTimeout, testInterval).Should(BeTrue())
 
+	By("Deleting Jobs and Pods")
+	jobOpts := []client.DeleteAllOfOption{
+		client.MatchingLabels(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(&mdb).
+				Build(),
+		),
+		client.InNamespace(mdb.Namespace),
+	}
+	Expect(client.IgnoreNotFound(k8sClient.DeleteAllOf(testCtx, &batchv1.Job{}, jobOpts...))).To(Succeed())
+	Expect(client.IgnoreNotFound(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, jobOpts...))).To(Succeed())
+
+	By("Expecting Jobs and Pods to be deleted")
+	Eventually(func(g Gomega) bool {
+		listOpts := &client.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				labels.NewLabelsBuilder().
+					WithMariaDBSelectorLabels(&mdb).
+					Build(),
+			),
+			Namespace: mdb.GetNamespace(),
+		}
+		podList := &corev1.PodList{}
+		err := k8sClient.List(testCtx, podList, listOpts)
+		if err != nil && !apierrors.IsNotFound(err) {
+			g.Expect(err).ToNot(HaveOccurred())
+		}
+		return len(podList.Items) == 0
+	}, testHighTimeout, testInterval).Should(BeTrue())
+
 	By("Deleting PVCs")
 	opts := []client.DeleteAllOfOption{
 		client.MatchingLabels(
@@ -1359,6 +1390,12 @@ func deletePhysicalBackup(key types.NamespacedName) {
 	if !apierrors.IsNotFound(err) {
 		Expect(err).ToNot(HaveOccurred())
 	}
+
+	By("Expecting PhysicalBackup to be deleted")
+	Eventually(func() bool {
+		err := k8sClient.Get(testCtx, key, &backup)
+		return apierrors.IsNotFound(err)
+	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func deletePitr(key types.NamespacedName) {

@@ -185,3 +185,37 @@ func TestMissingPhysicalBackupArtifactRetryAfterIgnoresExistingArtifacts(t *test
 		t.Fatalf("expected no retry with existing artifacts, got %v", *retryAfter)
 	}
 }
+
+func TestShouldReconcilePhysicalBackupAllowsReplicaRecoveryDuringSwitchover(t *testing.T) {
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mdb",
+			Namespace: "default",
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   mariadbv1alpha1.ConditionTypePrimarySwitched,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonSwitchPrimary,
+				},
+				{
+					Type:   mariadbv1alpha1.ConditionTypeReplicaRecovered,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonReplicaRecovering,
+				},
+			},
+		},
+	}
+	recoveryKey := mariadb.PhysicalBackupReplicaRecoveryKey()
+	backup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      recoveryKey.Name,
+			Namespace: recoveryKey.Namespace,
+		},
+	}
+
+	if !shouldReconcilePhysicalBackup(backup, mariadb, logr.Discard()) {
+		t.Fatal("expected replica recovery PhysicalBackup to reconcile during switchover")
+	}
+}

@@ -47,7 +47,7 @@ var _ = Describe("MariaDB Galera spec", Label("basic"), func() {
 		}
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key, false)
+			deleteMariadb(key, true)
 		})
 
 		By("Expecting to eventually default")
@@ -207,7 +207,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 		By("Creating MariaDB Galera")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key, false)
+			deleteMariadb(key, true)
 		})
 	})
 

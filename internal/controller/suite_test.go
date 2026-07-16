@@ -76,7 +76,7 @@ var _ = BeforeSuite(func() {
 	testLogger = zap.New(
 		zap.WriteTo(GinkgoWriter),
 		zap.UseDevMode(true),
-		zap.Level(zapcore.InfoLevel),
+		zap.Level(zapcore.DebugLevel),
 	)
 	log.SetLogger(testLogger)
 

@@ -276,3 +276,64 @@ func TestWaitForInitJobCompleteSetsReplicaRecoveryErrorForUnschedulableJob(t *te
 		t.Fatalf("expected replica recovery error to be set")
 	}
 }
+
+func TestWaitForInitJobCompleteRejectsFailedJob(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+		},
+	}
+	jobKey := mariadb.PhysicalBackupInitJobKey(1)
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobKey.Name,
+			Namespace: jobKey.Namespace,
+		},
+		Status: batchv1.JobStatus{
+			Conditions: []batchv1.JobCondition{
+				{
+					Type:   batchv1.JobFailed,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+		WithObjects(mariadb, job).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	result, err := reconciler.waitForInitJobComplete(context.Background(), mariadb, jobKey, logr.Discard())
+	if err == nil {
+		t.Fatalf("expected replica recovery artifact failure, got %v", err)
+	}
+	if !result.IsZero() {
+		t.Fatalf("expected no requeue result for terminal failure, got %v", result)
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if updated.ReplicaRecoveryError() != nil {
+		t.Fatalf("expected caller to decide whether retry is exhausted, got %v", updated.ReplicaRecoveryError())
+	}
+}

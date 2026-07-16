@@ -377,6 +377,10 @@ func shouldReconcilePhysicalBackup(backup *mariadbv1alpha1.PhysicalBackup, mdb *
 		return false
 	}
 	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() {
+		if isReplicaRecoveryBackup {
+			logger.Info("Switchover in progress, continuing replica recovery PhysicalBackup schedule...")
+			return true
+		}
 		logger.Info("Switchover in progress, skipping PhysicalBackup schedule...")
 		return false
 	}
