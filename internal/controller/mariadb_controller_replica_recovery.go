@@ -65,24 +65,20 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	}
 	replicaRecoveryEnabled := mariadb.IsReplicaRecoveryEnabled()
 	immediateRecoveryReplicas := getReplicasWithImmediateRecoverableErrors(mariadb, logger)
+	activeRecoveryReplicas := getActiveReplicaRecoveryReplicas(mariadb)
 
 	if handled, err := r.resetReplicaRecoveryIfNotNeeded(
 		ctx,
 		mariadb,
-		replicaRecoveryEnabled || len(immediateRecoveryReplicas) > 0,
+		replicaRecoveryEnabled || len(immediateRecoveryReplicas) > 0 || len(activeRecoveryReplicas) > 0,
 		pvcRecoveryReplicas,
 		pvcUIDs,
 	); handled || err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if !mariadb.IsRecoveringReplicas() || mariadb.ReplicaRecoveryError() != nil {
-		if result, err := r.reconcileReplicaRecoveryError(ctx, mariadb, logger); !result.IsZero() || err != nil {
-			return result, err
-		}
-	}
-
 	replicasToRecover := mergeReplicasToRecover(
+		activeRecoveryReplicas,
 		immediateRecoveryReplicas,
 		pvcRecoveryReplicas,
 	)
@@ -92,11 +88,28 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 			replicasToRecover,
 		)
 	}
+
+	if !mariadb.IsRecoveringReplicas() || mariadb.ReplicaRecoveryError() != nil {
+		if result, err := r.reconcileReplicaRecoveryError(
+			ctx,
+			mariadb,
+			replicasToRecover,
+			logger,
+		); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+
 	logger = logger.
 		WithValues("replicas", replicasToRecover)
 
 	if handled, err := r.completeReplicaRecoveryIfDone(ctx, mariadb, replicasToRecover, pvcUIDs); handled || err != nil {
 		return ctrl.Result{}, err
+	}
+	if len(activeRecoveryReplicas) == 0 {
+		if err := r.setReplicaToRecover(ctx, mariadb, replicasToRecover[0]); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -106,7 +119,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	logger.V(1).Info("Recovering replicas")
-	if result, err := r.quiescePVCRecoveryReplicas(ctx, mariadb, pvcRecoveryReplicas, logger); !result.IsZero() || err != nil {
+	if result, err := r.quiescePVCRecoveryReplicas(ctx, mariadb, replicasToRecover, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 	physicalBackupKey := mariadb.PhysicalBackupReplicaRecoveryKey()
@@ -239,6 +252,12 @@ func (r *MariaDBReconciler) handleReplicaRecoveryArtifactFailure(ctx context.Con
 		return ctrl.Result{}, err
 	}
 	if retried {
+		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+			condition.SetReplicaRecovering(status)
+			return nil
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+		}
 		logger.Info(
 			"Replica recovery artifact failed, retrying once with a fresh PhysicalBackup",
 			"err", replicaRecoveryArtifactFailureMessage(recoveryErr),
@@ -249,7 +268,8 @@ func (r *MariaDBReconciler) handleReplicaRecoveryArtifactFailure(ctx context.Con
 }
 
 func replicaRecoveryArtifactFailureMessage(err error) string {
-	return strings.TrimPrefix(err.Error(), errReplicaRecoveryArtifactFailed.Error()+": ")
+	errMsg := strings.TrimPrefix(err.Error(), errReplicaRecoveryArtifactFailed.Error()+": ")
+	return strings.TrimPrefix(errMsg, "Replica recovery error: ")
 }
 
 func (r *MariaDBReconciler) setReplicaRecoveryError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -275,11 +295,25 @@ func (r *MariaDBReconciler) setReplicaRecoveryError(ctx context.Context, mariadb
 }
 
 func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (ctrl.Result, error) {
-	if recoveryErr := mariadb.ReplicaRecoveryError(); recoveryErr != nil &&
-		!strings.Contains(recoveryErr.Error(), "replica datasource not found") {
-		logger.Info("Unable to recover replicas. Requeuing...", "err", recoveryErr.Error())
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	replicasToRecover []string, logger logr.Logger) (ctrl.Result, error) {
+	if recoveryErr := mariadb.ReplicaRecoveryError(); recoveryErr != nil {
+		replicationStatus := ptr.Deref(mariadb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+		if replicationStatus.ReplicaToRecover != nil {
+			replicasToRecover = mergeReplicasToRecover(replicasToRecover, []string{*replicationStatus.ReplicaToRecover})
+		}
+		if isReplicaRecoveryArtifactFailureMessage(recoveryErr.Error()) && len(replicasToRecover) > 0 {
+			return r.handleReplicaRecoveryArtifactFailure(
+				ctx,
+				mariadb,
+				replicasToRecover,
+				fmt.Errorf("%w: %s", errReplicaRecoveryArtifactFailed, recoveryErr.Error()),
+				logger,
+			)
+		}
+		if !strings.Contains(recoveryErr.Error(), "replica datasource not found") {
+			logger.Info("Unable to recover replicas. Requeuing...", "err", recoveryErr.Error())
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
 	}
 
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
@@ -307,6 +341,10 @@ func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, m
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func isReplicaRecoveryArtifactFailureMessage(errMsg string) bool {
+	return strings.Contains(errMsg, "PhysicalBackup") && strings.Contains(errMsg, " failed")
 }
 
 func (r *MariaDBReconciler) ensureReplicaPhysicalBackupCurrent(ctx context.Context, key types.NamespacedName,
@@ -378,6 +416,9 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 	for _, replica := range replicas {
 		replicaLogger := logger.WithValues("replica", replica)
 		replicaLogger.V(1).Info("Recovering replica")
+		if err := r.setReplicaToRecover(ctx, mariadb, replica); err != nil {
+			return ctrl.Result{}, err
+		}
 
 		if snapshotKey != nil {
 			if result, err := r.reconcileSnapshotReplicaRecovery(
@@ -421,6 +462,9 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 		}
 		if err := r.syncStoragePVCUIDAnnotation(ctx, mariadb, *podIndex); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error syncing storage PVC annotation for replica %s: %v", replica, err)
+		}
+		if err := r.setReplicaToRecover(ctx, mariadb, ""); err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 	// Requeue to track replication status
@@ -497,10 +541,6 @@ func (r *MariaDBReconciler) getPVCRecoveryQuiesceAction(ctx context.Context, mar
 	if err != nil {
 		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error getting replica storage PVC state: %v", err)
 	}
-	if pvcStateFound && isReplicaRecoveryCompletedForPVC(mariadb.Annotations, *podIndex, pvcState) {
-		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, nil
-	}
-
 	initJobComplete, err := r.isInitJobComplete(ctx, mariadb.PhysicalBackupInitJobKey(*podIndex))
 	if err != nil {
 		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error checking recovery Job status: %v", err)
@@ -565,9 +605,6 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 	if result, err := r.ensureRecoveryJobCurrent(ctx, jobKey, pvcState, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
-	if err := r.setReplicaToRecover(ctx, mariadb, replica); err != nil {
-		return ctrl.Result{}, err
-	}
 	if result, err := r.reconcileAndWaitForJobReplicaRecovery(
 		ctx,
 		physicalBackup,
@@ -593,9 +630,6 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 	}
 	if result, err := r.waitForPodScheduled(ctx, mariadb, *podIndex, logger); !result.IsZero() || err != nil {
 		return result, err
-	}
-	if err := r.setReplicaToRecover(ctx, mariadb, ""); err != nil {
-		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
 }
@@ -1095,6 +1129,14 @@ func mergeReplicasToRecover(replicaSets ...[]string) []string {
 		return replicas[i] < replicas[j]
 	})
 	return replicas
+}
+
+func getActiveReplicaRecoveryReplicas(mdb *mariadbv1alpha1.MariaDB) []string {
+	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+	if replication.ReplicaToRecover == nil || *replication.ReplicaToRecover == "" {
+		return nil
+	}
+	return []string{*replication.ReplicaToRecover}
 }
 
 func hasImmediateRecoverableError(status mariadbv1alpha1.ReplicaStatus,
