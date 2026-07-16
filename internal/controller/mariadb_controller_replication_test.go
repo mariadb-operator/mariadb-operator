@@ -6,6 +6,9 @@ import (
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -288,6 +291,65 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 			}
 			return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(mdb.ObjectMeta, podIndex)
 		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should preserve GTID history during switchover", func() {
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.Status.CurrentPrimaryPodIndex != nil
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		currentPrimaryIndex := *mdb.Status.CurrentPrimaryPodIndex
+		clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
+		currentPrimaryClient, err := clientSet.ClientForIndex(testCtx, currentPrimaryIndex)
+		Expect(err).ToNot(HaveOccurred())
+		currentPrimaryGTID, err := currentPrimaryClient.GtidBinlogPos(testCtx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(currentPrimaryClient.Close()).To(Succeed())
+		currentPrimaryParsedGTID, err := replication.ParseGtid(currentPrimaryGTID)
+		Expect(err).ToNot(HaveOccurred())
+
+		newPrimaryIndex := 0
+		for i := 0; i < int(mdb.Spec.Replicas); i++ {
+			if i != currentPrimaryIndex {
+				newPrimaryIndex = i
+				break
+			}
+		}
+
+		By("Switching primary")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			mdb.Spec.Replication.Primary.PodIndex = &newPrimaryIndex
+			g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to eventually change primary")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.Status.CurrentPrimaryPodIndex != nil &&
+				*mdb.Status.CurrentPrimaryPodIndex == newPrimaryIndex
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting promoted primary to preserve replicated GTID history")
+		newPrimaryClient, err := clientSet.ClientForIndex(testCtx, newPrimaryIndex)
+		Expect(err).ToNot(HaveOccurred())
+		newPrimaryGTID, err := newPrimaryClient.GtidCurrentPos(testCtx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(newPrimaryClient.Close()).To(Succeed())
+		newPrimaryParsedGTID, err := replication.ParseFurthestGtidWithDomainId(
+			newPrimaryGTID,
+			currentPrimaryParsedGTID.DomainID,
+			testLogger,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(newPrimaryParsedGTID.SequenceID).To(BeNumerically(">=", currentPrimaryParsedGTID.SequenceID))
 	})
 
 	It("should update", func() {
