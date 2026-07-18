@@ -1,157 +1,123 @@
 package builder
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
-	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestInvalidBackupStoragePVC(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("InvalidBackupStoragePVC", func() {
 	key := types.NamespacedName{
 		Name: "invalid-backup-pvc",
 	}
-	tests := []struct {
-		name    string
-		backup  *mariadbv1alpha1.Backup
-		wantErr bool
-	}{
-		{
-			name:    "empty",
-			backup:  &mariadbv1alpha1.Backup{},
-			wantErr: true,
+	DescribeTable("building Backup storage PVC",
+		func(backup *mariadbv1alpha1.Backup, wantErr bool) {
+			builder := newDefaultTestBuilder()
+			_, err := builder.BuildBackupStoragePVC(
+				key,
+				backup.Spec.Storage.PersistentVolumeClaim,
+				backup.Spec.InheritMetadata,
+			)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 		},
-		{
-			name: "PVC",
-			backup: &mariadbv1alpha1.Backup{
-				Spec: mariadbv1alpha1.BackupSpec{
-					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
-							Resources: corev1.VolumeResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceStorage: resource.MustParse("100Mi"),
-								},
+		Entry("empty", &mariadbv1alpha1.Backup{}, true),
+		Entry("PVC", &mariadbv1alpha1.Backup{
+			Spec: mariadbv1alpha1.BackupSpec{
+				Storage: mariadbv1alpha1.BackupStorage{
+					PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+						Resources: corev1.VolumeResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceStorage: resource.MustParse("100Mi"),
 							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
 						},
 					},
 				},
 			},
-			wantErr: false,
-		},
-	}
+		}, false),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := builder.BuildBackupStoragePVC(
-				key,
-				tt.backup.Spec.Storage.PersistentVolumeClaim,
-				tt.backup.Spec.InheritMetadata,
-			)
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestBackupStoragePVCMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("BackupStoragePVCMeta", func() {
 	key := types.NamespacedName{
 		Name: "backup-pvc",
 	}
-	tests := []struct {
-		name     string
-		backup   *mariadbv1alpha1.Backup
-		wantMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "PVC",
-			backup: &mariadbv1alpha1.Backup{
-				Spec: mariadbv1alpha1.BackupSpec{
-					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
-							Resources: corev1.VolumeResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceStorage: resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
-				},
-			},
-			wantMeta: &mariadbv1alpha1.Metadata{
-				Labels:      map[string]string{},
-				Annotations: map[string]string{},
-			},
-		},
-		{
-			name: "PVC and inherit meta",
-			backup: &mariadbv1alpha1.Backup{
-				Spec: mariadbv1alpha1.BackupSpec{
-					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
-							Resources: corev1.VolumeResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceStorage: resource.MustParse("100Mi"),
-								},
-							},
-							AccessModes: []corev1.PersistentVolumeAccessMode{
-								corev1.ReadWriteOnce,
-							},
-						},
-					},
-					InheritMetadata: &mariadbv1alpha1.Metadata{
-						Labels: map[string]string{
-							"database.myorg.io": "mariadb",
-						},
-						Annotations: map[string]string{
-							"database.myorg.io": "mariadb",
-						},
-					},
-				},
-			},
-			wantMeta: &mariadbv1alpha1.Metadata{
-				Labels: map[string]string{
-					"database.myorg.io": "mariadb",
-				},
-				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	DescribeTable("building Backup storage PVC metadata",
+		func(backup *mariadbv1alpha1.Backup, wantMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
 			pvc, err := builder.BuildBackupStoragePVC(
 				key,
-				tt.backup.Spec.Storage.PersistentVolumeClaim,
-				tt.backup.Spec.InheritMetadata,
+				backup.Spec.Storage.PersistentVolumeClaim,
+				backup.Spec.InheritMetadata,
 			)
-			if err != nil {
-				t.Fatalf("unexpected error building Backup PVC: %v", err)
-			}
-			assertObjectMeta(t, &pvc.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
-		})
-	}
-}
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&pvc.ObjectMeta, wantMeta.Labels, wantMeta.Annotations)
+		},
+		Entry("PVC", &mariadbv1alpha1.Backup{
+			Spec: mariadbv1alpha1.BackupSpec{
+				Storage: mariadbv1alpha1.BackupStorage{
+					PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+						Resources: corev1.VolumeResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceStorage: resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+				},
+			},
+		}, &mariadbv1alpha1.Metadata{
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
+		}),
+		Entry("PVC and inherit meta", &mariadbv1alpha1.Backup{
+			Spec: mariadbv1alpha1.BackupSpec{
+				Storage: mariadbv1alpha1.BackupStorage{
+					PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+						Resources: corev1.VolumeResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceStorage: resource.MustParse("100Mi"),
+							},
+						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+					},
+				},
+				InheritMetadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+			},
+		}, &mariadbv1alpha1.Metadata{
+			Labels: map[string]string{
+				"database.myorg.io": "mariadb",
+			},
+			Annotations: map[string]string{
+				"database.myorg.io": "mariadb",
+			},
+		}),
+	)
+})
 
-func TestBackupStagingPVCOwnerReference(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("BackupStagingPVCOwnerReference", func() {
 	key := types.NamespacedName{
 		Name:      "staging-pvc",
 		Namespace: "test",
@@ -179,89 +145,90 @@ func TestBackupStagingPVCOwnerReference(t *testing.T) {
 		},
 	}
 
-	tests := []struct {
-		name         string
-		owner        *mariadbv1alpha1.MariaDB
-		wantOwnerRef bool
-	}{
-		{
-			name:         "with owner",
-			owner:        owner,
-			wantOwnerRef: true,
-		},
-		{
-			name:         "without owner",
-			owner:        nil,
-			wantOwnerRef: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pvc, err := builder.BuildStagingPVC(key, pvcSpec, meta, tt.owner)
-			assert.NoError(t, err, "unexpected error building Backup Staging PVC")
-			assert.NotNil(t, pvc, "expected PVC to be created")
+	DescribeTable("building Backup staging PVC owner reference",
+		func(owner *mariadbv1alpha1.MariaDB, wantOwnerRef bool) {
+			builder := newDefaultTestBuilder()
+			pvc, err := builder.BuildStagingPVC(key, pvcSpec, meta, owner)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pvc).NotTo(BeNil())
 
 			found := false
 			for _, ref := range pvc.OwnerReferences {
-				if tt.owner != nil && ref.UID == tt.owner.UID && ref.Name == tt.owner.Name && ref.Kind == "MariaDB" {
+				if owner != nil && ref.UID == owner.UID && ref.Name == owner.Name && ref.Kind == "MariaDB" {
 					found = true
-					assert.True(t, *ref.Controller, "expected Controller to be true")
+					Expect(*ref.Controller).To(BeTrue())
 					break
 				}
 			}
-			assert.Equal(t, tt.wantOwnerRef, found, "unexpected owner reference presence")
-		})
-	}
-}
+			Expect(found).To(Equal(wantOwnerRef))
+		},
+		Entry("with owner", owner, true),
+		Entry("without owner", (*mariadbv1alpha1.MariaDB)(nil), false),
+	)
+})
 
-func TestStoragePVCMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("StoragePVCMeta", func() {
 	key := types.NamespacedName{
 		Name: "backup-pvc",
 	}
 	mariadbObjMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
-	tests := []struct {
-		name     string
-		tpl      *mariadbv1alpha1.VolumeClaimTemplate
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *mariadbv1alpha1.Metadata
-		wantErr  bool
-	}{
-		{
-			name: "no tpl",
-			tpl:  nil,
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: mariadbObjMeta,
-			},
-			wantMeta: &mariadbv1alpha1.Metadata{
-				Labels:      map[string]string{},
-				Annotations: map[string]string{},
-			},
-			wantErr: true,
+	DescribeTable("building storage PVC metadata",
+		func(tpl *mariadbv1alpha1.VolumeClaimTemplate, mariadb *mariadbv1alpha1.MariaDB, wantMeta *mariadbv1alpha1.Metadata, wantErr bool) {
+			builder := newDefaultTestBuilder()
+			pvc, err := builder.BuildStoragePVC(key, tpl, mariadb)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			if pvc != nil {
+				assertObjectMeta(&pvc.ObjectMeta, wantMeta.Labels, wantMeta.Annotations)
+			}
 		},
-		{
-			name: "empty",
-			tpl:  &mariadbv1alpha1.VolumeClaimTemplate{},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: mariadbObjMeta,
+		Entry("no tpl", nil, &mariadbv1alpha1.MariaDB{
+			ObjectMeta: mariadbObjMeta,
+		}, &mariadbv1alpha1.Metadata{
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
+		}, true),
+		Entry("empty", &mariadbv1alpha1.VolumeClaimTemplate{}, &mariadbv1alpha1.MariaDB{
+			ObjectMeta: mariadbObjMeta,
+		}, &mariadbv1alpha1.Metadata{
+			Labels: map[string]string{
+				"app.kubernetes.io/name":     "mariadb",
+				"app.kubernetes.io/instance": "mariadb-obj",
+				"pvc.k8s.mariadb.com/role":   "storage",
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			Annotations: map[string]string{},
+		}, false),
+		Entry("tpl", &mariadbv1alpha1.VolumeClaimTemplate{
+			Metadata: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"pvc.k8s.mariadb.com/role":   "storage",
+					"database.myorg.io": "mariadb",
 				},
-				Annotations: map[string]string{},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
 			},
-			wantErr: false,
-		},
-		{
-			name: "tpl",
-			tpl: &mariadbv1alpha1.VolumeClaimTemplate{
-				Metadata: &mariadbv1alpha1.Metadata{
+		}, &mariadbv1alpha1.MariaDB{
+			ObjectMeta: mariadbObjMeta,
+		}, &mariadbv1alpha1.Metadata{
+			Labels: map[string]string{
+				"app.kubernetes.io/name":     "mariadb",
+				"app.kubernetes.io/instance": "mariadb-obj",
+				"pvc.k8s.mariadb.com/role":   "storage",
+				"database.myorg.io":          "mariadb",
+			},
+			Annotations: map[string]string{
+				"database.myorg.io": "mariadb",
+			},
+		}, false),
+		Entry("inherit meta", &mariadbv1alpha1.VolumeClaimTemplate{}, &mariadbv1alpha1.MariaDB{
+			ObjectMeta: mariadbObjMeta,
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				InheritMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
 					},
@@ -270,137 +237,75 @@ func TestStoragePVCMeta(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: mariadbObjMeta,
+		}, &mariadbv1alpha1.Metadata{
+			Labels: map[string]string{
+				"app.kubernetes.io/name":     "mariadb",
+				"app.kubernetes.io/instance": "mariadb-obj",
+				"pvc.k8s.mariadb.com/role":   "storage",
+				"database.myorg.io":          "mariadb",
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			Annotations: map[string]string{
+				"database.myorg.io": "mariadb",
+			},
+		}, false),
+		Entry("all", &mariadbv1alpha1.VolumeClaimTemplate{
+			Metadata: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"pvc.k8s.mariadb.com/role":   "storage",
-					"database.myorg.io":          "mariadb",
-				},
-				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
+					"sidecar.istio.io/inject": "false",
 				},
 			},
-			wantErr: false,
-		},
-		{
-			name: "inherit meta",
-			tpl:  &mariadbv1alpha1.VolumeClaimTemplate{},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: mariadbObjMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					InheritMetadata: &mariadbv1alpha1.Metadata{
-						Labels: map[string]string{
-							"database.myorg.io": "mariadb",
-						},
-						Annotations: map[string]string{
-							"database.myorg.io": "mariadb",
-						},
-					},
-				},
-			},
-			wantMeta: &mariadbv1alpha1.Metadata{
-				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"pvc.k8s.mariadb.com/role":   "storage",
-					"database.myorg.io":          "mariadb",
-				},
-				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "all",
-			tpl: &mariadbv1alpha1.VolumeClaimTemplate{
-				Metadata: &mariadbv1alpha1.Metadata{
+		}, &mariadbv1alpha1.MariaDB{
+			ObjectMeta: mariadbObjMeta,
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				InheritMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
-						"sidecar.istio.io/inject": "false",
+						"sidecar.istio.io/inject": "true",
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: mariadbObjMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					InheritMetadata: &mariadbv1alpha1.Metadata{
-						Labels: map[string]string{
-							"sidecar.istio.io/inject": "true",
-						},
-					},
-				},
+		}, &mariadbv1alpha1.Metadata{
+			Labels: map[string]string{
+				"app.kubernetes.io/name":     "mariadb",
+				"app.kubernetes.io/instance": "mariadb-obj",
+				"pvc.k8s.mariadb.com/role":   "storage",
+				"sidecar.istio.io/inject":    "false",
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			Annotations: map[string]string{},
+		}, false),
+		Entry("tpl override inherit meta", &mariadbv1alpha1.VolumeClaimTemplate{
+			Metadata: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"pvc.k8s.mariadb.com/role":   "storage",
-					"sidecar.istio.io/inject":    "false",
+					"sidecar.istio.io/inject": "false",
 				},
-				Annotations: map[string]string{},
 			},
-			wantErr: false,
-		},
-		{
-			name: "tpl override inherit meta",
-			tpl: &mariadbv1alpha1.VolumeClaimTemplate{
-				Metadata: &mariadbv1alpha1.Metadata{
+		}, &mariadbv1alpha1.MariaDB{
+			ObjectMeta: mariadbObjMeta,
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				InheritMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
-						"sidecar.istio.io/inject": "false",
+						"database.myorg.io": "mariadb",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: mariadbObjMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					InheritMetadata: &mariadbv1alpha1.Metadata{
-						Labels: map[string]string{
-							"database.myorg.io": "mariadb",
-						},
-						Annotations: map[string]string{
-							"database.myorg.io": "mariadb",
-						},
-					},
-				},
+		}, &mariadbv1alpha1.Metadata{
+			Labels: map[string]string{
+				"app.kubernetes.io/name":     "mariadb",
+				"app.kubernetes.io/instance": "mariadb-obj",
+				"database.myorg.io":          "mariadb",
+				"pvc.k8s.mariadb.com/role":   "storage",
+				"sidecar.istio.io/inject":    "false",
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
-				Labels: map[string]string{
-					"app.kubernetes.io/name":     "mariadb",
-					"app.kubernetes.io/instance": "mariadb-obj",
-					"database.myorg.io":          "mariadb",
-					"pvc.k8s.mariadb.com/role":   "storage",
-					"sidecar.istio.io/inject":    "false",
-				},
-				Annotations: map[string]string{
-					"database.myorg.io": "mariadb",
-				},
+			Annotations: map[string]string{
+				"database.myorg.io": "mariadb",
 			},
-			wantErr: false,
-		},
-	}
+		}, false),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pvc, err := builder.BuildStoragePVC(key, tt.tpl, tt.mariadb)
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-			if pvc != nil {
-				assertObjectMeta(t, &pvc.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
-			}
-		})
-	}
-}
-
-func TestStoragePVCDataSource(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("StoragePVCDataSource", func() {
 	key := types.NamespacedName{Name: "snapshot-pvc"}
 	tpl := &mariadbv1alpha1.VolumeClaimTemplate{
 		PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
@@ -416,45 +321,24 @@ func TestStoragePVCDataSource(t *testing.T) {
 	}
 	mariadb := &mariadbv1alpha1.MariaDB{}
 
-	tests := []struct {
-		name             string
-		opts             []PVCOption
-		wantDataSource   bool
-		wantSnapshotName string
-	}{
-		{
-			name:           "without WithVolumeSnapshotDataSource",
-			opts:           []PVCOption{},
-			wantDataSource: false,
-		},
-		{
-			name:             "with WithVolumeSnapshotDataSource",
-			opts:             []PVCOption{WithVolumeSnapshotDataSource("my-snapshot")},
-			wantDataSource:   true,
-			wantSnapshotName: "my-snapshot",
-		},
-	}
+	DescribeTable("building storage PVC data source",
+		func(opts []PVCOption, wantDataSource bool, wantSnapshotName string) {
+			builder := newDefaultTestBuilder()
+			pvc, err := builder.BuildStoragePVC(key, tpl, mariadb, opts...)
+			Expect(err).NotTo(HaveOccurred())
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pvc, err := builder.BuildStoragePVC(key, tpl, mariadb, tt.opts...)
-			assert.NoError(t, err, "unexpected error building Storage PVC")
+			if wantDataSource {
+				Expect(pvc.Spec.DataSource).NotTo(BeNil())
+				Expect(pvc.Spec.DataSource.Kind).To(Equal("VolumeSnapshot"))
 
-			if tt.wantDataSource {
-				assert.NotNil(t, pvc.Spec.DataSource, "expected DataSource to be set")
-				assert.Equal(t, "VolumeSnapshot", pvc.Spec.DataSource.Kind, "expected DataSource.Kind to be 'VolumeSnapshot'")
-
-				assert.Equal(t, tt.wantSnapshotName, pvc.Spec.DataSource.Name, "expected DataSource.Name to match")
-				assert.NotNil(t, pvc.Spec.DataSource.APIGroup, "expected DataSource.APIGroup to be set")
-				assert.Equal(
-					t,
-					"snapshot.storage.k8s.io",
-					*pvc.Spec.DataSource.APIGroup,
-					"expected DataSource.APIGroup to be 'snapshot.storage.k8s.io'",
-				)
+				Expect(pvc.Spec.DataSource.Name).To(Equal(wantSnapshotName))
+				Expect(pvc.Spec.DataSource.APIGroup).NotTo(BeNil())
+				Expect(*pvc.Spec.DataSource.APIGroup).To(Equal("snapshot.storage.k8s.io"))
 			} else {
-				assert.Nil(t, pvc.Spec.DataSource, "expected DataSource to be nil")
+				Expect(pvc.Spec.DataSource).To(BeNil())
 			}
-		})
-	}
-}
+		},
+		Entry("without WithVolumeSnapshotDataSource", []PVCOption{}, false, ""),
+		Entry("with WithVolumeSnapshotDataSource", []PVCOption{WithVolumeSnapshotDataSource("my-snapshot")}, true, "my-snapshot"),
+	)
+})
