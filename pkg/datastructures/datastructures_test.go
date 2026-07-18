@@ -428,6 +428,56 @@ func TestUniqueArgs(t *testing.T) {
 				"--verbose",
 			},
 		},
+		{
+			// mariadb-dump's --ignore-table is repeatable: each instance
+			// adds another table to ignore. UniqueArgs must not collapse
+			// distinct values (#1691).
+			name: "repeatable --ignore-table flags are preserved",
+			args: []string{
+				"--single-transaction",
+				"--all-databases",
+				"--ignore-table=mysql.help_category",
+				"--ignore-table=mysql.help_relation",
+				"--ignore-table=mysql.help_topic",
+			},
+			wantElements: []string{
+				"--single-transaction",
+				"--all-databases",
+				"--ignore-table=mysql.help_category",
+				"--ignore-table=mysql.help_relation",
+				"--ignore-table=mysql.help_topic",
+			},
+		},
+		{
+			// Exact-string repeats of a repeatable flag are still
+			// collapsed so we don't grow argv when defaults overlap with
+			// user args.
+			name: "repeatable flag exact duplicates are collapsed",
+			args: []string{
+				"--ignore-table=mysql.global_priv",
+				"--ignore-table=mysql.help_category",
+				"--ignore-table=mysql.global_priv",
+			},
+			wantElements: []string{
+				"--ignore-table=mysql.global_priv",
+				"--ignore-table=mysql.help_category",
+			},
+		},
+		{
+			name: "repeatable --ignore-databases flags are preserved",
+			args: []string{
+				"--ignore-databases=db_a",
+				"--ignore-databases=db_b",
+				"--ignore-table-data=db_c.t1",
+				"--ignore-table-data=db_c.t2",
+			},
+			wantElements: []string{
+				"--ignore-databases=db_a",
+				"--ignore-databases=db_b",
+				"--ignore-table-data=db_c.t1",
+				"--ignore-table-data=db_c.t2",
+			},
+		},
 	}
 
 	for _, tt := range tests {
