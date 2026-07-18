@@ -1,78 +1,75 @@
 package backup
 
 import (
-	"reflect"
-	"testing"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	mdbtime "github.com/mariadb-operator/mariadb-operator/v26/pkg/time"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var logger = ctrl.Log.WithName("test")
 
-func TestLogicalGetTargetFile(t *testing.T) {
+var _ = Describe("LogicalGetTargetFile", func() {
 	p := NewLogicalBackupProcessor()
-	tests := []struct {
-		name           string
-		backupFiles    []string
-		targetRecovery time.Time
-		wantFile       string
-		wantErr        bool
-	}{
-		{
-			name:           "no backups",
-			backupFiles:    []string{},
-			targetRecovery: time.Now(),
-			wantFile:       "",
-			wantErr:        true,
+	DescribeTable("returns the backup target file",
+		func(backupFiles []string, targetRecovery time.Time, wantFile string, wantErr bool) {
+			file, err := p.GetBackupTargetFile(backupFiles, targetRecovery, logger)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(file).To(Equal(wantFile))
 		},
-		{
-			name: "invalid backups",
-			backupFiles: []string{
+		Entry("no backups",
+			[]string{},
+			time.Now(),
+			"",
+			true,
+		),
+		Entry("invalid backups",
+			[]string{
 				"backup.foo.sql",
 				"backup.bar.sql",
 				"backup.sql",
 			},
-			targetRecovery: time.Now(),
-			wantFile:       "",
-			wantErr:        true,
-		},
-		{
-			name: "single backup",
-			backupFiles: []string{
+			time.Now(),
+			"",
+			true,
+		),
+		Entry("single backup",
+			[]string{
 				"backup.2023-12-18T15:58:00Z.sql",
 			},
-			targetRecovery: time.Now(),
-			wantFile:       "backup.2023-12-18T15:58:00Z.sql",
-			wantErr:        false,
-		},
-		{
-			name: "multiple backups with invalid",
-			backupFiles: []string{
+			time.Now(),
+			"backup.2023-12-18T15:58:00Z.sql",
+			false,
+		),
+		Entry("multiple backups with invalid",
+			[]string{
 				"backup.2023-12-18T15:58:00Z.sql",
 				"backup.foo.sql",
 				"backup.foo.sql",
 			},
-			targetRecovery: mustParseDate(t, "2023-12-18T15:59:00Z"),
-			wantFile:       "backup.2023-12-18T15:58:00Z.sql",
-			wantErr:        false,
-		},
-		{
-			name: "fine grained",
-			backupFiles: []string{
+			mustParseDate("2023-12-18T15:59:00Z"),
+			"backup.2023-12-18T15:58:00Z.sql",
+			false,
+		),
+		Entry("fine grained",
+			[]string{
 				"backup.2023-12-18T15:58:00Z.sql",
 				"backup.2023-12-18T15:58:01Z.sql",
 				"backup.2023-12-18T16:00:Z.sql",
 			},
-			targetRecovery: mustParseDate(t, "2023-12-18T15:59:00Z"),
-			wantFile:       "backup.2023-12-18T15:58:01Z.sql",
-			wantErr:        false,
-		},
-		{
-			name: "target before backups",
-			backupFiles: []string{
+			mustParseDate("2023-12-18T15:59:00Z"),
+			"backup.2023-12-18T15:58:01Z.sql",
+			false,
+		),
+		Entry("target before backups",
+			[]string{
 				"backup.2023-12-18T15:58:00Z.sql",
 				"backup.2023-12-18T15:59:00Z.sql",
 				"backup.2023-12-18T16:00:00Z.sql",
@@ -83,13 +80,12 @@ func TestLogicalGetTargetFile(t *testing.T) {
 				"backup.2023-12-18T16:12:00Z.sql",
 				"backup.2023-12-18T16:13:00Z.sql",
 			},
-			targetRecovery: time.UnixMilli(0),
-			wantFile:       "",
-			wantErr:        true,
-		},
-		{
-			name: "target after backups",
-			backupFiles: []string{
+			time.UnixMilli(0),
+			"",
+			true,
+		),
+		Entry("target after backups",
+			[]string{
 				"backup.2023-12-18T15:58:00Z.sql",
 				"backup.2023-12-18T15:59:00Z.sql",
 				"backup.2023-12-18T16:00:00Z.sql",
@@ -100,13 +96,12 @@ func TestLogicalGetTargetFile(t *testing.T) {
 				"backup.2023-12-18T16:12:00Z.sql",
 				"backup.2023-12-18T16:13:00Z.sql",
 			},
-			targetRecovery: time.Now(),
-			wantFile:       "backup.2023-12-18T16:13:00Z.sql",
-			wantErr:        false,
-		},
-		{
-			name: "close target",
-			backupFiles: []string{
+			time.Now(),
+			"backup.2023-12-18T16:13:00Z.sql",
+			false,
+		),
+		Entry("close target",
+			[]string{
 				"backup.2023-12-18T15:58:00Z.sql",
 				"backup.2023-12-18T15:59:00Z.sql",
 				"backup.2023-12-18T16:00:00Z.sql",
@@ -117,13 +112,12 @@ func TestLogicalGetTargetFile(t *testing.T) {
 				"backup.2023-12-18T16:12:00Z.sql",
 				"backup.2023-12-18T16:13:00Z.sql",
 			},
-			targetRecovery: mustParseDate(t, "2023-12-18T16:04:00Z"),
-			wantFile:       "backup.2023-12-18T16:03:00Z.sql",
-			wantErr:        false,
-		},
-		{
-			name: "exact target",
-			backupFiles: []string{
+			mustParseDate("2023-12-18T16:04:00Z"),
+			"backup.2023-12-18T16:03:00Z.sql",
+			false,
+		),
+		Entry("exact target",
+			[]string{
 				"backup.2023-12-18T15:58:00Z.sql",
 				"backup.2023-12-18T15:59:00Z.sql",
 				"backup.2023-12-18T16:00:00Z.sql",
@@ -134,551 +128,320 @@ func TestLogicalGetTargetFile(t *testing.T) {
 				"backup.2023-12-18T16:12:00Z.sql",
 				"backup.2023-12-18T16:13:00Z.sql",
 			},
-			targetRecovery: mustParseDate(t, "2023-12-18T16:07:00Z"),
-			wantFile:       "backup.2023-12-18T16:07:00Z.sql",
-			wantErr:        false,
-		},
-	}
+			mustParseDate("2023-12-18T16:07:00Z"),
+			"backup.2023-12-18T16:07:00Z.sql",
+			false,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			file, err := p.GetBackupTargetFile(tt.backupFiles, tt.targetRecovery, logger)
-			if err != nil && !tt.wantErr {
-				t.Fatalf("unexpected error getting target recovery file: %v", err)
-			}
-
-			if tt.wantFile != file {
-				t.Fatalf("unexpected backup target file, expected: %v got: %v", tt.wantFile, file)
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestLogicalGetOldBackupFiles(t *testing.T) {
+var _ = Describe("LogicalGetOldBackupFiles", func() {
 	p := NewLogicalBackupProcessor()
-	previousNowFn := now
-	tests := []struct {
-		name         string
-		nowFn        func() time.Time
-		backupFiles  []string
-		maxRetention time.Duration
-		wantBackups  []string
-	}{
-		{
-			name:         "no backups",
-			nowFn:        testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
-			backupFiles:  nil,
-			maxRetention: 1 * time.Hour,
-			wantBackups:  nil,
-		},
-		{
-			name:  "invalid backups",
-			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
-			backupFiles: []string{
-				"backup.foo.sql",
-				"backup.bar.sql",
-				"backup.sql",
-			},
-			maxRetention: 1 * time.Hour,
-			wantBackups:  nil,
-		},
-		{
-			name:  "no old backups",
-			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
-			backupFiles: []string{
-				"backup.2023-12-22T13:00:00Z.sql",
-				"backup.2023-12-22T14:00:00Z.sql",
-				"backup.2023-12-22T15:00:00Z.sql",
-				"backup.2023-12-22T16:00:00Z.sql",
-				"backup.2023-12-22T17:00:00Z.sql",
-				"backup.2023-12-22T18:00:00Z.sql",
-				"backup.2023-12-22T19:00:00Z.sql",
-				"backup.2023-12-22T20:00:00Z.sql",
-			},
-			maxRetention: 24 * time.Hour,
-			wantBackups:  nil,
-		},
-		{
-			name:  "multiple old backups",
-			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
-			backupFiles: []string{
-				"backup.2023-12-22T13:00:00Z.sql",
-				"backup.2023-12-22T14:00:00Z.sql",
-				"backup.2023-12-22T15:00:00Z.sql",
-				"backup.2023-12-22T16:00:00Z.sql",
-				"backup.2023-12-22T17:00:00Z.sql",
-				"backup.2023-12-22T18:00:00Z.sql",
-				"backup.2023-12-22T19:00:00Z.sql",
-				"backup.2023-12-22T20:00:00Z.sql",
-			},
-			maxRetention: 8 * time.Hour,
-			wantBackups: []string{
-				"backup.2023-12-22T13:00:00Z.sql",
-				"backup.2023-12-22T14:00:00Z.sql",
-			},
-		},
-		{
-			name:  "multiple old backups with invalid",
-			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
-			backupFiles: []string{
-				"backup.2023-12-22T13:00:00Z.sql",
-				"backup.2023-12-22T14:00:00Z.sql",
-				"backup.2023-12-22T15:00:00Z.sql",
-				"backup.2023-12-22T16:00:00Z.sql",
-				"backup.2023-12-22T17:00:00Z.sql",
-				"backup.2023-12-22T18:00:00Z.sql",
-				"backup.2023-12-22T19:00:00Z.sql",
-				"backup.2023-12-22T20:00:00Z.sql",
-				"backup.foo.sql",
-				"backup.bar.sql",
-				"backup.sql",
-			},
-			maxRetention: 8 * time.Hour,
-			wantBackups: []string{
-				"backup.2023-12-22T13:00:00Z.sql",
-				"backup.2023-12-22T14:00:00Z.sql",
-			},
-		},
-		{
-			name:  "all old backups",
-			nowFn: testTimeFn(mustParseDate(t, "2023-12-22T22:10:00Z")),
-			backupFiles: []string{
-				"backup.2023-12-22T13:00:00Z.sql",
-				"backup.2023-12-22T14:00:00Z.sql",
-				"backup.2023-12-22T15:00:00Z.sql",
-				"backup.2023-12-22T16:00:00Z.sql",
-				"backup.2023-12-22T17:00:00Z.sql",
-				"backup.2023-12-22T18:00:00Z.sql",
-				"backup.2023-12-22T19:00:00Z.sql",
-				"backup.2023-12-22T20:00:00Z.sql",
-			},
-			maxRetention: 1 * time.Hour,
-			wantBackups: []string{
-				"backup.2023-12-22T13:00:00Z.sql",
-				"backup.2023-12-22T14:00:00Z.sql",
-				"backup.2023-12-22T15:00:00Z.sql",
-				"backup.2023-12-22T16:00:00Z.sql",
-				"backup.2023-12-22T17:00:00Z.sql",
-				"backup.2023-12-22T18:00:00Z.sql",
-				"backup.2023-12-22T19:00:00Z.sql",
-				"backup.2023-12-22T20:00:00Z.sql",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			now = tt.nowFn
-			t.Cleanup(func() {
+	DescribeTable("returns the old backup files",
+		func(nowFn func() time.Time, backupFiles []string, maxRetention time.Duration, wantBackups []string) {
+			previousNowFn := now
+			DeferCleanup(func() {
 				now = previousNowFn
 			})
+			now = nowFn
 
-			backups := p.GetOldBackupFiles(tt.backupFiles, tt.maxRetention, logger)
-			if !reflect.DeepEqual(tt.wantBackups, backups) {
-				t.Fatalf("unexpected backup files, expected: %v got: %v", tt.wantBackups, backups)
-			}
-		})
-	}
-}
+			backups := p.GetOldBackupFiles(backupFiles, maxRetention, logger)
+			Expect(backups).To(Equal(wantBackups))
+		},
+		Entry("no backups",
+			testTimeFn(mustParseDate("2023-12-22T22:10:00Z")),
+			nil,
+			1*time.Hour,
+			nil,
+		),
+		Entry("invalid backups",
+			testTimeFn(mustParseDate("2023-12-22T22:10:00Z")),
+			[]string{
+				"backup.foo.sql",
+				"backup.bar.sql",
+				"backup.sql",
+			},
+			1*time.Hour,
+			nil,
+		),
+		Entry("no old backups",
+			testTimeFn(mustParseDate("2023-12-22T22:10:00Z")),
+			[]string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+			},
+			24*time.Hour,
+			nil,
+		),
+		Entry("multiple old backups",
+			testTimeFn(mustParseDate("2023-12-22T22:10:00Z")),
+			[]string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+			},
+			8*time.Hour,
+			[]string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+			},
+		),
+		Entry("multiple old backups with invalid",
+			testTimeFn(mustParseDate("2023-12-22T22:10:00Z")),
+			[]string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+				"backup.foo.sql",
+				"backup.bar.sql",
+				"backup.sql",
+			},
+			8*time.Hour,
+			[]string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+			},
+		),
+		Entry("all old backups",
+			testTimeFn(mustParseDate("2023-12-22T22:10:00Z")),
+			[]string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+			},
+			1*time.Hour,
+			[]string{
+				"backup.2023-12-22T13:00:00Z.sql",
+				"backup.2023-12-22T14:00:00Z.sql",
+				"backup.2023-12-22T15:00:00Z.sql",
+				"backup.2023-12-22T16:00:00Z.sql",
+				"backup.2023-12-22T17:00:00Z.sql",
+				"backup.2023-12-22T18:00:00Z.sql",
+				"backup.2023-12-22T19:00:00Z.sql",
+				"backup.2023-12-22T20:00:00Z.sql",
+			},
+		),
+	)
+})
 
-func TestLogicalIsValidBackupFile(t *testing.T) {
+var _ = Describe("LogicalIsValidBackupFile", func() {
 	p := NewLogicalBackupProcessor()
-	tests := []struct {
-		name       string
-		backupFile string
-		wantValid  bool
-	}{
-		{
-			name:       "empty",
-			backupFile: "",
-			wantValid:  false,
+	DescribeTable("returns whether the backup file is valid",
+		func(backupFile string, wantValid bool) {
+			valid := p.IsValidBackupFile(backupFile)
+			Expect(valid).To(Equal(wantValid))
 		},
-		{
-			name:       "no date",
-			backupFile: "backup.sql",
-			wantValid:  false,
-		},
-		{
-			name:       "no prefix",
-			backupFile: "2023-12-18 16:14.sql",
-			wantValid:  false,
-		},
-		{
-			name:       "no extension",
-			backupFile: "backup.2023-12-18T16:14:00Z",
-			wantValid:  false,
-		},
-		{
-			name:       "invalid date",
-			backupFile: "backup.2023-12-18 16:14.sql",
-			wantValid:  false,
-		},
-		{
-			name:       "invalid compression",
-			backupFile: "backup.2023-12-18 16:14.foo.sql",
-			wantValid:  false,
-		},
-		{
-			name:       "valid",
-			backupFile: "backup.2023-12-18T16:14:00Z.sql",
-			wantValid:  true,
-		},
-		{
-			name:       "valid with legacy compression",
-			backupFile: "backup.2023-12-18T16:14:00Z.bzip2.sql",
-			wantValid:  true,
-		},
-		{
-			name:       "valid with gzip compression",
-			backupFile: "backup.2023-12-18T16:14:00Z.sql.gz",
-			wantValid:  true,
-		},
-		{
-			name:       "valid with bzip2 compression",
-			backupFile: "backup.2023-12-18T16:14:00Z.sql.bz2",
-			wantValid:  true,
-		},
-	}
+		Entry("empty", "", false),
+		Entry("no date", "backup.sql", false),
+		Entry("no prefix", "2023-12-18 16:14.sql", false),
+		Entry("no extension", "backup.2023-12-18T16:14:00Z", false),
+		Entry("invalid date", "backup.2023-12-18 16:14.sql", false),
+		Entry("invalid compression", "backup.2023-12-18 16:14.foo.sql", false),
+		Entry("valid", "backup.2023-12-18T16:14:00Z.sql", true),
+		Entry("valid with legacy compression", "backup.2023-12-18T16:14:00Z.bzip2.sql", true),
+		Entry("valid with gzip compression", "backup.2023-12-18T16:14:00Z.sql.gz", true),
+		Entry("valid with bzip2 compression", "backup.2023-12-18T16:14:00Z.sql.bz2", true),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			valid := p.IsValidBackupFile(tt.backupFile)
-			if tt.wantValid != valid {
-				t.Fatalf("unexpected backup file validity, expected: %v got: %v", tt.wantValid, valid)
-			}
-		})
-	}
-}
-
-func TestLogicalParseCompressionAlgorithm(t *testing.T) {
+var _ = Describe("LogicalParseCompressionAlgorithm", func() {
 	p := NewLogicalBackupProcessor()
-	tests := []struct {
-		name         string
-		fileName     string
-		wantCompress mariadbv1alpha1.CompressAlgorithm
-		wantErr      bool
-	}{
-		{
-			name:         "empty",
-			fileName:     "",
-			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
-			wantErr:      true,
+	DescribeTable("parses the compression algorithm",
+		func(fileName string, wantCompress mariadbv1alpha1.CompressAlgorithm, wantErr bool) {
+			compress, err := p.ParseCompressionAlgorithm(fileName)
+			Expect(compress).To(Equal(wantCompress))
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 		},
-		{
-			name:         "invalid",
-			fileName:     "foo",
-			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
-			wantErr:      true,
-		},
-		{
-			name:         "invalid format",
-			fileName:     "backup.sql",
-			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
-			wantErr:      true,
-		},
-		{
-			name:         "no compression",
-			fileName:     "backup.2023-12-22T13:00:00Z.sql",
-			wantCompress: mariadbv1alpha1.CompressNone,
-			wantErr:      false,
-		},
-		{
-			name:         "invalid compression",
-			fileName:     "backup.2023-12-22T13:00:00Z.foo.sql",
-			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
-			wantErr:      true,
-		},
-		{
-			name:         "legacy compression gzip",
-			fileName:     "backup.2023-12-22T13:00:00Z.gzip.sql",
-			wantCompress: mariadbv1alpha1.CompressGzip,
-			wantErr:      false,
-		},
-		{
-			name:         "legacy compression bzip2",
-			fileName:     "backup.2023-12-22T13:00:00Z.bzip2.sql",
-			wantCompress: mariadbv1alpha1.CompressBzip2,
-			wantErr:      false,
-		},
-		{
-			name:         "new format compression gz",
-			fileName:     "backup.2023-12-22T13:00:00Z.sql.gz",
-			wantCompress: mariadbv1alpha1.CompressGzip,
-			wantErr:      false,
-		},
-		{
-			name:         "new format compression bz2",
-			fileName:     "backup.2023-12-22T13:00:00Z.sql.bz2",
-			wantCompress: mariadbv1alpha1.CompressBzip2,
-			wantErr:      false,
-		},
-		{
-			name:         "new format invalid extension",
-			fileName:     "backup.2023-12-22T13:00:00Z.sql.foo",
-			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
-			wantErr:      true,
-		},
-	}
+		Entry("empty", "", mariadbv1alpha1.CompressAlgorithm(""), true),
+		Entry("invalid", "foo", mariadbv1alpha1.CompressAlgorithm(""), true),
+		Entry("invalid format", "backup.sql", mariadbv1alpha1.CompressAlgorithm(""), true),
+		Entry("no compression", "backup.2023-12-22T13:00:00Z.sql", mariadbv1alpha1.CompressNone, false),
+		Entry("invalid compression", "backup.2023-12-22T13:00:00Z.foo.sql", mariadbv1alpha1.CompressAlgorithm(""), true),
+		Entry("legacy compression gzip", "backup.2023-12-22T13:00:00Z.gzip.sql", mariadbv1alpha1.CompressGzip, false),
+		Entry("legacy compression bzip2", "backup.2023-12-22T13:00:00Z.bzip2.sql", mariadbv1alpha1.CompressBzip2, false),
+		Entry("new format compression gz", "backup.2023-12-22T13:00:00Z.sql.gz", mariadbv1alpha1.CompressGzip, false),
+		Entry("new format compression bz2", "backup.2023-12-22T13:00:00Z.sql.bz2", mariadbv1alpha1.CompressBzip2, false),
+		Entry("new format invalid extension", "backup.2023-12-22T13:00:00Z.sql.foo", mariadbv1alpha1.CompressAlgorithm(""), true),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			compress, err := p.ParseCompressionAlgorithm(tt.fileName)
-			if tt.wantCompress != compress {
-				t.Fatalf("unexpected compression algorithm, expected: %v got: %v", tt.wantCompress, compress)
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestLogicalGetUncompressedBackupFile(t *testing.T) {
+var _ = Describe("LogicalGetUncompressedBackupFile", func() {
 	p := NewLogicalBackupProcessor()
-	tests := []struct {
-		name         string
-		fileName     string
-		wantFileName string
-		wantErr      bool
-	}{
-		{
-			name:         "empty",
-			fileName:     "",
-			wantFileName: "",
-			wantErr:      true,
+	DescribeTable("returns the uncompressed backup file",
+		func(fileName, wantFileName string, wantErr bool) {
+			fileName, err := p.GetUncompressedBackupFile(fileName)
+			Expect(fileName).To(Equal(wantFileName))
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 		},
-		{
-			name:         "invalid",
-			fileName:     "foo",
-			wantFileName: "",
-			wantErr:      true,
-		},
-		{
-			name:         "invalid format",
-			fileName:     "backup.sql",
-			wantFileName: "",
-			wantErr:      true,
-		},
-		{
-			name:         "no compression",
-			fileName:     "backup.2023-12-22T13:00:00Z.sql",
-			wantFileName: "",
-			wantErr:      true,
-		},
-		{
-			name:         "invalid compression",
-			fileName:     "backup.2023-12-22T13:00:00Z.foo.sql",
-			wantFileName: "",
-			wantErr:      true,
-		},
-		{
-			name:         "legacy compression gzip",
-			fileName:     "backup.2023-12-22T13:00:00Z.gzip.sql",
-			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
-			wantErr:      false,
-		},
-		{
-			name:         "legacy compression bzip2",
-			fileName:     "backup.2023-12-22T13:00:00Z.bzip2.sql",
-			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
-			wantErr:      false,
-		},
-		{
-			name:         "new format compression gz",
-			fileName:     "backup.2023-12-22T13:00:00Z.sql.gz",
-			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
-			wantErr:      false,
-		},
-		{
-			name:         "new format compression bz2",
-			fileName:     "backup.2023-12-22T13:00:00Z.sql.bz2",
-			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
-			wantErr:      false,
-		},
-		{
-			name:         "new format invalid extension",
-			fileName:     "backup.2023-12-22T13:00:00Z.sql.foo",
-			wantFileName: "",
-			wantErr:      true,
-		},
-	}
+		Entry("empty", "", "", true),
+		Entry("invalid", "foo", "", true),
+		Entry("invalid format", "backup.sql", "", true),
+		Entry("no compression", "backup.2023-12-22T13:00:00Z.sql", "", true),
+		Entry("invalid compression", "backup.2023-12-22T13:00:00Z.foo.sql", "", true),
+		Entry("legacy compression gzip", "backup.2023-12-22T13:00:00Z.gzip.sql", "backup.2023-12-22T13:00:00Z.sql", false),
+		Entry("legacy compression bzip2", "backup.2023-12-22T13:00:00Z.bzip2.sql", "backup.2023-12-22T13:00:00Z.sql", false),
+		Entry("new format compression gz", "backup.2023-12-22T13:00:00Z.sql.gz", "backup.2023-12-22T13:00:00Z.sql", false),
+		Entry("new format compression bz2", "backup.2023-12-22T13:00:00Z.sql.bz2", "backup.2023-12-22T13:00:00Z.sql", false),
+		Entry("new format invalid extension", "backup.2023-12-22T13:00:00Z.sql.foo", "", true),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fileName, err := p.GetUncompressedBackupFile(tt.fileName)
-			if tt.wantFileName != fileName {
-				t.Fatalf("unexpected uncompressed file, expected: %v got: %v", tt.wantFileName, fileName)
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestPhysicalGetTargetFile(t *testing.T) {
+var _ = Describe("PhysicalGetTargetFile", func() {
 	p := NewPhysicalBackupProcessor()
-	tests := []struct {
-		name           string
-		backupFiles    []string
-		targetRecovery time.Time
-		wantFile       string
-		wantErr        bool
-	}{
-		{
-			name:           "no backups",
-			backupFiles:    []string{},
-			targetRecovery: time.Now(),
-			wantFile:       "",
-			wantErr:        true,
+	DescribeTable("returns the backup target file",
+		func(backupFiles []string, targetRecovery time.Time, wantFile string, wantErr bool) {
+			file, err := p.GetBackupTargetFile(backupFiles, targetRecovery, logger)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(file).To(Equal(wantFile))
 		},
-		{
-			name: "invalid backups",
-			backupFiles: []string{
+		Entry("no backups",
+			[]string{},
+			time.Now(),
+			"",
+			true,
+		),
+		Entry("invalid backups",
+			[]string{
 				"physicalbackup.foo.xb",
 				"physicalbackup.bar.xb",
 				"physicalbackup.xb",
 			},
-			targetRecovery: time.Now(),
-			wantFile:       "",
-			wantErr:        true,
-		},
-		{
-			name: "single backup",
-			backupFiles: []string{
+			time.Now(),
+			"",
+			true,
+		),
+		Entry("single backup",
+			[]string{
 				"physicalbackup-20231218155800.xb",
 			},
-			targetRecovery: time.Now(),
-			wantFile:       "physicalbackup-20231218155800.xb",
-			wantErr:        false,
-		},
-		{
-			name: "multiple backups with invalid",
-			backupFiles: []string{
+			time.Now(),
+			"physicalbackup-20231218155800.xb",
+			false,
+		),
+		Entry("multiple backups with invalid",
+			[]string{
 				"physicalbackup-20231218155800.xb",
 				"physicalbackup.foo.xb",
 				"physicalbackup.bar.xb",
 			},
-			targetRecovery: mustParseMariadbDate(t, "20231218155900"),
-			wantFile:       "physicalbackup-20231218155800.xb",
-			wantErr:        false,
-		},
-		{
-			name: "fine grained",
-			backupFiles: []string{
+			mustParseMariadbDate("20231218155900"),
+			"physicalbackup-20231218155800.xb",
+			false,
+		),
+		Entry("fine grained",
+			[]string{
 				"physicalbackup-20231218155800.xb",
 				"physicalbackup-20231218155801.xb",
 				"physicalbackup-20231218160000.xb",
 			},
-			targetRecovery: mustParseMariadbDate(t, "20231218155900"),
-			wantFile:       "physicalbackup-20231218155801.xb",
-			wantErr:        false,
-		},
-		{
-			name: "target before backups",
-			backupFiles: []string{
+			mustParseMariadbDate("20231218155900"),
+			"physicalbackup-20231218155801.xb",
+			false,
+		),
+		Entry("target before backups",
+			[]string{
 				"physicalbackup-20231218155800.xb",
 				"physicalbackup-20231218155900.xb",
 			},
-			targetRecovery: time.UnixMilli(0),
-			wantFile:       "",
-			wantErr:        true,
-		},
-		{
-			name: "target after backups",
-			backupFiles: []string{
+			time.UnixMilli(0),
+			"",
+			true,
+		),
+		Entry("target after backups",
+			[]string{
 				"physicalbackup-20231218155800.xb",
 				"physicalbackup-20231218161300.xb",
 			},
-			targetRecovery: time.Now(),
-			wantFile:       "physicalbackup-20231218161300.xb",
-			wantErr:        false,
-		},
-		{
-			name: "exact target",
-			backupFiles: []string{
+			time.Now(),
+			"physicalbackup-20231218161300.xb",
+			false,
+		),
+		Entry("exact target",
+			[]string{
 				"physicalbackup-20231218155800.xb",
 				"physicalbackup-20231218160700.xb",
 			},
-			targetRecovery: mustParseMariadbDate(t, "20231218160700"),
-			wantFile:       "physicalbackup-20231218160700.xb",
-			wantErr:        false,
-		},
-		{
-			name: "prefixes",
-			backupFiles: []string{
+			mustParseMariadbDate("20231218160700"),
+			"physicalbackup-20231218160700.xb",
+			false,
+		),
+		Entry("prefixes",
+			[]string{
 				"mariadb/physicalbackup-20231218155800.xb",
 				"mariadb/physicalbackup-20231218160700.xb",
 			},
-			targetRecovery: mustParseMariadbDate(t, "20231218160700"),
-			wantFile:       "mariadb/physicalbackup-20231218160700.xb",
-			wantErr:        false,
-		},
-	}
+			mustParseMariadbDate("20231218160700"),
+			"mariadb/physicalbackup-20231218160700.xb",
+			false,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			file, err := p.GetBackupTargetFile(tt.backupFiles, tt.targetRecovery, logger)
-			if err != nil && !tt.wantErr {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if tt.wantFile != file {
-				t.Fatalf("unexpected file, expected: %s got: %s", tt.wantFile, file)
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expected error but got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-		})
-	}
-}
-
-func TestPhysicalGetOldBackupFiles(t *testing.T) {
+var _ = Describe("PhysicalGetOldBackupFiles", func() {
 	p := NewPhysicalBackupProcessor()
-	previousNowFn := now
-	tests := []struct {
-		name         string
-		nowFn        func() time.Time
-		backupFiles  []string
-		maxRetention time.Duration
-		wantBackups  []string
-	}{
-		{
-			name:         "no backups",
-			nowFn:        testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles:  nil,
-			maxRetention: 1 * time.Hour,
-			wantBackups:  nil,
+	DescribeTable("returns the old backup files",
+		func(nowFn func() time.Time, backupFiles []string, maxRetention time.Duration, wantBackups []string) {
+			previousNowFn := now
+			DeferCleanup(func() {
+				now = previousNowFn
+			})
+			now = nowFn
+
+			backups := p.GetOldBackupFiles(backupFiles, maxRetention, logger)
+			Expect(backups).To(Equal(wantBackups))
 		},
-		{
-			name:  "invalid backups",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
+		Entry("no backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			nil,
+			1*time.Hour,
+			nil,
+		),
+		Entry("invalid backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"physicalbackup.foo.xb",
 				"physicalbackup.bar.xb",
 				"physicalbackup.xb",
 			},
-			maxRetention: 1 * time.Hour,
-			wantBackups:  nil,
-		},
-		{
-			name:  "no old backups",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
+			1*time.Hour,
+			nil,
+		),
+		Entry("no old backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"physicalbackup-20231222130000.xb",
 				"physicalbackup-20231222140000.xb",
 				"physicalbackup-20231222150000.xb",
@@ -688,13 +451,12 @@ func TestPhysicalGetOldBackupFiles(t *testing.T) {
 				"physicalbackup-20231222190000.xb",
 				"physicalbackup-20231222200000.xb",
 			},
-			maxRetention: 24 * time.Hour,
-			wantBackups:  nil,
-		},
-		{
-			name:  "multiple old backups",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
+			24*time.Hour,
+			nil,
+		),
+		Entry("multiple old backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"physicalbackup-20231222130000.xb",
 				"physicalbackup-20231222140000.xb",
 				"physicalbackup-20231222150000.xb",
@@ -704,16 +466,15 @@ func TestPhysicalGetOldBackupFiles(t *testing.T) {
 				"physicalbackup-20231222190000.xb",
 				"physicalbackup-20231222200000.xb",
 			},
-			maxRetention: 8 * time.Hour,
-			wantBackups: []string{
+			8*time.Hour,
+			[]string{
 				"physicalbackup-20231222130000.xb",
 				"physicalbackup-20231222140000.xb",
 			},
-		},
-		{
-			name:  "multiple old backups with invalid",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
+		),
+		Entry("multiple old backups with invalid",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"physicalbackup-20231222130000.xb",
 				"physicalbackup-20231222140000.xb",
 				"physicalbackup-20231222150000.xb",
@@ -726,27 +487,15 @@ func TestPhysicalGetOldBackupFiles(t *testing.T) {
 				"physicalbackup-bar.xb",
 				"physicalbackup-sql",
 			},
-			maxRetention: 8 * time.Hour,
-			wantBackups: []string{
+			8*time.Hour,
+			[]string{
 				"physicalbackup-20231222130000.xb",
 				"physicalbackup-20231222140000.xb",
 			},
-		},
-		{
-			name:  "all old backups",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
-				"physicalbackup-20231222130000.xb",
-				"physicalbackup-20231222140000.xb",
-				"physicalbackup-20231222150000.xb",
-				"physicalbackup-20231222160000.xb",
-				"physicalbackup-20231222170000.xb",
-				"physicalbackup-20231222180000.xb",
-				"physicalbackup-20231222190000.xb",
-				"physicalbackup-20231222200000.xb",
-			},
-			maxRetention: 1 * time.Hour,
-			wantBackups: []string{
+		),
+		Entry("all old backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"physicalbackup-20231222130000.xb",
 				"physicalbackup-20231222140000.xb",
 				"physicalbackup-20231222150000.xb",
@@ -756,11 +505,21 @@ func TestPhysicalGetOldBackupFiles(t *testing.T) {
 				"physicalbackup-20231222190000.xb",
 				"physicalbackup-20231222200000.xb",
 			},
-		},
-		{
-			name:  "prefix",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
+			1*time.Hour,
+			[]string{
+				"physicalbackup-20231222130000.xb",
+				"physicalbackup-20231222140000.xb",
+				"physicalbackup-20231222150000.xb",
+				"physicalbackup-20231222160000.xb",
+				"physicalbackup-20231222170000.xb",
+				"physicalbackup-20231222180000.xb",
+				"physicalbackup-20231222190000.xb",
+				"physicalbackup-20231222200000.xb",
+			},
+		),
+		Entry("prefix",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"mariadb/physicalbackup-20231222130000.xb",
 				"mariadb/physicalbackup-20231222140000.xb",
 				"mariadb/physicalbackup-20231222150000.xb",
@@ -770,404 +529,207 @@ func TestPhysicalGetOldBackupFiles(t *testing.T) {
 				"mariadb/physicalbackup-20231222190000.xb",
 				"mariadb/physicalbackup-20231222200000.xb",
 			},
-			maxRetention: 8 * time.Hour,
-			wantBackups: []string{
+			8*time.Hour,
+			[]string{
 				"mariadb/physicalbackup-20231222130000.xb",
 				"mariadb/physicalbackup-20231222140000.xb",
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			now = tt.nowFn
-			t.Cleanup(func() {
-				now = previousNowFn
-			})
-
-			backups := p.GetOldBackupFiles(tt.backupFiles, tt.maxRetention, logger)
-			if !reflect.DeepEqual(tt.wantBackups, backups) {
-				t.Fatalf("unexpected backup files, expected: %v got: %v", tt.wantBackups, backups)
-			}
-		})
-	}
-}
-
-func TestPhysicalIsValidBackupFile(t *testing.T) {
+var _ = Describe("PhysicalIsValidBackupFile", func() {
 	p := NewPhysicalBackupProcessor()
-	tests := []struct {
-		name       string
-		backupFile string
-		wantValid  bool
-	}{
-		{
-			name:       "empty",
-			backupFile: "",
-			wantValid:  false,
+	DescribeTable("returns whether the backup file is valid",
+		func(backupFile string, wantValid bool) {
+			valid := p.IsValidBackupFile(backupFile)
+			Expect(valid).To(Equal(wantValid))
 		},
-		{
-			name:       "no date",
-			backupFile: "physicalbackup.xb",
-			wantValid:  false,
-		},
-		{
-			name:       "no prefix",
-			backupFile: "202312181614.xb",
-			wantValid:  false,
-		},
-		{
-			name:       "no extension",
-			backupFile: "physicalbackup-20231218161400",
-			wantValid:  false,
-		},
-		{
-			name:       "invalid date",
-			backupFile: "physicalbackup-202312181614.xb",
-			wantValid:  false,
-		},
-		{
-			name:       "invalid compression",
-			backupFile: "physicalbackup-202312181614.xb.foo",
-			wantValid:  false,
-		},
-		{
-			name:       "valid",
-			backupFile: "physicalbackup-20231218161400.xb",
-			wantValid:  true,
-		},
-		{
-			name:       "valid with gzip",
-			backupFile: "physicalbackup-20231218161400.xb.gz",
-			wantValid:  true,
-		},
-		{
-			name:       "valid with bzip2",
-			backupFile: "physicalbackup-20231218161400.xb.bz2",
-			wantValid:  true,
-		},
-		{
-			name:       "valid with prefix",
-			backupFile: "mariadb/physicalbackup-20231218161400.xb",
-			wantValid:  true,
-		},
-		{
-			name:       "valid with prefix and compression",
-			backupFile: "mariadb/physicalbackup-20231218161400.xb.gz",
-			wantValid:  true,
-		},
-	}
+		Entry("empty", "", false),
+		Entry("no date", "physicalbackup.xb", false),
+		Entry("no prefix", "202312181614.xb", false),
+		Entry("no extension", "physicalbackup-20231218161400", false),
+		Entry("invalid date", "physicalbackup-202312181614.xb", false),
+		Entry("invalid compression", "physicalbackup-202312181614.xb.foo", false),
+		Entry("valid", "physicalbackup-20231218161400.xb", true),
+		Entry("valid with gzip", "physicalbackup-20231218161400.xb.gz", true),
+		Entry("valid with bzip2", "physicalbackup-20231218161400.xb.bz2", true),
+		Entry("valid with prefix", "mariadb/physicalbackup-20231218161400.xb", true),
+		Entry("valid with prefix and compression", "mariadb/physicalbackup-20231218161400.xb.gz", true),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			valid := p.IsValidBackupFile(tt.backupFile)
-			if tt.wantValid != valid {
-				t.Fatalf("unexpected backup file validity, expected: %v got: %v", tt.wantValid, valid)
-			}
-		})
-	}
-}
-
-func TestPhysicalParseCompressionAlgorithm(t *testing.T) {
+var _ = Describe("PhysicalParseCompressionAlgorithm", func() {
 	p := NewPhysicalBackupProcessor()
-	tests := []struct {
-		name         string
-		fileName     string
-		wantCompress mariadbv1alpha1.CompressAlgorithm
-		wantErr      bool
-	}{
-		{
-			name:         "empty",
-			fileName:     "",
-			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
-			wantErr:      true,
+	DescribeTable("parses the compression algorithm",
+		func(fileName string, wantCompress mariadbv1alpha1.CompressAlgorithm, wantErr bool) {
+			compress, err := p.ParseCompressionAlgorithm(fileName)
+			Expect(compress).To(Equal(wantCompress))
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 		},
-		{
-			name:         "invalid",
-			fileName:     "foo",
-			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
-			wantErr:      true,
-		},
-		{
-			name:         "no compression",
-			fileName:     "physicalbackup-20231222130000.xb",
-			wantCompress: mariadbv1alpha1.CompressNone,
-			wantErr:      false,
-		},
-		{
-			name:         "invalid compression",
-			fileName:     "physicalbackup-20231222130000.xb.foo",
-			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
-			wantErr:      true,
-		},
-		{
-			name:         "gzip",
-			fileName:     "physicalbackup-20231222130000.xb.gz",
-			wantCompress: mariadbv1alpha1.CompressGzip,
-			wantErr:      false,
-		},
-		{
-			name:         "bzip2",
-			fileName:     "physicalbackup-20231222130000.xb.bz2",
-			wantCompress: mariadbv1alpha1.CompressBzip2,
-			wantErr:      false,
-		},
-		{
-			name:         "gzip and prefix",
-			fileName:     "mariadb/physicalbackup-20231222130000.xb.gz",
-			wantCompress: mariadbv1alpha1.CompressGzip,
-			wantErr:      false,
-		},
-		{
-			name:         "bzip2 and prefix",
-			fileName:     "mariadb/physicalbackup-20231222130000.xb.bz2",
-			wantCompress: mariadbv1alpha1.CompressBzip2,
-			wantErr:      false,
-		},
-	}
+		Entry("empty", "", mariadbv1alpha1.CompressAlgorithm(""), true),
+		Entry("invalid", "foo", mariadbv1alpha1.CompressAlgorithm(""), true),
+		Entry("no compression", "physicalbackup-20231222130000.xb", mariadbv1alpha1.CompressNone, false),
+		Entry("invalid compression", "physicalbackup-20231222130000.xb.foo", mariadbv1alpha1.CompressAlgorithm(""), true),
+		Entry("gzip", "physicalbackup-20231222130000.xb.gz", mariadbv1alpha1.CompressGzip, false),
+		Entry("bzip2", "physicalbackup-20231222130000.xb.bz2", mariadbv1alpha1.CompressBzip2, false),
+		Entry("gzip and prefix", "mariadb/physicalbackup-20231222130000.xb.gz", mariadbv1alpha1.CompressGzip, false),
+		Entry("bzip2 and prefix", "mariadb/physicalbackup-20231222130000.xb.bz2", mariadbv1alpha1.CompressBzip2, false),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			compress, err := p.ParseCompressionAlgorithm(tt.fileName)
-			if tt.wantCompress != compress {
-				t.Fatalf("unexpected compression algorithm, expected: %v got: %v", tt.wantCompress, compress)
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestPhysicalGetUncompressedBackupFile(t *testing.T) {
+var _ = Describe("PhysicalGetUncompressedBackupFile", func() {
 	p := NewPhysicalBackupProcessor()
-	tests := []struct {
-		name         string
-		fileName     string
-		wantFileName string
-		wantErr      bool
-	}{
-		{
-			name:         "empty",
-			fileName:     "",
-			wantFileName: "",
-			wantErr:      true,
+	DescribeTable("returns the uncompressed backup file",
+		func(fileName, wantFileName string, wantErr bool) {
+			fileName, err := p.GetUncompressedBackupFile(fileName)
+			Expect(fileName).To(Equal(wantFileName))
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 		},
-		{
-			name:         "invalid",
-			fileName:     "foo",
-			wantFileName: "",
-			wantErr:      true,
-		},
-		{
-			name:         "invalid format",
-			fileName:     "physicalbackup.xb",
-			wantFileName: "",
-			wantErr:      true,
-		},
-		{
-			name:         "no compression",
-			fileName:     "physicalbackup-20231222130000.xb",
-			wantFileName: "",
-			wantErr:      true,
-		},
-		{
-			name:         "invalid compression",
-			fileName:     "physicalbackup-20231222130000.xb.foo",
-			wantFileName: "",
-			wantErr:      true,
-		},
-		{
-			name:         "gzip",
-			fileName:     "physicalbackup-20231222130000.xb.gz",
-			wantFileName: "physicalbackup-20231222130000.xb",
-			wantErr:      false,
-		},
-		{
-			name:         "bzip2",
-			fileName:     "physicalbackup-20231222130000.xb.bz2",
-			wantFileName: "physicalbackup-20231222130000.xb",
-			wantErr:      false,
-		},
-		{
-			name:         "prefix and gzip",
-			fileName:     "mariadb/physicalbackup-20231222130000.xb.gz",
-			wantFileName: "mariadb/physicalbackup-20231222130000.xb",
-			wantErr:      false,
-		},
-		{
-			name:         "prefix and bzip2",
-			fileName:     "mariadb/physicalbackup-20231222130000.xb.bz2",
-			wantFileName: "mariadb/physicalbackup-20231222130000.xb",
-			wantErr:      false,
-		},
-	}
+		Entry("empty", "", "", true),
+		Entry("invalid", "foo", "", true),
+		Entry("invalid format", "physicalbackup.xb", "", true),
+		Entry("no compression", "physicalbackup-20231222130000.xb", "", true),
+		Entry("invalid compression", "physicalbackup-20231222130000.xb.foo", "", true),
+		Entry("gzip", "physicalbackup-20231222130000.xb.gz", "physicalbackup-20231222130000.xb", false),
+		Entry("bzip2", "physicalbackup-20231222130000.xb.bz2", "physicalbackup-20231222130000.xb", false),
+		Entry("prefix and gzip", "mariadb/physicalbackup-20231222130000.xb.gz", "mariadb/physicalbackup-20231222130000.xb", false),
+		Entry("prefix and bzip2", "mariadb/physicalbackup-20231222130000.xb.bz2", "mariadb/physicalbackup-20231222130000.xb", false),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fileName, err := p.GetUncompressedBackupFile(tt.fileName)
-			if tt.wantFileName != fileName {
-				t.Fatalf("unexpected uncompressed file, expected: %v got: %v", tt.wantFileName, fileName)
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestSnapshotGetTargetFile(t *testing.T) {
+var _ = Describe("SnapshotGetTargetFile", func() {
 	p := NewPhysicalBackupProcessor(
 		WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
 		WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
 	)
-	tests := []struct {
-		name           string
-		backupFiles    []string
-		targetRecovery time.Time
-		wantFile       string
-		wantErr        bool
-	}{
-		{
-			name:           "no backups",
-			backupFiles:    []string{},
-			targetRecovery: time.Now(),
-			wantFile:       "",
-			wantErr:        true,
+	DescribeTable("returns the backup target file",
+		func(backupFiles []string, targetRecovery time.Time, wantFile string, wantErr bool) {
+			file, err := p.GetBackupTargetFile(backupFiles, targetRecovery, logger)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(file).To(Equal(wantFile))
 		},
-		{
-			name: "invalid backups",
-			backupFiles: []string{
+		Entry("no backups",
+			[]string{},
+			time.Now(),
+			"",
+			true,
+		),
+		Entry("invalid backups",
+			[]string{
 				"snapshot.foo",
 				"snapshot.bar",
 				"snapshot",
 			},
-			targetRecovery: time.Now(),
-			wantFile:       "",
-			wantErr:        true,
-		},
-		{
-			name: "single backup",
-			backupFiles: []string{
+			time.Now(),
+			"",
+			true,
+		),
+		Entry("single backup",
+			[]string{
 				"snapshot-20231218155800",
 			},
-			targetRecovery: time.Now(),
-			wantFile:       "snapshot-20231218155800",
-			wantErr:        false,
-		},
-		{
-			name: "multiple backups with invalid",
-			backupFiles: []string{
+			time.Now(),
+			"snapshot-20231218155800",
+			false,
+		),
+		Entry("multiple backups with invalid",
+			[]string{
 				"snapshot-20231218155800",
 				"snapshot.foo",
 				"snapshot.bar",
 			},
-			targetRecovery: mustParseMariadbDate(t, "20231218155900"),
-			wantFile:       "snapshot-20231218155800",
-			wantErr:        false,
-		},
-		{
-			name: "fine grained",
-			backupFiles: []string{
+			mustParseMariadbDate("20231218155900"),
+			"snapshot-20231218155800",
+			false,
+		),
+		Entry("fine grained",
+			[]string{
 				"snapshot-20231218155800",
 				"snapshot-20231218155801",
 				"snapshot-20231218160000",
 			},
-			targetRecovery: mustParseMariadbDate(t, "20231218155900"),
-			wantFile:       "snapshot-20231218155801",
-			wantErr:        false,
-		},
-		{
-			name: "target before backups",
-			backupFiles: []string{
+			mustParseMariadbDate("20231218155900"),
+			"snapshot-20231218155801",
+			false,
+		),
+		Entry("target before backups",
+			[]string{
 				"snapshot-20231218155800",
 				"snapshot-20231218155900",
 			},
-			targetRecovery: time.UnixMilli(0),
-			wantFile:       "",
-			wantErr:        true,
-		},
-		{
-			name: "target after backups",
-			backupFiles: []string{
+			time.UnixMilli(0),
+			"",
+			true,
+		),
+		Entry("target after backups",
+			[]string{
 				"snapshot-20231218155800",
 				"snapshot-20231218161300",
 			},
-			targetRecovery: time.Now(),
-			wantFile:       "snapshot-20231218161300",
-			wantErr:        false,
-		},
-		{
-			name: "exact target",
-			backupFiles: []string{
+			time.Now(),
+			"snapshot-20231218161300",
+			false,
+		),
+		Entry("exact target",
+			[]string{
 				"snapshot-20231218155800",
 				"snapshot-20231218160700",
 			},
-			targetRecovery: mustParseMariadbDate(t, "20231218160700"),
-			wantFile:       "snapshot-20231218160700",
-			wantErr:        false,
-		},
-	}
+			mustParseMariadbDate("20231218160700"),
+			"snapshot-20231218160700",
+			false,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			file, err := p.GetBackupTargetFile(tt.backupFiles, tt.targetRecovery, logger)
-			if err != nil && !tt.wantErr {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if tt.wantFile != file {
-				t.Fatalf("unexpected file, expected: %s got: %s", tt.wantFile, file)
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expected error but got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-		})
-	}
-}
-
-func TestSnapshotGetOldBackupFiles(t *testing.T) {
+var _ = Describe("SnapshotGetOldBackupFiles", func() {
 	p := NewPhysicalBackupProcessor(
 		WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
 		WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
 	)
-	previousNowFn := now
-	tests := []struct {
-		name         string
-		nowFn        func() time.Time
-		backupFiles  []string
-		maxRetention time.Duration
-		wantBackups  []string
-	}{
-		{
-			name:         "no backups",
-			nowFn:        testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles:  nil,
-			maxRetention: 1 * time.Hour,
-			wantBackups:  nil,
+	DescribeTable("returns the old backup files",
+		func(nowFn func() time.Time, backupFiles []string, maxRetention time.Duration, wantBackups []string) {
+			previousNowFn := now
+			DeferCleanup(func() {
+				now = previousNowFn
+			})
+			now = nowFn
+
+			backups := p.GetOldBackupFiles(backupFiles, maxRetention, logger)
+			Expect(backups).To(Equal(wantBackups))
 		},
-		{
-			name:  "invalid backups",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
+		Entry("no backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			nil,
+			1*time.Hour,
+			nil,
+		),
+		Entry("invalid backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"snapshot.foo",
 				"snapshot.bar",
 				"snapshot",
 			},
-			maxRetention: 1 * time.Hour,
-			wantBackups:  nil,
-		},
-		{
-			name:  "no old backups",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
+			1*time.Hour,
+			nil,
+		),
+		Entry("no old backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"snapshot-20231222130000",
 				"snapshot-20231222140000",
 				"snapshot-20231222150000",
@@ -1177,13 +739,12 @@ func TestSnapshotGetOldBackupFiles(t *testing.T) {
 				"snapshot-20231222190000",
 				"snapshot-20231222200000",
 			},
-			maxRetention: 24 * time.Hour,
-			wantBackups:  nil,
-		},
-		{
-			name:  "multiple old backups",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
+			24*time.Hour,
+			nil,
+		),
+		Entry("multiple old backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"snapshot-20231222130000",
 				"snapshot-20231222140000",
 				"snapshot-20231222150000",
@@ -1193,16 +754,15 @@ func TestSnapshotGetOldBackupFiles(t *testing.T) {
 				"snapshot-20231222190000",
 				"snapshot-20231222200000",
 			},
-			maxRetention: 8 * time.Hour,
-			wantBackups: []string{
+			8*time.Hour,
+			[]string{
 				"snapshot-20231222130000",
 				"snapshot-20231222140000",
 			},
-		},
-		{
-			name:  "multiple old backups with invalid",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
+		),
+		Entry("multiple old backups with invalid",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"snapshot-20231222130000",
 				"snapshot-20231222140000",
 				"snapshot-20231222150000",
@@ -1215,27 +775,15 @@ func TestSnapshotGetOldBackupFiles(t *testing.T) {
 				"snapshot-bar",
 				"snapshot-sql",
 			},
-			maxRetention: 8 * time.Hour,
-			wantBackups: []string{
+			8*time.Hour,
+			[]string{
 				"snapshot-20231222130000",
 				"snapshot-20231222140000",
 			},
-		},
-		{
-			name:  "all old backups",
-			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
-			backupFiles: []string{
-				"snapshot-20231222130000",
-				"snapshot-20231222140000",
-				"snapshot-20231222150000",
-				"snapshot-20231222160000",
-				"snapshot-20231222170000",
-				"snapshot-20231222180000",
-				"snapshot-20231222190000",
-				"snapshot-20231222200000",
-			},
-			maxRetention: 1 * time.Hour,
-			wantBackups: []string{
+		),
+		Entry("all old backups",
+			testTimeFn(mustParseMariadbDate("20231222221000")),
+			[]string{
 				"snapshot-20231222130000",
 				"snapshot-20231222140000",
 				"snapshot-20231222150000",
@@ -1245,89 +793,51 @@ func TestSnapshotGetOldBackupFiles(t *testing.T) {
 				"snapshot-20231222190000",
 				"snapshot-20231222200000",
 			},
-		},
-	}
+			1*time.Hour,
+			[]string{
+				"snapshot-20231222130000",
+				"snapshot-20231222140000",
+				"snapshot-20231222150000",
+				"snapshot-20231222160000",
+				"snapshot-20231222170000",
+				"snapshot-20231222180000",
+				"snapshot-20231222190000",
+				"snapshot-20231222200000",
+			},
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			now = tt.nowFn
-			t.Cleanup(func() {
-				now = previousNowFn
-			})
-
-			backups := p.GetOldBackupFiles(tt.backupFiles, tt.maxRetention, logger)
-			if !reflect.DeepEqual(tt.wantBackups, backups) {
-				t.Fatalf("unexpected backup files, expected: %v got: %v", tt.wantBackups, backups)
-			}
-		})
-	}
-}
-
-func TestSnapshotIsValidBackupFile(t *testing.T) {
+var _ = Describe("SnapshotIsValidBackupFile", func() {
 	p := NewPhysicalBackupProcessor(
 		WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
 		WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
 	)
-	tests := []struct {
-		name       string
-		backupFile string
-		wantValid  bool
-	}{
-		{
-			name:       "empty",
-			backupFile: "",
-			wantValid:  false,
+	DescribeTable("returns whether the backup file is valid",
+		func(backupFile string, wantValid bool) {
+			valid := p.IsValidBackupFile(backupFile)
+			Expect(valid).To(Equal(wantValid))
 		},
-		{
-			name:       "no date",
-			backupFile: "snapshot",
-			wantValid:  false,
-		},
-		{
-			name:       "no prefix",
-			backupFile: "202312181614",
-			wantValid:  false,
-		},
-		{
-			name:       "invalid date",
-			backupFile: "snapshot-202312181614",
-			wantValid:  false,
-		},
-		{
-			name:       "valid",
-			backupFile: "snapshot-20231218161400",
-			wantValid:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			valid := p.IsValidBackupFile(tt.backupFile)
-			if tt.wantValid != valid {
-				t.Fatalf("unexpected backup file validity, expected: %v got: %v", tt.wantValid, valid)
-			}
-		})
-	}
-}
+		Entry("empty", "", false),
+		Entry("no date", "snapshot", false),
+		Entry("no prefix", "202312181614", false),
+		Entry("invalid date", "snapshot-202312181614", false),
+		Entry("valid", "snapshot-20231218161400", true),
+	)
+})
 
 func testTimeFn(t time.Time) func() time.Time {
 	return func() time.Time { return t }
 }
 
-func mustParseDate(t *testing.T, dateString string) time.Time {
-	t.Helper()
+func mustParseDate(dateString string) time.Time {
 	target, err := time.Parse(timeLayout, dateString)
-	if err != nil {
-		t.Fatalf("unexpected error parsing date: %v", err)
-	}
+	Expect(err).NotTo(HaveOccurred())
 	return target
 }
 
-func mustParseMariadbDate(t *testing.T, dateString string) time.Time {
-	t.Helper()
+func mustParseMariadbDate(dateString string) time.Time {
 	target, err := mdbtime.Parse(dateString)
-	if err != nil {
-		t.Fatalf("unexpected error parsing date: %v", err)
-	}
+	Expect(err).NotTo(HaveOccurred())
 	return target
 }
