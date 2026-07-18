@@ -1701,6 +1701,30 @@ spec:
                           runAsUser:
                             format: int64
                             type: integer
+                          seccompProfile:
+                            description: |-
+                              SeccompProfile defines a pod/container's seccomp profile settings.
+                              Only one profile source may be set.
+                            properties:
+                              localhostProfile:
+                                description: |-
+                                  localhostProfile indicates a profile defined in a file on the node should be used.
+                                  The profile must be preconfigured on the node to work.
+                                  Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                                  Must be set if type is "Localhost". Must NOT be set for any other type.
+                                type: string
+                              type:
+                                description: |-
+                                  type indicates which kind of seccomp profile will be applied.
+                                  Valid options are:
+
+                                  Localhost - a profile defined in a file on the node should be used.
+                                  RuntimeDefault - the container runtime default profile should be used.
+                                  Unconfined - no profile should be applied.
+                                type: string
+                            required:
+                            - type
+                            type: object
                         type: object
                       startupProbe:
                         description: StartupProbe to be used in the Container.
@@ -2289,6 +2313,30 @@ spec:
                           runAsUser:
                             format: int64
                             type: integer
+                          seccompProfile:
+                            description: |-
+                              SeccompProfile defines a pod/container's seccomp profile settings.
+                              Only one profile source may be set.
+                            properties:
+                              localhostProfile:
+                                description: |-
+                                  localhostProfile indicates a profile defined in a file on the node should be used.
+                                  The profile must be preconfigured on the node to work.
+                                  Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                                  Must be set if type is "Localhost". Must NOT be set for any other type.
+                                type: string
+                              type:
+                                description: |-
+                                  type indicates which kind of seccomp profile will be applied.
+                                  Valid options are:
+
+                                  Localhost - a profile defined in a file on the node should be used.
+                                  RuntimeDefault - the container runtime default profile should be used.
+                                  Unconfined - no profile should be applied.
+                                type: string
+                            required:
+                            - type
+                            type: object
                         type: object
                       startupProbe:
                         description: StartupProbe to be used in the Container.
@@ -2709,6 +2757,63 @@ spec:
                       - Never
                       - IfNotPresent
                       type: string
+                    inheritance:
+                      description: |-
+                        Inheritance controls which MariaDB environment variables and volume mounts are inherited by this container.
+                        When omitted, the historical Legacy behavior is preserved.
+                      properties:
+                        env:
+                          description: Env selects environment-variable groups when
+                            policy is Selected.
+                          items:
+                            description: ContainerEnvGroup identifies a stable semantic
+                              group of MariaDB environment variables.
+                            enum:
+                            - Runtime
+                            - TLS
+                            - Replication
+                            - RootPassword
+                            - User
+                            type: string
+                          maxItems: 5
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-type: set
+                        policy:
+                          description: Policy controls inheritance. When omitted,
+                            Legacy is used without persisting a default.
+                          enum:
+                          - Legacy
+                          - Isolated
+                          - Selected
+                          type: string
+                        volumeMounts:
+                          description: VolumeMounts selects volume-mount groups when
+                            policy is Selected.
+                          items:
+                            description: ContainerVolumeMountGroup identifies a stable
+                              semantic group of MariaDB volume mounts.
+                            enum:
+                            - Config
+                            - TLS
+                            - Storage
+                            - Replication
+                            - AgentAuth
+                            - ServiceAccount
+                            - Galera
+                            - PointInTimeRecovery
+                            - User
+                            type: string
+                          maxItems: 9
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-type: set
+                      type: object
+                      x-kubernetes-validations:
+                      - message: env and volumeMounts groups may only be used with
+                          the Selected policy
+                        rule: (!has(self.env) && !has(self.volumeMounts)) || (has(self.policy)
+                          && self.policy == 'Selected')
                     name:
                       description: Name to be given to the container.
                       type: string
@@ -2734,6 +2839,70 @@ spec:
                             x-kubernetes-int-or-string: true
                           description: ResourceList is a set of (resource name, quantity)
                             pairs.
+                          type: object
+                      type: object
+                    securityContext:
+                      description: SecurityContext holds security configuration that
+                        will be applied to the container.
+                      properties:
+                        allowPrivilegeEscalation:
+                          type: boolean
+                        capabilities:
+                          description: Adds and removes POSIX capabilities from running
+                            containers.
+                          properties:
+                            add:
+                              description: Added capabilities
+                              items:
+                                description: Capability represent POSIX capabilities
+                                  type
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                            drop:
+                              description: Removed capabilities
+                              items:
+                                description: Capability represent POSIX capabilities
+                                  type
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          type: object
+                        privileged:
+                          type: boolean
+                        readOnlyRootFilesystem:
+                          type: boolean
+                        runAsGroup:
+                          format: int64
+                          type: integer
+                        runAsNonRoot:
+                          type: boolean
+                        runAsUser:
+                          format: int64
+                          type: integer
+                        seccompProfile:
+                          description: |-
+                            SeccompProfile defines a pod/container's seccomp profile settings.
+                            Only one profile source may be set.
+                          properties:
+                            localhostProfile:
+                              description: |-
+                                localhostProfile indicates a profile defined in a file on the node should be used.
+                                The profile must be preconfigured on the node to work.
+                                Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                                Must be set if type is "Localhost". Must NOT be set for any other type.
+                              type: string
+                            type:
+                              description: |-
+                                type indicates which kind of seccomp profile will be applied.
+                                Valid options are:
+
+                                Localhost - a profile defined in a file on the node should be used.
+                                RuntimeDefault - the container runtime default profile should be used.
+                                Unconfined - no profile should be applied.
+                              type: string
+                          required:
+                          - type
                           type: object
                       type: object
                     volumeMounts:
@@ -3399,6 +3568,30 @@ spec:
                           runAsUser:
                             format: int64
                             type: integer
+                          seccompProfile:
+                            description: |-
+                              SeccompProfile defines a pod/container's seccomp profile settings.
+                              Only one profile source may be set.
+                            properties:
+                              localhostProfile:
+                                description: |-
+                                  localhostProfile indicates a profile defined in a file on the node should be used.
+                                  The profile must be preconfigured on the node to work.
+                                  Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                                  Must be set if type is "Localhost". Must NOT be set for any other type.
+                                type: string
+                              type:
+                                description: |-
+                                  type indicates which kind of seccomp profile will be applied.
+                                  Valid options are:
+
+                                  Localhost - a profile defined in a file on the node should be used.
+                                  RuntimeDefault - the container runtime default profile should be used.
+                                  Unconfined - no profile should be applied.
+                                type: string
+                            required:
+                            - type
+                            type: object
                         type: object
                       tolerations:
                         description: Tolerations to be used in the Pod.
@@ -4377,6 +4570,30 @@ spec:
                           runAsUser:
                             format: int64
                             type: integer
+                          seccompProfile:
+                            description: |-
+                              SeccompProfile defines a pod/container's seccomp profile settings.
+                              Only one profile source may be set.
+                            properties:
+                              localhostProfile:
+                                description: |-
+                                  localhostProfile indicates a profile defined in a file on the node should be used.
+                                  The profile must be preconfigured on the node to work.
+                                  Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                                  Must be set if type is "Localhost". Must NOT be set for any other type.
+                                type: string
+                              type:
+                                description: |-
+                                  type indicates which kind of seccomp profile will be applied.
+                                  Valid options are:
+
+                                  Localhost - a profile defined in a file on the node should be used.
+                                  RuntimeDefault - the container runtime default profile should be used.
+                                  Unconfined - no profile should be applied.
+                                type: string
+                            required:
+                            - type
+                            type: object
                         type: object
                       startupProbe:
                         description: StartupProbe to be used in the Container.
@@ -4846,6 +5063,30 @@ spec:
                           runAsUser:
                             format: int64
                             type: integer
+                          seccompProfile:
+                            description: |-
+                              SeccompProfile defines a pod/container's seccomp profile settings.
+                              Only one profile source may be set.
+                            properties:
+                              localhostProfile:
+                                description: |-
+                                  localhostProfile indicates a profile defined in a file on the node should be used.
+                                  The profile must be preconfigured on the node to work.
+                                  Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                                  Must be set if type is "Localhost". Must NOT be set for any other type.
+                                type: string
+                              type:
+                                description: |-
+                                  type indicates which kind of seccomp profile will be applied.
+                                  Valid options are:
+
+                                  Localhost - a profile defined in a file on the node should be used.
+                                  RuntimeDefault - the container runtime default profile should be used.
+                                  Unconfined - no profile should be applied.
+                                type: string
+                            required:
+                            - type
+                            type: object
                         type: object
                       startupProbe:
                         description: StartupProbe to be used in the Container.
@@ -5632,6 +5873,30 @@ spec:
                   runAsUser:
                     format: int64
                     type: integer
+                  seccompProfile:
+                    description: |-
+                      SeccompProfile defines a pod/container's seccomp profile settings.
+                      Only one profile source may be set.
+                    properties:
+                      localhostProfile:
+                        description: |-
+                          localhostProfile indicates a profile defined in a file on the node should be used.
+                          The profile must be preconfigured on the node to work.
+                          Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                          Must be set if type is "Localhost". Must NOT be set for any other type.
+                        type: string
+                      type:
+                        description: |-
+                          type indicates which kind of seccomp profile will be applied.
+                          Valid options are:
+
+                          Localhost - a profile defined in a file on the node should be used.
+                          RuntimeDefault - the container runtime default profile should be used.
+                          Unconfined - no profile should be applied.
+                        type: string
+                    required:
+                    - type
+                    type: object
                 type: object
               service:
                 description: |-
@@ -5785,6 +6050,63 @@ spec:
                       - Never
                       - IfNotPresent
                       type: string
+                    inheritance:
+                      description: |-
+                        Inheritance controls which MariaDB environment variables and volume mounts are inherited by this container.
+                        When omitted, the historical Legacy behavior is preserved.
+                      properties:
+                        env:
+                          description: Env selects environment-variable groups when
+                            policy is Selected.
+                          items:
+                            description: ContainerEnvGroup identifies a stable semantic
+                              group of MariaDB environment variables.
+                            enum:
+                            - Runtime
+                            - TLS
+                            - Replication
+                            - RootPassword
+                            - User
+                            type: string
+                          maxItems: 5
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-type: set
+                        policy:
+                          description: Policy controls inheritance. When omitted,
+                            Legacy is used without persisting a default.
+                          enum:
+                          - Legacy
+                          - Isolated
+                          - Selected
+                          type: string
+                        volumeMounts:
+                          description: VolumeMounts selects volume-mount groups when
+                            policy is Selected.
+                          items:
+                            description: ContainerVolumeMountGroup identifies a stable
+                              semantic group of MariaDB volume mounts.
+                            enum:
+                            - Config
+                            - TLS
+                            - Storage
+                            - Replication
+                            - AgentAuth
+                            - ServiceAccount
+                            - Galera
+                            - PointInTimeRecovery
+                            - User
+                            type: string
+                          maxItems: 9
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-type: set
+                      type: object
+                      x-kubernetes-validations:
+                      - message: env and volumeMounts groups may only be used with
+                          the Selected policy
+                        rule: (!has(self.env) && !has(self.volumeMounts)) || (has(self.policy)
+                          && self.policy == 'Selected')
                     name:
                       description: Name to be given to the container.
                       type: string
@@ -5810,6 +6132,70 @@ spec:
                             x-kubernetes-int-or-string: true
                           description: ResourceList is a set of (resource name, quantity)
                             pairs.
+                          type: object
+                      type: object
+                    securityContext:
+                      description: SecurityContext holds security configuration that
+                        will be applied to the container.
+                      properties:
+                        allowPrivilegeEscalation:
+                          type: boolean
+                        capabilities:
+                          description: Adds and removes POSIX capabilities from running
+                            containers.
+                          properties:
+                            add:
+                              description: Added capabilities
+                              items:
+                                description: Capability represent POSIX capabilities
+                                  type
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                            drop:
+                              description: Removed capabilities
+                              items:
+                                description: Capability represent POSIX capabilities
+                                  type
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          type: object
+                        privileged:
+                          type: boolean
+                        readOnlyRootFilesystem:
+                          type: boolean
+                        runAsGroup:
+                          format: int64
+                          type: integer
+                        runAsNonRoot:
+                          type: boolean
+                        runAsUser:
+                          format: int64
+                          type: integer
+                        seccompProfile:
+                          description: |-
+                            SeccompProfile defines a pod/container's seccomp profile settings.
+                            Only one profile source may be set.
+                          properties:
+                            localhostProfile:
+                              description: |-
+                                localhostProfile indicates a profile defined in a file on the node should be used.
+                                The profile must be preconfigured on the node to work.
+                                Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                                Must be set if type is "Localhost". Must NOT be set for any other type.
+                              type: string
+                            type:
+                              description: |-
+                                type indicates which kind of seccomp profile will be applied.
+                                Valid options are:
+
+                                Localhost - a profile defined in a file on the node should be used.
+                                RuntimeDefault - the container runtime default profile should be used.
+                                Unconfined - no profile should be applied.
+                              type: string
+                          required:
+                          - type
                           type: object
                       type: object
                     volumeMounts:
