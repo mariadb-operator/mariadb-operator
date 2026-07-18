@@ -866,25 +866,25 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication with ignored standalone probe",
+			name: "MariaDB replication with standalone probe",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
 							StandaloneProbes: ptr.To(true),
-							Agent: mariadbv1alpha1.Agent{
-								ProbePort: 5566,
-							},
 						},
 					},
 				},
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/readiness",
-						Port: intstr.FromInt(5566),
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+						},
 					},
 				},
 				InitialDelaySeconds: 20,
