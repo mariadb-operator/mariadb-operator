@@ -1,67 +1,67 @@
 package webhook_test
 
 import (
-	"reflect"
-	"testing"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/webhook"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestInmutableWebhook(t *testing.T) {
-	inmutableWebhook := webhook.NewInmutableWebhook(
-		webhook.WithTagName("webhook"),
-	)
-	objectMeta := metav1.ObjectMeta{
-		Name: "test",
-	}
+var objectMeta = metav1.ObjectMeta{
+	Name: "test",
+}
 
-	tests := []struct {
-		name    string
-		old     client.Object
-		new     client.Object
-		wantErr bool
-	}{
-		{
-			name: "mutable",
-			old: &mariadbv1alpha1.Restore{
+var _ = Describe("InmutableWebhook", func() {
+	DescribeTable("validating updates",
+		func(old, new client.Object, wantErr bool) {
+			inmutableWebhook := webhook.NewInmutableWebhook(
+				webhook.WithTagName("webhook"),
+			)
+			err := inmutableWebhook.ValidateUpdate(new, old)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("mutable",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					BackoffLimit: 10,
 				},
 			},
-			new: &mariadbv1alpha1.Restore{
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					BackoffLimit: 20,
 				},
 			},
-			wantErr: false,
-		},
-		{
-			name: "inmutable",
-			old: &mariadbv1alpha1.Restore{
+			false,
+		),
+		Entry("inmutable",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
 				},
 			},
-			new: &mariadbv1alpha1.Restore{
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestartPolicy: corev1.RestartPolicyAlways,
 				},
 			},
-			wantErr: true,
-		},
-		{
-			name: "mutable nested struct",
-			old: &mariadbv1alpha1.MaxScale{
+			true,
+		),
+		Entry("mutable nested struct",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Monitor: mariadbv1alpha1.MaxScaleMonitor{
@@ -69,7 +69,7 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Monitor: mariadbv1alpha1.MaxScaleMonitor{
@@ -77,11 +77,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
-		},
-		{
-			name: "inmutable nested struct",
-			old: &mariadbv1alpha1.MaxScale{
+			false,
+		),
+		Entry("inmutable nested struct",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Monitor: mariadbv1alpha1.MaxScaleMonitor{
@@ -89,7 +88,7 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Monitor: mariadbv1alpha1.MaxScaleMonitor{
@@ -97,11 +96,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
-		},
-		{
-			name: "mutable nested pointer to struct",
-			old: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("mutable nested pointer to struct",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -109,7 +107,7 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -117,11 +115,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
-		},
-		{
-			name: "inmutable nested pointer to struct",
-			old: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("inmutable nested pointer to struct",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -129,7 +126,7 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -137,11 +134,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
-		},
-		{
-			name: "mutable nested slice",
-			old: &mariadbv1alpha1.MaxScale{
+			true,
+		),
+		Entry("mutable nested slice",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -154,7 +150,7 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -167,11 +163,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
-		},
-		{
-			name: "inmutable nested slice",
-			old: &mariadbv1alpha1.MaxScale{
+			false,
+		),
+		Entry("inmutable nested slice",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -182,7 +177,7 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -193,11 +188,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
-		},
-		{
-			name: "inmutable nested slice adding elements",
-			old: &mariadbv1alpha1.MaxScale{
+			true,
+		),
+		Entry("inmutable nested slice adding elements",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -208,7 +202,7 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -223,11 +217,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
-		},
-		{
-			name: "mutable nested struct in slice",
-			old: &mariadbv1alpha1.MaxScale{
+			true,
+		),
+		Entry("mutable nested struct in slice",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -240,7 +233,7 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -253,11 +246,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
-		},
-		{
-			name: "inmutable nested struct in slice",
-			old: &mariadbv1alpha1.MaxScale{
+			false,
+		),
+		Entry("inmutable nested struct in slice",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -270,7 +262,7 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -283,40 +275,26 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := inmutableWebhook.ValidateUpdate(tt.new, tt.old)
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestInmutableInitWebhook(t *testing.T) {
-	inmutableWebhook := webhook.NewInmutableWebhook(
-		webhook.WithTagName("webhook"),
+			true,
+		),
 	)
-	objectMeta := metav1.ObjectMeta{
-		Name: "test",
-	}
+})
 
-	tests := []struct {
-		name    string
-		old     client.Object
-		new     client.Object
-		wantErr bool
-	}{
-		{
-			name: "nil field",
-			old: &mariadbv1alpha1.Restore{
+var _ = Describe("InmutableInitWebhook", func() {
+	DescribeTable("validating updates",
+		func(old, new client.Object, wantErr bool) {
+			inmutableWebhook := webhook.NewInmutableWebhook(
+				webhook.WithTagName("webhook"),
+			)
+			err := inmutableWebhook.ValidateUpdate(new, old)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("nil field",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
@@ -324,7 +302,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.Restore{
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
@@ -334,11 +312,10 @@ func TestInmutableInitWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
-		},
-		{
-			name: "non nil field",
-			old: &mariadbv1alpha1.Restore{
+			false,
+		),
+		Entry("non nil field",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
@@ -348,7 +325,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.Restore{
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
@@ -358,17 +335,16 @@ func TestInmutableInitWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
-		},
-		{
-			name: "zero field",
-			old: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("zero field",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{},
 				},
 			},
-			new: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
@@ -382,11 +358,10 @@ func TestInmutableInitWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
-		},
-		{
-			name: "non zero field",
-			old: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("non zero field",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
@@ -399,7 +374,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
@@ -412,11 +387,10 @@ func TestInmutableInitWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
-		},
-		{
-			name: "struct",
-			old: &mariadbv1alpha1.Restore{
+			true,
+		),
+		Entry("struct",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
@@ -426,7 +400,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.Restore{
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
@@ -442,58 +416,49 @@ func TestInmutableInitWebhook(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := inmutableWebhook.ValidateUpdate(tt.new, tt.old)
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestInmutableWebhookError(t *testing.T) {
-	inmutableWebhook := webhook.NewInmutableWebhook(
-		webhook.WithTagName("webhook"),
+			false,
+		),
 	)
-	objectMeta := metav1.ObjectMeta{
-		Name: "test",
-	}
+})
 
-	tests := []struct {
-		name       string
-		old        client.Object
-		new        client.Object
-		wantFields []string
-	}{
-		{
-			name: "root field",
-			old: &mariadbv1alpha1.Restore{
+var _ = Describe("InmutableWebhookError", func() {
+	DescribeTable("validating update error fields",
+		func(old, new client.Object, wantFields []string) {
+			inmutableWebhook := webhook.NewInmutableWebhook(
+				webhook.WithTagName("webhook"),
+			)
+			err := inmutableWebhook.ValidateUpdate(new, old)
+			Expect(err).To(HaveOccurred())
+
+			apiErr, ok := err.(*apierrors.StatusError)
+			Expect(ok).To(BeTrue())
+
+			fields := make([]string, len(apiErr.ErrStatus.Details.Causes))
+			for i, c := range apiErr.ErrStatus.Details.Causes {
+				fields[i] = c.Field
+			}
+
+			Expect(fields).To(Equal(wantFields))
+		},
+		Entry("root field",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
 				},
 			},
-			new: &mariadbv1alpha1.Restore{
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestartPolicy: corev1.RestartPolicyAlways,
 				},
 			},
-			wantFields: []string{
+			[]string{
 				"spec.restartPolicy",
 			},
-		},
-		{
-			name: "nested struct",
-			old: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("nested struct",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Monitor: mariadbv1alpha1.MaxScaleMonitor{
@@ -501,7 +466,7 @@ func TestInmutableWebhookError(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Monitor: mariadbv1alpha1.MaxScaleMonitor{
@@ -509,13 +474,12 @@ func TestInmutableWebhookError(t *testing.T) {
 					},
 				},
 			},
-			wantFields: []string{
+			[]string{
 				"spec.monitor.module",
 			},
-		},
-		{
-			name: "nested slice",
-			old: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("nested slice",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -526,7 +490,7 @@ func TestInmutableWebhookError(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -537,13 +501,12 @@ func TestInmutableWebhookError(t *testing.T) {
 					},
 				},
 			},
-			wantFields: []string{
+			[]string{
 				"spec.services.router",
 			},
-		},
-		{
-			name: "nested struct in slice",
-			old: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("nested struct in slice",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -556,7 +519,7 @@ func TestInmutableWebhookError(t *testing.T) {
 					},
 				},
 			},
-			new: &mariadbv1alpha1.MaxScale{
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Services: []mariadbv1alpha1.MaxScaleService{
@@ -569,30 +532,9 @@ func TestInmutableWebhookError(t *testing.T) {
 					},
 				},
 			},
-			wantFields: []string{
+			[]string{
 				"spec.services.listener.port",
 			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := inmutableWebhook.ValidateUpdate(tt.new, tt.old)
-			if err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			apiErr, ok := err.(*apierrors.StatusError)
-			if !ok {
-				t.Errorf("unable to cast error to API error: %v", err)
-			}
-			fields := make([]string, len(apiErr.ErrStatus.Details.Causes))
-			for i, c := range apiErr.ErrStatus.Details.Causes {
-				fields[i] = c.Field
-			}
-
-			if !reflect.DeepEqual(tt.wantFields, fields) {
-				t.Errorf("expect error to be: '%s', got: %v", tt.wantFields, fields)
-			}
-		})
-	}
-}
+		),
+	)
+})
