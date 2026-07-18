@@ -125,6 +125,7 @@ We welcome and encourage contributions to this project! Please check our [contri
 - [Run and Operate MariaDB in a Cloud Native Way Using the MariaDB Operator](https://www.youtube.com/watch?v=UwNFpYRETf4) - [@mmontes11](https://github.com/mmontes11) @ BuildDevCon: DB Mastery Series, June 2026
 - [Running MariaDB Server on Kubernetes](https://www.youtube.com/watch?v=R1oD1uMqyv8) - Frédéric Descamps @ BuildDevCon: DB Mastery Series, June 2026
 - [Why MariaDB Operator 25.10 Is a Big Deal for Stateful Workloads on Kubernetes](https://www.mrplanb.com/blog/mariadb-operator-25-10-stateful-kubernetes) - Mr.PlanB blog, October 2025
+- [Can You Run a MariaDB Cluster on a $150 Kubernetes Lab? I Gave It a Shot](https://dzone.com/articles/mariadb-cluster-on-kubernetes-lab-test) - Alejandro Duarte @ DZone, May 2025 
 - [We Tested and Compared 6 Database Operators. The Results are In!](https://www.youtube.com/watch?v=l33pcnQ4cUQ&t=17m25s) - KubeCon EU, March 2024
 - [Get Started with MariaDB in Kubernetes and mariadb-operator](https://mariadb.com/resources/blog/get-started-with-mariadb-in-kubernetes-and-mariadb-operator/) - MariaDB Corporation blog, February 2024
 - [Run and operate MariaDB in Kubernetes with mariadb-operator](https://mariadb.org/mariadb-in-kubernetes-with-mariadb-operator/) - MariaDB Foundation blog, July 2023
