@@ -133,7 +133,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	}
 	if mariadb.Spec.SidecarContainers != nil && mariadbOpts.includeSidecarContainers {
 		for index, container := range mariadb.Spec.SidecarContainers {
-			sidecarContainer, err := b.buildContainer(mariadb, &container)
+			sidecarContainer, err := b.buildContainer(mariadb, &container, opts...)
 			if err != nil {
 				return nil, err
 			}
@@ -292,7 +292,7 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 	initContainers := []corev1.Container{}
 	if mariadb.Spec.InitContainers != nil && mariadbOpts.includeInitContainers {
 		for index, container := range mariadb.Spec.InitContainers {
-			initContainer, err := b.buildContainer(mariadb, &container)
+			initContainer, err := b.buildContainer(mariadb, &container, opts...)
 			if err != nil {
 				return nil, err
 			}
@@ -378,7 +378,8 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 	return &container, nil
 }
 
-func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mariadbv1alpha1.Container) (*corev1.Container, error) {
+func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mariadbv1alpha1.Container,
+	opts ...mariadbPodOpt) (*corev1.Container, error) {
 	env, err := mariadbEnv(mdb)
 	if err != nil {
 		return nil, err
@@ -386,7 +387,7 @@ func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mar
 	if mdbContainer.Env != nil {
 		env = append(env, kadapter.ToKubernetesSlice(mdbContainer.Env)...)
 	}
-	volumeMounts, err := mariadbVolumeMounts(mdb)
+	volumeMounts, err := mariadbVolumeMounts(mdb, opts...)
 	if err != nil {
 		return nil, err
 	}
