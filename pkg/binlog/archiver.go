@@ -441,7 +441,7 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mar
 	msg := fmt.Sprintf("Binary log %s archived", binlog)
 	a.logger.Info(msg)
 	a.recorder.Eventf(mdb, pitr, corev1.EventTypeNormal, mariadbv1alpha1.ReasonBinlogArchived,
-		mariadbv1alpha1.ActionArchiving, msg)
+		mariadbv1alpha1.ReasonBinlogArchived, msg)
 
 	return nil
 }
@@ -503,7 +503,7 @@ func (a *Archiver) updateStatusWithError(ctx context.Context, mdb *mariadbv1alph
 			return fmt.Errorf("error patching MariaDB status: %v", err)
 		}
 		a.recorder.Eventf(mdb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogArchivalError,
-			mariadbv1alpha1.ActionArchiving, "Error archiving binary logs: %v", archiveErr)
+			mariadbv1alpha1.ReasonBinlogArchivalError, "Error archiving binary logs: %v", archiveErr)
 	} else {
 		if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetArchivedBinlogs(status)
