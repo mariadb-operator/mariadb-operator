@@ -131,7 +131,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		}
 		logger.Info("Galera cluster is healthy")
 		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy,
-			mariadbv1alpha1.ActionReconciling, "Galera cluster is healthy")
+			mariadbv1alpha1.ReasonGaleraClusterHealthy, "Galera cluster is healthy")
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			condition.SetGaleraReady(&mariadb.Status)
@@ -152,7 +152,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		newPrimary := ptr.Deref(ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary.PodIndex, 0)
 
 		logger.Info("Switching primary replica", "primary", primary, "new-primary", newPrimary)
-		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ActionReconciling,
+		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ReasonPrimarySwitching,
 			"Switching primary replica from index '%d' to index '%d'", primary, newPrimary)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
@@ -161,7 +161,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			return ctrl.Result{}, fmt.Errorf("error patching current primary status: %v", err)
 		}
 		logger.Info("Primary switched", "primary", primary, "new-primary", newPrimary)
-		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched, mariadbv1alpha1.ActionReconciling,
+		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched, mariadbv1alpha1.ReasonPrimarySwitched,
 			"Primary switched from index '%d' to index '%d'", primary, newPrimary)
 
 		if mariadb.IsMultiClusterEnabled() {
@@ -245,7 +245,7 @@ func (r *GaleraReconciler) reconcileMultiCluster(ctx context.Context, mariadb *m
 	}
 	logger.Info("Galera primary replica configured", "pod-index", currentPrimaryPodIndex)
 	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPrimaryReplicaConfigured,
-		mariadbv1alpha1.ActionReconciling, "Galera primary replica configured on Pod %d", currentPrimaryPodIndex)
+		mariadbv1alpha1.ReasonGaleraPrimaryReplicaConfigured, "Galera primary replica configured on Pod %d", currentPrimaryPodIndex)
 	// Requeue to update status
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
