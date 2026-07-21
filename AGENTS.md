@@ -241,8 +241,21 @@ Validation-only admission webhooks (no defaulting webhooks — defaults are set 
 Surface user-visible state transitions as Kubernetes Events (visible in `kubectl describe` / `kubectl get events`), in addition to conditions and logs — they are the primary way operators observe what the reconciler did.
 
 - Controllers hold an `events.EventRecorder` (`k8s.io/client-go/tools/events`, not the legacy `record.EventRecorder`) in a `Recorder` field, obtained from the manager via `mgr.GetEventRecorder("<name>")` and wired per subsystem in `cmd/controller/main.go`. Sub-reconcilers (`pkg/controller/galera`, `replication`, `certificate`, `maintenance`) get one via constructor injection.
-- **Reason and action strings are centralized**: reason constants (`Reason*`) live in `api/v1alpha1/event_types.go` and action constants (`Action*`, e.g. `ActionReconciling`) in `api/v1alpha1/event_actions.go` — reuse an existing constant or add one there; never inline a string literal.
-- Emit with `Eventf(regarding, related, eventtype, reason, action, note, args...)`: pass a `Reason*` constant for `reason`, an `Action*` constant for `action`, and `corev1.EventTypeNormal` / `corev1.EventTypeWarning` for the type. Never put secrets in the note (same rule as Logging).
+- **Reason strings are centralized**: reason constants (`Reason*`) live in `api/v1alpha1/event_types.go` — reuse an existing constant or add one there; never inline a string literal. (`api/v1alpha1/event_actions.go` also defines `Action*` constants, but in practice the codebase passes the `Reason*` constant for the `action` parameter too, not an `Action*` constant.)
+- Emit with `Eventf(regarding, related, eventtype, reason, action, note, args...)`: pass `corev1.EventTypeNormal` / `corev1.EventTypeWarning` for the type, and the **same** `Reason*` constant for **both** `reason` and `action` (this is the established convention across the codebase). Never put secrets in the note (same rule as Logging). For example:
+
+  ```go
+  r.recorder.Eventf(
+      req.mariadb,
+      nil,
+      corev1.EventTypeNormal,
+      mariadbv1alpha1.ReasonReplicationPrimaryToReplica, // reason
+      mariadbv1alpha1.ReasonReplicationPrimaryToReplica, // action (same constant)
+      "Unlocking primary '%d' and configuring it to be a replica. New primary at '%d'",
+      currentPrimary,
+      newPrimary,
+  )
+  ```
 
 ## Feature Map
 

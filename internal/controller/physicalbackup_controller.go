@@ -93,7 +93,7 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			mariadb,
 			corev1.EventTypeWarning,
 			mariadbv1alpha1.ReasonMariaDBNotReady,
-			mariadbv1alpha1.ActionReconciling,
+			mariadbv1alpha1.ReasonMariaDBNotReady,
 			"Pausing backup: MariaDB not ready",
 		)
 
