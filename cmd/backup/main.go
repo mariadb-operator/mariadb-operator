@@ -101,14 +101,14 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
 		"Directory path where the physical backup is located. Only considered when backup-content-type is Physical.")
-	RootCmd.Flags().BoolVar(&physicalBackupMeta, "physical-backup-meta", false,
+	RootCmd.PersistentFlags().BoolVar(&physicalBackupMeta, "physical-backup-meta", false,
 		"Enable tracking physical backup metadata in the PhysicalBackup custom resource. Only considered when backup-content-type is Physical.")
-	RootCmd.Flags().StringVar(&physicalBackupName, "physical-backup-name", "",
+	RootCmd.PersistentFlags().StringVar(&physicalBackupName, "physical-backup-name", "",
 		"PhysicalBackup custom resource name to track physical backup metadata. Only considered when physical-backup-meta is enabled.")
-	RootCmd.Flags().StringVar(&physicalBackupNamespace, "physical-backup-namespace", "",
+	RootCmd.PersistentFlags().StringVar(&physicalBackupNamespace, "physical-backup-namespace", "",
 		"PhysicalBackup custom resource namespace to track physical backup metadata. Only considered when physical-backup-meta is enabled.")
 
-	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
+	RootCmd.PersistentFlags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
 
 	RootCmd.AddCommand(restoreCommand)
@@ -298,6 +298,20 @@ func handleBackupMeta(ctx context.Context, backupLogger logr.Logger) error {
 	if !physicalBackupMeta || physicalBackupName == "" || physicalBackupNamespace == "" {
 		return nil
 	}
+	metaBytes, err := getBackupMetaBytes()
+	if err != nil {
+		return fmt.Errorf("error getting backup GTID: %v", err)
+	}
+	return handleBackupMetaBytes(ctx, backupLogger, metaBytes)
+}
+
+func handleBackupMetaBytes(ctx context.Context, backupLogger logr.Logger, fileBytes []byte) error {
+	if backupContentType != string(mariadbv1alpha1.BackupContentTypePhysical) {
+		return nil
+	}
+	if !physicalBackupMeta || physicalBackupName == "" || physicalBackupNamespace == "" {
+		return nil
+	}
 	key := types.NamespacedName{
 		Name:      physicalBackupName,
 		Namespace: physicalBackupNamespace,
@@ -314,9 +328,9 @@ func handleBackupMeta(ctx context.Context, backupLogger logr.Logger) error {
 		return fmt.Errorf("error getting PhysicalBackup: %v", err)
 	}
 
-	rawGTID, err := getBackupGTID()
+	rawGTID, err := replication.ParseRawGtidInMetaFile(fileBytes)
 	if err != nil {
-		return fmt.Errorf("error getting backup GTID: %v", err)
+		return fmt.Errorf("error parsing GTID in metadata file: %v", err)
 	}
 	// TODO: support multiple GTID domain IDs
 	gtid, err := replication.ParseGtid(rawGTID)
@@ -349,15 +363,11 @@ func getK8sClient() (client.Client, error) {
 	return k8sClient, nil
 }
 
-func getBackupGTID() (string, error) {
+func getBackupMetaBytes() ([]byte, error) {
 	metaFilePath := filepath.Join(physicalBackupDirPath, replication.MariaDBOperatorFileName)
 	bytes, err := os.ReadFile(metaFilePath)
 	if err != nil {
-		return "", fmt.Errorf("error reading backup meta file %s: %v", metaFilePath, err)
+		return nil, fmt.Errorf("error reading backup meta file %s: %v", metaFilePath, err)
 	}
-	rawGtid, err := replication.ParseRawGtidInMetaFile(bytes)
-	if err != nil {
-		return "", fmt.Errorf("error parsing GTID in meta file %s: %v", metaFilePath, err)
-	}
-	return rawGtid, nil
+	return bytes, nil
 }

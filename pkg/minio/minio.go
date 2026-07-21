@@ -1,6 +1,7 @@
 package minio
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"encoding/base64"
@@ -11,7 +12,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/minio/minio-go/v7"
@@ -99,6 +103,15 @@ type Client struct {
 	MinioOpts
 	basePath string
 	bucket   string
+}
+
+const multipartAbortTimeout = 2 * time.Minute
+
+type multipartUploader interface {
+	NewMultipartUpload(ctx context.Context, bucket, object string, opts minio.PutObjectOptions) (string, error)
+	PutObjectPart(ctx context.Context, bucket, object, uploadID string, partID int, data io.Reader, size int64, opts minio.PutObjectPartOptions) (minio.ObjectPart, error)
+	CompleteMultipartUpload(ctx context.Context, bucket, object, uploadID string, parts []minio.CompletePart, opts minio.PutObjectOptions) (minio.UploadInfo, error)
+	AbortMultipartUpload(ctx context.Context, bucket, object, uploadID string) error
 }
 
 func NewMinioClientFromS3Config(
@@ -216,6 +229,99 @@ func (c *Client) PutObjectWithOptions(ctx context.Context, fileName string, read
 
 	_, err = c.PutObject(ctx, c.bucket, prefixedFilePath, reader, size, *putOpts)
 	return err
+}
+
+func (c *Client) PutObjectStreamWithOptions(ctx context.Context, fileName string, reader io.Reader, partSize uint64) error {
+	putOpts, err := c.putObjectOptions()
+	if err != nil {
+		return err
+	}
+	putOpts.PartSize = partSize
+	prefixedFilePath := c.PrefixedFileName(fileName)
+
+	core := minio.Core{Client: c.Client}
+	return putObjectMultipartStream(ctx, core, c.bucket, prefixedFilePath, reader, partSize, *putOpts)
+}
+
+func putObjectMultipartStream(ctx context.Context, uploader multipartUploader, bucket, object string, src io.Reader,
+	configuredPartSize uint64, putOpts minio.PutObjectOptions) (err error) {
+	totalPartsCount, partSize, _, err := minio.OptimalPartInfo(-1, configuredPartSize)
+	if err != nil {
+		return err
+	}
+
+	uploadID, err := uploader.NewMultipartUpload(ctx, bucket, object, putOpts)
+	if err != nil {
+		return err
+	}
+
+	completed := false
+	defer func() {
+		if completed {
+			return
+		}
+		abortCtx, cancel := context.WithTimeout(context.Background(), multipartAbortTimeout)
+		defer cancel()
+		if abortErr := uploader.AbortMultipartUpload(abortCtx, bucket, object, uploadID); abortErr != nil {
+			abortErr = fmt.Errorf("error aborting multipart upload: %w", abortErr)
+			if err != nil {
+				err = errors.Join(err, abortErr)
+			} else {
+				err = abortErr
+			}
+		}
+	}()
+
+	partBuf := make([]byte, partSize)
+	var completeParts []minio.CompletePart
+	for partNumber := 1; ; partNumber++ {
+		if partNumber > totalPartsCount {
+			return fmt.Errorf("multipart stream exceeds maximum part count %d for part size %d", totalPartsCount, partSize)
+		}
+
+		length, readErr := io.ReadFull(src, partBuf)
+		if readErr == io.EOF {
+			if partNumber == 1 {
+				return errors.New("cannot upload empty multipart stream")
+			}
+			break
+		}
+		if readErr != nil && readErr != io.ErrUnexpectedEOF {
+			return readErr
+		}
+
+		part, err := uploader.PutObjectPart(ctx, bucket, object, uploadID, partNumber, bytes.NewReader(partBuf[:length]),
+			int64(length), minio.PutObjectPartOptions{
+				SSE:                  putOpts.ServerSideEncryption,
+				DisableContentSha256: putOpts.DisableContentSha256,
+			})
+		if err != nil {
+			return err
+		}
+		completeParts = append(completeParts, minio.CompletePart{
+			ETag:              part.ETag,
+			PartNumber:        part.PartNumber,
+			ChecksumCRC32:     part.ChecksumCRC32,
+			ChecksumCRC32C:    part.ChecksumCRC32C,
+			ChecksumSHA1:      part.ChecksumSHA1,
+			ChecksumSHA256:    part.ChecksumSHA256,
+			ChecksumCRC64NVME: part.ChecksumCRC64NVME,
+		})
+
+		if readErr == io.ErrUnexpectedEOF {
+			break
+		}
+	}
+
+	completeOpts := minio.PutObjectOptions{
+		ServerSideEncryption: putOpts.ServerSideEncryption,
+		AutoChecksum:         putOpts.AutoChecksum,
+	}
+	if _, err := uploader.CompleteMultipartUpload(ctx, bucket, object, uploadID, completeParts, completeOpts); err != nil {
+		return err
+	}
+	completed = true
+	return nil
 }
 
 func (c *Client) FPutObjectWithOptions(ctx context.Context, fileName string) error {
@@ -377,6 +483,225 @@ func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
 		Secure:    opts.TLS,
 		Transport: transport,
 	}, nil
+}
+
+// GetObjectStream returns a streaming reader for an S3 object along with its size.
+func (c *Client) GetObjectStream(ctx context.Context, fileName string) (*minio.Object, int64, error) {
+	getOpts, err := c.getObjectOptions()
+	if err != nil {
+		return nil, 0, err
+	}
+	prefixedFilePath := c.PrefixedFileName(fileName)
+
+	obj, err := c.GetObject(ctx, c.bucket, prefixedFilePath, *getOpts)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error getting object: %v", err)
+	}
+	stat, err := obj.Stat()
+	if err != nil {
+		obj.Close()
+		return nil, 0, fmt.Errorf("error getting object stat: %v", err)
+	}
+	return obj, stat.Size, nil
+}
+
+// ResumableReaderConfig configures the retry behavior of ResumableReader.
+type ResumableReaderConfig struct {
+	MaxRetries     int
+	InitialBackoff time.Duration
+	MaxBackoff     time.Duration
+	Logger         logr.Logger
+}
+
+// DefaultResumableReaderConfig returns reasonable defaults for resumable reads.
+func DefaultResumableReaderConfig(logger logr.Logger) ResumableReaderConfig {
+	return ResumableReaderConfig{
+		MaxRetries:     10,
+		InitialBackoff: 2 * time.Second,
+		MaxBackoff:     60 * time.Second,
+		Logger:         logger,
+	}
+}
+
+// ResumableReader is a thread-safe io.ReadCloser that automatically resumes S3 reads
+// on transient network errors using Range headers.
+type ResumableReader struct {
+	client        *Client
+	ctx           context.Context
+	bucket        string
+	objectKey     string
+	totalSize     int64
+	position      int64
+	currentReader io.ReadCloser
+	config        ResumableReaderConfig
+	mu            sync.Mutex
+	closed        bool
+	retryCount    int
+	totalRetries  int
+	lastError     error
+	getOpts       minio.GetObjectOptions
+}
+
+// GetResumableObjectStream returns a ResumableReader that automatically retries and resumes
+// reads from the given position on transient errors.
+func (c *Client) GetResumableObjectStream(ctx context.Context, fileName string,
+	config ResumableReaderConfig) (*ResumableReader, int64, error) {
+	getOpts, err := c.getObjectOptions()
+	if err != nil {
+		return nil, 0, err
+	}
+	prefixedFilePath := c.PrefixedFileName(fileName)
+
+	obj, err := c.GetObject(ctx, c.bucket, prefixedFilePath, *getOpts)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error getting object: %v", err)
+	}
+	stat, err := obj.Stat()
+	if err != nil {
+		obj.Close()
+		return nil, 0, fmt.Errorf("error getting object stat: %v", err)
+	}
+
+	return &ResumableReader{
+		client:        c,
+		ctx:           ctx,
+		bucket:        c.bucket,
+		objectKey:     prefixedFilePath,
+		totalSize:     stat.Size,
+		position:      0,
+		currentReader: obj,
+		config:        config,
+		getOpts:       *getOpts,
+	}, stat.Size, nil
+}
+
+func (r *ResumableReader) Read(p []byte) (int, error) {
+	r.mu.Lock()
+	if r.closed {
+		r.mu.Unlock()
+		return 0, errors.New("reader is closed")
+	}
+	if err := r.ctx.Err(); err != nil {
+		r.mu.Unlock()
+		return 0, err
+	}
+	reader := r.currentReader
+	r.mu.Unlock()
+
+	n, err := reader.Read(p)
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.position += int64(n)
+
+	if err == nil {
+		r.retryCount = 0
+		return n, nil
+	}
+
+	if err == io.EOF {
+		return n, io.EOF
+	}
+
+	if r.retryCount >= r.config.MaxRetries {
+		r.lastError = err
+		return n, fmt.Errorf("max retries (%d) exceeded, last error: %w", r.config.MaxRetries, err)
+	}
+
+	r.retryCount++
+	r.totalRetries++
+	r.config.Logger.Info("Read error, attempting to resume",
+		"error", err,
+		"position", r.position,
+		"totalSize", r.totalSize,
+		"retry", r.retryCount,
+		"progress", fmt.Sprintf("%.1f%%", float64(r.position)/float64(r.totalSize)*100),
+	)
+
+	if resumeErr := r.resumeFromPositionLocked(); resumeErr != nil {
+		r.lastError = resumeErr
+		return n, fmt.Errorf("error resuming from position %d: %w", r.position, resumeErr)
+	}
+
+	return n, nil
+}
+
+func (r *ResumableReader) resumeFromPositionLocked() error {
+	if r.currentReader != nil {
+		r.currentReader.Close()
+		r.currentReader = nil
+	}
+
+	backoff := r.config.InitialBackoff * time.Duration(1<<(r.retryCount-1))
+	if backoff > r.config.MaxBackoff {
+		backoff = r.config.MaxBackoff
+	}
+
+	r.config.Logger.Info("Waiting before resume",
+		"backoff", backoff,
+		"position", r.position,
+	)
+
+	// Release lock during sleep so the reader can be closed concurrently.
+	r.mu.Unlock()
+	select {
+	case <-time.After(backoff):
+	case <-r.ctx.Done():
+		r.mu.Lock()
+		return r.ctx.Err()
+	}
+	r.mu.Lock()
+
+	if r.closed {
+		return errors.New("reader closed during backoff")
+	}
+
+	getOpts := r.getOpts
+	if err := getOpts.SetRange(r.position, r.totalSize-1); err != nil {
+		return fmt.Errorf("error setting range header: %v", err)
+	}
+
+	obj, err := r.client.GetObject(r.ctx, r.bucket, r.objectKey, getOpts)
+	if err != nil {
+		return fmt.Errorf("error getting object for resume: %v", err)
+	}
+
+	r.currentReader = obj
+	r.config.Logger.Info("Successfully resumed read",
+		"position", r.position,
+		"totalSize", r.totalSize,
+		"progress", fmt.Sprintf("%.1f%%", float64(r.position)/float64(r.totalSize)*100),
+	)
+	return nil
+}
+
+// Position returns the current read position (thread-safe).
+func (r *ResumableReader) Position() int64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.position
+}
+
+// TotalRetries returns the total number of retries performed (thread-safe).
+func (r *ResumableReader) TotalRetries() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.totalRetries
+}
+
+// Close closes the ResumableReader and releases resources.
+func (r *ResumableReader) Close() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed {
+		return nil
+	}
+	r.closed = true
+	if r.currentReader != nil {
+		return r.currentReader.Close()
+	}
+	return nil
 }
 
 func getTransport(opts *MinioOpts) (*http.Transport, error) {
