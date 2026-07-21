@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -13,6 +14,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -164,27 +166,29 @@ func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, mxs *mariadbv1
 	}
 	serverIdx = ds.Filter(serverIdx, mxs.ServerIDs()...)
 
-	serverStatuses := make([]mariadbv1alpha1.MaxScaleServerStatus, len(serverIdx))
-	i := 0
-	for _, srv := range serverIdx {
-		serverStatuses[i] = mariadbv1alpha1.MaxScaleServerStatus{
-			Name:  srv.ID,
-			State: srv.Attributes.State,
-		}
-		i++
-	}
+	return serverStatusFromIndex(serverIdx), nil
+}
+
+func serverStatusFromIndex(serverIdx ds.Index[mxsclient.Data[*mxsclient.ServerAttributes]]) *serverStatus {
+	serverStatuses := make([]mariadbv1alpha1.MaxScaleServerStatus, 0, len(serverIdx))
 	var primary string
 	for _, srv := range serverIdx {
-		if srv.Attributes.IsMaster() {
+		serverStatuses = append(serverStatuses, mariadbv1alpha1.MaxScaleServerStatus{
+			Name:  srv.ID,
+			State: srv.Attributes.State,
+		})
+		if srv.Attributes.IsMaster() && (primary == "" || srv.ID < primary) {
 			primary = srv.ID
-			break
 		}
 	}
+	sort.Slice(serverStatuses, func(i, j int) bool {
+		return serverStatuses[i].Name < serverStatuses[j].Name
+	})
 
 	return &serverStatus{
 		primary: primary,
 		servers: serverStatuses,
-	}, nil
+	}
 }
 
 func (r *MaxScaleReconciler) getMonitorStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
@@ -207,16 +211,9 @@ func (r *MaxScaleReconciler) getServiceStatus(ctx context.Context, mxs *mariadbv
 	}
 	serviceIdx = ds.Filter(serviceIdx, mxs.ServiceIDs()...)
 
-	serviceStatuses := make([]mariadbv1alpha1.MaxScaleResourceStatus, len(serviceIdx))
-	i := 0
-	for _, svc := range serviceIdx {
-		serviceStatuses[i] = mariadbv1alpha1.MaxScaleResourceStatus{
-			Name:  svc.ID,
-			State: svc.Attributes.State,
-		}
-		i++
-	}
-	return serviceStatuses, nil
+	return resourceStatusFromIndex(serviceIdx, func(attrs *mxsclient.ServiceAttributes) string {
+		return attrs.State
+	}), nil
 }
 
 func (r *MaxScaleReconciler) getListenerStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
@@ -227,16 +224,24 @@ func (r *MaxScaleReconciler) getListenerStatus(ctx context.Context, mxs *mariadb
 	}
 	listenerIdx = ds.Filter(listenerIdx, mxs.ListenerIDs()...)
 
-	listenerStatuses := make([]mariadbv1alpha1.MaxScaleResourceStatus, len(listenerIdx))
-	i := 0
-	for _, listener := range listenerIdx {
-		listenerStatuses[i] = mariadbv1alpha1.MaxScaleResourceStatus{
-			Name:  listener.ID,
-			State: listener.Attributes.State,
-		}
-		i++
+	return resourceStatusFromIndex(listenerIdx, func(attrs *mxsclient.ListenerAttributes) string {
+		return attrs.State
+	}), nil
+}
+
+func resourceStatusFromIndex[T any](idx ds.Index[mxsclient.Data[T]],
+	getState func(T) string) []mariadbv1alpha1.MaxScaleResourceStatus {
+	statuses := make([]mariadbv1alpha1.MaxScaleResourceStatus, 0, len(idx))
+	for _, item := range idx {
+		statuses = append(statuses, mariadbv1alpha1.MaxScaleResourceStatus{
+			Name:  item.ID,
+			State: getState(item.Attributes),
+		})
 	}
-	return listenerStatuses, nil
+	sort.Slice(statuses, func(i, j int) bool {
+		return statuses[i].Name < statuses[j].Name
+	})
+	return statuses
 }
 
 func (r *MaxScaleReconciler) getConfigSyncStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
@@ -347,9 +352,13 @@ func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alp
 
 func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
 	patcher func(*mariadbv1alpha1.MaxScaleStatus) error) error {
+	previousStatus := maxscale.Status.DeepCopy()
 	patch := client.MergeFrom(maxscale.DeepCopy())
 	if err := patcher(&maxscale.Status); err != nil {
 		return err
+	}
+	if apiequality.Semantic.DeepEqual(previousStatus, &maxscale.Status) {
+		return nil
 	}
 	return r.Status().Patch(ctx, maxscale, patch)
 }
