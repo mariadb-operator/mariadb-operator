@@ -31,6 +31,8 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	}
 	logger := log.FromContext(ctx).WithName("status").V(1)
 
+	logger.Info("Reconciling MariaDB Status", "MariaDB:", mdb.Name)
+
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
 		logger.Info("error getting StatefulSet", "err", err)
@@ -105,11 +107,20 @@ func shouldReconcileReplicationRoleForPod(mdb *mariadbv1alpha1.MariaDB, podIndex
 
 func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 	mdb *mariadbv1alpha1.MariaDB) (map[string]mariadbv1alpha1.ReplicationRole, error) {
-	clientSet := sql.NewClientSet(mdb, r.RefResolver)
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("Getting Replication Roles")
+	if !mdb.IsReplicationEnabled() {
+		return nil, nil
+	}
+
+	clientSet, err := replication.NewReplicationClientSet(mdb, r.RefResolver)
+	if err != nil {
+		return nil, fmt.Errorf("error creating mariadb clientset: %v", err)
+	}
 	defer clientSet.Close()
 
 	var replState map[string]mariadbv1alpha1.ReplicationRole
-	logger := log.FromContext(ctx)
+
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
 		if !shouldReconcileReplicationRoleForPod(mdb, i) {
 			continue
@@ -192,6 +203,8 @@ func (r *MariaDBReconciler) isMultiClusterPrimaryReplica(ctx context.Context, md
 
 func shouldReconcileReplicaStatusForPod(mdb *mariadbv1alpha1.MariaDB, podIndex int) bool {
 	isReplica := podIndex != *mdb.Status.CurrentPrimaryPodIndex
+	replication := mdb.Replication()
+	isExternalReplication := replication.IsExternalReplication()
 	if mdb.IsMultiClusterEnabled() {
 		if mdb.IsReplicationEnabled() {
 			return isReplica || mdb.IsMultiClusterPrimaryReplica(podIndex)
@@ -200,7 +213,7 @@ func shouldReconcileReplicaStatusForPod(mdb *mariadbv1alpha1.MariaDB, podIndex i
 		}
 		return false
 	}
-	return isReplica
+	return isReplica || isExternalReplication
 }
 
 func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
@@ -215,8 +228,13 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 	defer clientSet.Close()
 
 	var replicaStatus map[string]mariadbv1alpha1.ReplicaStatus
+	replication := mdb.Replication()
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
 		if !shouldReconcileReplicaStatusForPod(mdb, i) {
+			continue
+		}
+
+		if i == *mdb.Status.CurrentPrimaryPodIndex && !replication.IsExternalReplication() {
 			continue
 		}
 		pod := stspkg.PodName(mdb.ObjectMeta, i)
@@ -244,7 +262,7 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 
 		var replOpts []sql.ReplicationOpt
 		if mdb.IsMultiClusterPrimaryReplica(i) {
-			replOpts = append(replOpts, sql.WithConnectionName(replication.MultiClusterReplicaConnectionName))
+			replOpts = append(replOpts, sql.WithConnectionName(*replication.MultiClusterReplicaConnectionName))
 		}
 		newReplicaStatus, err := client.ReplicaStatus(ctx, logger, replOpts...)
 		if err != nil {

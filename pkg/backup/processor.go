@@ -14,9 +14,10 @@ import (
 )
 
 type BackupProcessor interface {
-	GetBackupTargetFile(backupFileNames []string, targetRecoveryTime time.Time, logger logr.Logger) (string, error)
+	GetBackupTargetFile(backupFileNames []string, targetRecoveryTime time.Time,
+		targetTimeAgeThreshold *time.Time, logger logr.Logger) (string, error)
 	GetOldBackupFiles(backupFileNames []string, maxRetention time.Duration, logger logr.Logger) []string
-	IsValidBackupFile(fileName string) bool
+	IsValidBackupFile(fileName string, logger logr.Logger) bool
 	ParseCompressionAlgorithm(fileName string) (mariadbv1alpha1.CompressAlgorithm, error)
 	GetUncompressedBackupFile(compressedBackupFile string) (string, error)
 	parseDateInBackupFile(fileName string) (time.Time, error)
@@ -37,7 +38,7 @@ func NewLogicalBackupProcessor() BackupProcessor {
 
 // GetBackupTargetFile returns the backup file whose timestamp is closest to, but not after, the target recovery time.
 func (p *LogicalBackupProcessor) GetBackupTargetFile(backupFileNames []string, targetRecoveryTime time.Time,
-	backupLogger logr.Logger) (string, error) {
+	targetTimeAgeThreshold *time.Time, backupLogger logr.Logger) (string, error) {
 	logger := backupLogger.WithValues(
 		"target-time", targetRecoveryTime.Format(time.RFC3339),
 	)
@@ -91,17 +92,20 @@ func (p *LogicalBackupProcessor) GetOldBackupFiles(backupFileNames []string, max
 }
 
 // IsValidBackupFile determines whether a backup file name is valid.
-func (p *LogicalBackupProcessor) IsValidBackupFile(fileName string) bool {
-	// Must start with "backup." and contain ".sql" either as suffix (uncompressed)
-	// or before the compression extension (e.g. ".sql.gz", ".sql.bz2").
+func (p *LogicalBackupProcessor) IsValidBackupFile(fileName string, logger logr.Logger) bool {
 	if !strings.HasPrefix(fileName, "backup.") || !strings.Contains(fileName, ".sql") {
+		logger.Info("File has no backup. prefix or .sql suffix or .sql.gz or .sql.bz2", "file", fileName)
 		return false
 	}
 	_, err := p.ParseCompressionAlgorithm(fileName)
 	if err != nil {
+		logger.Error(err, "Error parsing compression algorithm", "file", fileName)
 		return false
 	}
 	_, err = p.parseDateInBackupFile(fileName)
+	if err != nil {
+		logger.Error(err, "Error parsing date in backup file", "file", fileName)
+	}
 	return err == nil
 }
 
@@ -196,7 +200,7 @@ func NewPhysicalBackupProcessor(opts ...PhysicalBackupProcsssorOpt) BackupProces
 
 // GetBackupTargetFile returns the backup file whose timestamp is closest to, but not after, the target recovery time.
 func (p *PhysicalBackupProcessor) GetBackupTargetFile(backupFileNames []string, targetRecoveryTime time.Time,
-	backupLogger logr.Logger) (string, error) {
+	targetTimeAgeThreshold *time.Time, backupLogger logr.Logger) (string, error) {
 	logger := backupLogger.WithValues(
 		"target-time", targetRecoveryTime.Format(time.RFC3339),
 	)
@@ -229,6 +233,19 @@ func (p *PhysicalBackupProcessor) GetBackupTargetFile(backupFileNames []string, 
 	sort.Slice(backupDiffs, func(i, j int) bool {
 		return backupDiffs[i].diff < backupDiffs[j].diff
 	})
+
+	if targetTimeAgeThreshold != nil {
+		targetFileTime, err := p.parseDateInBackupFile(backupDiffs[0].fileName)
+		if err != nil {
+			logger.Error(err, "error parsing backup date in target file", "file", backupDiffs[0].fileName)
+			return "", fmt.Errorf("error parsing backup date in target file: %v", err)
+		}
+		if targetFileTime.Before(*targetTimeAgeThreshold) {
+			return "", fmt.Errorf("the closest backup file '%s' is too old according to the provided target time age threshold",
+				backupDiffs[0].fileName)
+		}
+	}
+
 	return backupDiffs[0].fileName, nil
 }
 
@@ -250,7 +267,7 @@ func (p *PhysicalBackupProcessor) GetOldBackupFiles(backupFileNames []string, ma
 }
 
 // IsValidBackupFile determines whether a backup file name is valid.
-func (p *PhysicalBackupProcessor) IsValidBackupFile(fileName string) bool {
+func (p *PhysicalBackupProcessor) IsValidBackupFile(fileName string, logger logr.Logger) bool {
 	if validationFn := p.isValidBackupFileFn; validationFn != nil {
 		return validationFn(fileName)
 	}

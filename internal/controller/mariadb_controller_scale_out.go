@@ -5,12 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -188,6 +192,7 @@ func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, 
 	logger logr.Logger) (ctrl.Result, error) {
 	var physicalBackup mariadbv1alpha1.PhysicalBackup
 	if err := r.Get(ctx, key, &physicalBackup); err != nil {
+		logger.Info("Current PhysicalBackup err!=nil", "err", err)
 		if apierrors.IsNotFound(err) {
 			logger.Info("Creating PhysicalBackup", "name", key.Name)
 			if err := r.createReplicaPhysicalBackup(ctx, key, mariadb); err != nil {
@@ -196,11 +201,77 @@ func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, 
 		}
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+
+	// If backup is already present but expired (backup age >  master binlog_retention) we need to destroy it to force a new backup
+	var binlogExpireLogsDuration time.Duration
+	var binlogExpireErr error
+	var ageThreshold *time.Time
+	replication := mariadb.Replication()
+
+	if replication.IsExternalReplication() {
+		emdb, err := r.RefResolver.ExternalMariaDB(ctx, &replication.ReplicaFromExternal.MariaDBRef.ObjectReference, mariadb.Namespace)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting external MariaDB: %v", err)
+		}
+		logger.Info("Getting the binlog_expire_logs_seconds on the external MariaDB")
+		binlogExpireLogsDuration, binlogExpireErr = getBinlogExpireLogsDuration(emdb, ctx, r.RefResolver, logger)
+	} else {
+		logger.Info("Getting the binlog_expire_logs_seconds on primary MariaDB")
+		binlogExpireLogsDuration, binlogExpireErr = getInternalBinlogExpireLogsDuration(mariadb, ctx, r.RefResolver)
+	}
+
+	if binlogExpireErr == nil && binlogExpireLogsDuration != 0 {
+		ageThreshold = ptr.To(time.Now().Add(-binlogExpireLogsDuration))
+	} else if binlogExpireErr != nil {
+		// In case of failure to get the binlogExpireLogsDuration set ageThreshold do now to force a new backup
+		logger.Info("Unable to get binlog_expire_logs_seconds, setting age threshold to now to force new backup", "error", binlogExpireErr)
+		ageThreshold = ptr.To(time.Now())
+	}
+
 	if !physicalBackup.IsComplete() {
+		if replication.IsExternalReplication() {
+			backupStartTime := physicalBackup.CreationTimestamp.Time
+			jobWaitTimeout, _ := time.ParseDuration("240s")
+			jobs, err := job.ListJobs(ctx, r.Client, &physicalBackup)
+			if (err != nil || len(jobs.Items) == 0) && time.Since(backupStartTime) > jobWaitTimeout {
+				logger.Info("ExternalReplication, physical backup job launch wait timeout. Trigger logical backup")
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, errPhysicalBackupJobLaunchTimeout
+			}
+		}
 		logger.V(1).Info("Replica PhysicalBackup job not completed. Requeuing")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	} else {
+		if ageThreshold != nil && physicalBackup.Status.LastScheduleTime.Time.Before(*ageThreshold) {
+			logger.Info("Existent backup is expired, destroying to create a new one")
+			if err := r.cleanupPhysicalBackup(ctx, mariadb.PhysicalBackupReplicaRecoveryKey()); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
 	}
+	logger.V(1).Info("Replica PhysicalBackup completed.")
 	return ctrl.Result{}, nil
+}
+
+func getInternalBinlogExpireLogsDuration(mdb *mariadbv1alpha1.MariaDB, ctx context.Context,
+	refResolver *refresolver.RefResolver) (time.Duration, error) {
+	var external_client *sql.Client
+	var err error
+	if external_client, err = sql.NewClientWithMariaDB(ctx, mdb, refResolver); err != nil {
+		return time.Duration(0), fmt.Errorf("error getting external MariaDB client: %v", err)
+	}
+	defer external_client.Close()
+
+	var binlogExpireLogsSecondsStr string
+	var binlogExpireLogsSeconds int
+
+	binlogExpireLogsSecondsStr, err = external_client.SystemVariable(ctx, "binlog_expire_logs_seconds")
+	if err != nil {
+		return time.Duration(0), fmt.Errorf("unable to get binlog_expire_logs_seconds: %v", err)
+	}
+	binlogExpireLogsSeconds, _ = strconv.Atoi(binlogExpireLogsSecondsStr)
+
+	return time.Duration(binlogExpireLogsSeconds) * time.Second, nil
 }
 
 func (r *MariaDBReconciler) createReplicaPhysicalBackup(ctx context.Context, key types.NamespacedName,
@@ -255,12 +326,16 @@ func (r *MariaDBReconciler) getVolumeSnapshotKey(ctx context.Context, mariadb *m
 
 func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
+	logger.Info("Scale out and cleanup")
 	if !mariadb.IsScalingOut() {
+		logger.Info("Not scaling out")
 		return ctrl.Result{}, nil
 	}
 	physicalBackupKey := mariadb.PhysicalBackupScaleOutKey()
+	logger.Info("physical backup", "key", physicalBackupKey)
 
 	if mariadb.Status.ScaleOutInitialIndex != nil {
+		logger.Info("Scale out initial index", "index", *mariadb.Status.ScaleOutInitialIndex)
 		fromIndex := *mariadb.Status.ScaleOutInitialIndex
 
 		physicalBackup, err := r.getPhysicalBackup(ctx, physicalBackupKey, mariadb)

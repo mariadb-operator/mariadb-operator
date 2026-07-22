@@ -301,8 +301,9 @@ spec:
                 - gzip
                 type: string
               databases:
-                description: Databases defines the logical databases to be backed
-                  up. If not provided, all databases are backed up.
+                description: |-
+                  Databases defines the logical databases to be backed up. If not provided, all databases are backed up.
+                  Mutually exclusive with Tables.
                 items:
                   type: string
                 type: array
@@ -1032,6 +1033,14 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              tables:
+                description: |-
+                  Tables defines specific tables to be backed up, in "database.table" format. Entries may span
+                  multiple databases; when they do, --ignore-table flags are built at runtime by querying
+                  information_schema so that the dump remains a single consistent transaction. Mutually exclusive with Databases.
+                items:
+                  type: string
+                type: array
               timeZone:
                 description: TimeZone defines the timezone associated with the cron
                   expression.

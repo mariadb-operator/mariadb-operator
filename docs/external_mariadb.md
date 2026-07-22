@@ -5,7 +5,9 @@
 ## Table of contents
 <!-- toc -->
 - [`ExternalMariaDB` configuration](#externalmariadb-configuration)
+- [Binlog proxy port](#binlog-proxy-port)
 - [Supported objects](#supported-objects)
+- [External replication](#external-replication)
 <!-- /toc -->
 
 ## `ExternalMariaDB` configuration
@@ -86,6 +88,25 @@ As a result, you will be able to specify the `ExternalMariaDB` as a reference in
 
 As part of the `ExternalMariaDB` reconciliation, a `Connection` will be created whenever the `connection` template is specified. This could be handy to track the external connection status and declaratively create a connection string in a `Secret` to be consumed by applications to connect to the external `MariaDB`.
 
+## Binlog proxy port
+
+When the external MariaDB is exposed behind a [MaxScale](https://mariadb.com/docs/maxscale/) using the [Binlogrouter](https://mariadb.com/docs/maxscale/maxscale-archive/mariadb-maxscale-25-08/maxscale-25-08-routers/mariadb-maxscale-25-08-maxscale-25-08-binlogrouter) to expose the binlog stream, you can set the `binlogPort` field. This is only relevant for [external replication](#external-replication): replicas will use `binlogPort` to stream the binary logs, while `port` is still used for the rest of the operations.
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: external-mariadb
+spec:
+  host: maxscale.example.com
+  port: 3306
+  binlogPort: 4000
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+```
+
 ## Supported objects
 
 Currently, the `ExternalMariaDB` resource is supported by the following objects:
@@ -119,3 +140,7 @@ spec:
 ```
 
 When the previous example gets reconciled, an user will be created in the referred external MariaDB instance.
+
+## External replication
+
+Besides managing resources, an `ExternalMariaDB` can also be used as a replication source to create a cluster of replicas running inside Kubernetes. See [External replication](./external_replication.md) for more details.

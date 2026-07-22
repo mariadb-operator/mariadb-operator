@@ -31,10 +31,11 @@ func isSwitchoverStale(mdb *mariadbv1alpha1.MariaDB) bool {
 }
 
 func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
+	replication := mdb.Replication()
 	if mdb.IsMaxScaleEnabled() || mdb.IsRestoringBackup() || mdb.IsResizingStorage() {
 		return false
 	}
-	if !mdb.HasConfiguredReplica() {
+	if !mdb.HasConfiguredReplica() || replication.IsExternalReplication() {
 		return false
 	}
 	return mdb.IsReplicationSwitchoverRequired()
@@ -367,6 +368,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 			}
 			topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("replica", i))
 
+			logger.V(1).Info("Connecting replica to new primary", "replica", i)
 			if err := topology.ConfigureReplica(ctx, replClient, newPrimary, replicaOpts...); err != nil {
 				return fmt.Errorf("error configuring replica '%d': %v", i, err)
 			}

@@ -170,6 +170,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileScaleOut,
 		},
 		{
+			Name:      "Service",
+			Reconcile: r.reconcileService,
+		},
+		{
 			Name:      "Replica recovery",
 			Reconcile: r.reconcileReplicaRecovery,
 		},
@@ -185,9 +189,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Name:      "PodDisruptionBudget",
 			Reconcile: r.reconcilePodDisruptionBudget,
 		},
+
 		{
-			Name:      "Service",
-			Reconcile: r.reconcileService,
+			Name:      "External Repl Init",
+			Reconcile: r.reconcileExternalReplInit,
 		},
 		{
 			Name:      "Replication",
@@ -281,6 +286,10 @@ func requeueResult(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Resu
 	if mdb.IsMaintenanceModeEnabled() {
 		log.FromContext(ctx).V(1).Info("Maintenance mode enabled. Requeuing MariaDB...")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+	if mdb.Replication().ReplicaFromExternal != nil {
+		log.FromContext(ctx).V(1).Info("Requeuing MariaDB")
+		return ctrl.Result{RequeueAfter: mdb.Replication().ReplicaFromExternal.HealthCheckInterval.Duration}, nil // ensure replicas status are updated
 	}
 
 	if mdb.IsTLSEnabled() {
@@ -416,6 +425,7 @@ func (r *MariaDBReconciler) reconcileRBAC(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(mariadb)
+
 	updateAnnotations, err := r.getUpdateAnnotations(ctx, mariadb)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting Pod annotations: %v", err)
@@ -573,8 +583,8 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mdb *mariadbv1
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
 	}
-
-	restore, err := r.Builder.BuildRestore(mdb, mdb.RestoreKey())
+	restoreOpts := builder.LogicalRestoreOpts{}
+	restore, err := r.Builder.BuildRestore(mdb, mdb.RestoreKey(), restoreOpts)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building restore: %v", err)
 	}
@@ -1055,7 +1065,7 @@ func (r *MariaDBReconciler) getTargetVolumeSnapshot(ctx context.Context, backup 
 	recoveryTime := ptr.Deref(targetRecoveryTime, metav1.Time{Time: time.Now()})
 	logger := log.FromContext(ctx).WithName("snapshot")
 
-	targetSnapshot, err := r.BackupProcessor.GetBackupTargetFile(snapshotNames, recoveryTime.Time, logger)
+	targetSnapshot, err := r.BackupProcessor.GetBackupTargetFile(snapshotNames, recoveryTime.Time, nil, logger)
 	if err != nil {
 		return "", fmt.Errorf("error getting target VolumeSnapshot: %v", err)
 	}

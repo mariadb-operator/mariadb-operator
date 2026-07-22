@@ -89,7 +89,7 @@ func ListMariaDBSecondaryPods(ctx context.Context, client ctrlclient.Client,
 		if err != nil {
 			return nil, fmt.Errorf("error getting Pod '%s' index: %v", p.Name, err)
 		}
-		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
+		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex && mariadb.Replication().ReplicaFromExternal == nil {
 			continue
 		}
 		secondaryPods = append(secondaryPods, p)
