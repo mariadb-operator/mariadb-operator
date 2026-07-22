@@ -3,7 +3,7 @@ package controller
 import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	replicationctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
@@ -1067,7 +1067,7 @@ func testMultiClusterSwitchoverBuilder(primaryGtidDomainId, replicaGtidDomainId 
 			g.Expect(status).ToNot(BeNil())
 			g.Expect(status.GtidCurrentPos).ToNot(BeNil())
 
-			primaryGtids, err := replication.ParseAllGtids(*status.GtidCurrentPos)
+			primaryGtids, err := gtid.ParseAllGtids(*status.GtidCurrentPos)
 			g.Expect(err).To(Succeed())
 			g.Expect(primaryGtids).To(HaveLen(2))
 			g.Expect(primaryGtids).To(ContainElement(MatchFields(IgnoreExtras,
@@ -1088,7 +1088,7 @@ func testGtidCurrentPos(client sql.Client, domainIds ...int) {
 		rawGtid, err := client.GtidCurrentPos(testCtx)
 		g.Expect(err).ToNot(HaveOccurred())
 		for _, domainId := range domainIds {
-			gtid, err := replication.ParseGtidWithDomainId(rawGtid, uint32(domainId), testLogger)
+			gtid, err := gtid.ParseGtidWithDomainId(rawGtid, uint32(domainId), testLogger)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gtid).ToNot(BeNil())
 		}

@@ -11,15 +11,20 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/filemanager"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
-	replicationresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const replicationConfigFile = "0-replication.cnf"
+const (
+	replicationConfigFile = "0-replication.cnf"
+	// masterInfoFileName is a file where the replicas keep the connection details to the master.
+	masterInfoFileName = "master.info"
+	// RelayLogFileName is the log file where the replicas keep a record of the transactions synced from the primary.
+	// See: https://mariadb.com/docs/server/server-management/server-monitoring-logs/binary-log/relay-log.
+	relayLogFileName = "relay-log.info"
+)
 
 var replicationCommand = &cobra.Command{
 	Use:   "replication",
@@ -50,11 +55,6 @@ var replicationCommand = &cobra.Command{
 			logger.Error(err, "Error getting Kubernetes client")
 			os.Exit(1)
 		}
-		podIndex, err := statefulset.PodIndex(env.PodName)
-		if err != nil {
-			logger.Error(err, "error getting index from Pod", "pod", env.PodName)
-			os.Exit(1)
-		}
 
 		if err := createReplicationConfig(env, fileManager); err != nil {
 			logger.Error(err, "error creating replication configuration")
@@ -75,7 +75,7 @@ var replicationCommand = &cobra.Command{
 			logger.Error(err, "error waiting for replica recovery")
 			os.Exit(1)
 		}
-		if err := cleanupReplicaState(fileManager, &mdb, *podIndex); err != nil {
+		if err := cleanupReplicaState(fileManager, &mdb); err != nil {
 			logger.Error(err, "error cleaning up replica state")
 			os.Exit(1)
 		}
@@ -114,13 +114,13 @@ func waitForReplicaRecovery(ctx context.Context, env *environment.PodEnvironment
 }
 
 // Cleanup previous replica state files during initialization
-func cleanupReplicaState(fm *filemanager.FileManager, mdb *mariadbv1alpha1.MariaDB, podIndex int) error {
+func cleanupReplicaState(fm *filemanager.FileManager, mdb *mariadbv1alpha1.MariaDB) error {
 	if mdb.HasConfiguredReplication() || mdb.IsSwitchingPrimary() {
 		return nil
 	}
 	logger.Info("Cleaning up replica state")
 
-	for _, file := range []string{replicationresources.MasterInfoFileName, replicationresources.RelayLogFileName} {
+	for _, file := range []string{masterInfoFileName, relayLogFileName} {
 		if err := cleanupStateFile(fm, file); err != nil {
 			return err
 		}

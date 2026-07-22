@@ -14,8 +14,8 @@ spec:
           - oltp_read_write
           - --tables=5
           - --table_size=1000000
-          # - --mysql-host=mariadb-galera-primary.default.svc.cluster.local
-          - --mysql-host=maxscale-galera.default.svc.cluster.local
+          - --mysql-host=mariadb-galera-primary.default.svc.cluster.local
+          # - --mysql-host=maxscale-galera.default.svc.cluster.local
           - --mysql-port=3306
           - --mysql-user=sbtest-galera
           - --mysql-password=MariaDB11!

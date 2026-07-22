@@ -57,6 +57,12 @@ func (p *GaleraProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 		p.responseWriter.WriteOK(w, nil)
 		return
 	}
+	// During binlog replay, wsrep_on=OFF is set, this prevents the Pods from restarting
+	if mdb.IsReplayingBinlogs() && mdb.HasPendingBinlogReplay() {
+		p.livenessLogger.Info("binary log replay pending. Returning OK to facilitate replay")
+		p.responseWriter.WriteOK(w, nil)
+		return
+	}
 
 	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer sqlCancel()
@@ -93,6 +99,12 @@ func (p *GaleraProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 	var mdb mariadbv1alpha1.MariaDB
 	if err := p.k8sClient.Get(k8sCtx, p.mariadbKey, &mdb); err != nil {
 		p.readinessLogger.Error(err, "error getting MariaDB")
+	}
+	// During binlog replay, wsrep_on=OFF is set, this prevents primary Pod from being changed
+	if mdb.IsReplayingBinlogs() && mdb.HasPendingBinlogReplay() {
+		p.readinessLogger.Info("binary log replay pending. Returning OK to facilitate replay")
+		p.responseWriter.WriteOK(w, nil)
+		return
 	}
 
 	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)

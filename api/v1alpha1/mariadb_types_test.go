@@ -1834,6 +1834,30 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
+				"Mutually exclusive 6",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					S3: &S3{
+						Bucket: "test",
+					},
+				},
+				true,
+			),
+			Entry(
+				"Mutually exclusive 7",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					AzureBlob: &AzureBlob{
+						ContainerName: "test",
+					},
+				},
+				true,
+			),
+			Entry(
 				"Valid 1",
 				&BootstrapFrom{
 					BackupRef: &TypedLocalObjectReference{
@@ -1957,32 +1981,6 @@ var _ = Describe("MariaDB types", func() {
 				&BootstrapFrom{
 					PointInTimeRecoveryRef: &LocalObjectReference{
 						Name: "test",
-					},
-				},
-				false,
-			),
-			// This case happens when setting PITR defaults with physical backup
-			Entry(
-				"Valid 13",
-				&BootstrapFrom{
-					PointInTimeRecoveryRef: &LocalObjectReference{
-						Name: "test",
-					},
-					S3: &S3{
-						Bucket: "test",
-					},
-				},
-				false,
-			),
-			// This case happens when setting PITR defaults with physical backup
-			Entry(
-				"Valid 14",
-				&BootstrapFrom{
-					PointInTimeRecoveryRef: &LocalObjectReference{
-						Name: "test",
-					},
-					AzureBlob: &AzureBlob{
-						ContainerName: "test",
 					},
 				},
 				false,

@@ -34,6 +34,7 @@ host-mxs-test: ## Add MaxScale test hosts to /etc/hosts.
 host-azurite: ## Add Azurite test hosts to /etc/hosts.
 	@./hack/add_host.sh 0 60 azurite.default.svc.cluster.local
 
+
 .PHONY: host-mariadb-repl
 host-mariadb-repl: ## Add mariadb repl hosts to /etc/hosts.
 	@./hack/add_host.sh 0 110 mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local
@@ -71,6 +72,7 @@ host-monitoring: ## Add monitoring hosts to /etc/hosts.
 .PHONY: host-minio
 host-minio: ## Add minio hosts to /etc/hosts.
 	@./hack/add_host.sh 0 200 minio
+	@./hack/add_host.sh 0 200 minio.minio.svc.cluster.local
 	@./hack/add_host.sh 0 201 minio-console
 
 .PHONY: host-maxscale-repl

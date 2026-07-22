@@ -7,7 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	replicationctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -136,12 +136,12 @@ func (r *MariaDBReconciler) filterPrimaryBinlogByDomain(ctx context.Context, mdb
 		logger.Info("gtid_binlog_state is empty, skipping reconciliation...")
 		return nil
 	}
-	binlogStateGtids, err := replication.ParseAllGtids(rawBinlogState)
+	binlogStateGtids, err := gtid.ParseAllGtids(rawBinlogState)
 	if err != nil {
 		return fmt.Errorf("error parsing gtid_binlog_state GTIDs %s: %v", rawBinlogState, err)
 	}
-	primaryGtids := replication.GtidsToString(
-		replication.FilterByDomain(binlogStateGtids, domainId)...,
+	primaryGtids := gtid.GtidsToString(
+		gtid.FilterByDomain(binlogStateGtids, domainId)...,
 	)
 
 	if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
@@ -165,12 +165,12 @@ func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, domai
 	if err != nil {
 		return fmt.Errorf("error getting replica GTID: %v", err)
 	}
-	replicaGtids, err := replication.ParseAllGtids(rawReplicaGtid)
+	replicaGtids, err := gtid.ParseAllGtids(rawReplicaGtid)
 	if err != nil {
 		return fmt.Errorf("error parsing replica GTID: %v", err)
 	}
-	replicaGtid := replication.GtidsToString(
-		replication.FilterByDomain(replicaGtids, domainId)...,
+	replicaGtid := gtid.GtidsToString(
+		gtid.FilterByDomain(replicaGtids, domainId)...,
 	)
 
 	if err := client.StopSlave(ctx); err != nil {
@@ -205,7 +205,7 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	if err != nil {
 		return fmt.Errorf("error getting gtid_binlog_pos: %v", err)
 	}
-	binlogPosGtids, err := replication.ParseAllGtids(rawBinlogPos)
+	binlogPosGtids, err := gtid.ParseAllGtids(rawBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error parsing gtid_binlog_pos GTIDs: %v", err)
 	}
@@ -220,7 +220,7 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	if err != nil {
 		return fmt.Errorf("error getting gtid_domain_id from external primary: %v", err)
 	}
-	if len(replication.FilterByDomain(binlogPosGtids, *externalDomainId)) > 0 {
+	if len(gtid.FilterByDomain(binlogPosGtids, *externalDomainId)) > 0 {
 		logger.Info(
 			"External domain ID found in primary replica GTID, skipping reconciliation...",
 			"domain-id", externalDomainId,
@@ -297,13 +297,13 @@ func (r *MariaDBReconciler) shouldReconcileMultiCluster(ctx context.Context, mdb
 }
 
 func composeGtids(rawGtid, rawExternalGtid string) (string, error) {
-	gtid, err := replication.ParseGtid(rawGtid)
+	gtidObj, err := gtid.ParseGtid(rawGtid)
 	if err != nil {
 		return "", fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
 	}
-	externalGtid, err := replication.ParseGtid(rawExternalGtid)
+	externalGtid, err := gtid.ParseGtid(rawExternalGtid)
 	if err != nil {
 		return "", fmt.Errorf("error parsing external GTID %s: %v", rawExternalGtid, err)
 	}
-	return replication.GtidsToString(*gtid, *externalGtid), nil
+	return gtid.GtidsToString(*gtidObj, *externalGtid), nil
 }

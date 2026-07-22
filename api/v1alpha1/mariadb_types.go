@@ -7,7 +7,7 @@ import (
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
-	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -307,8 +307,8 @@ func (b *BootstrapFrom) validateMutuallyExclusive() error {
 		}
 	}
 	if b.PointInTimeRecoveryRef != nil {
-		if b.BackupRef != nil || b.VolumeSnapshotRef != nil {
-			return errors.New("'backupRef' and 'volumeSnapshotRef' may not be set when 'pointInTimeRecoveryRef' is set")
+		if b.BackupRef != nil || b.VolumeSnapshotRef != nil || b.S3 != nil || b.AzureBlob != nil {
+			return errors.New("'backupRef', 'volumeSnapshotRef', 's3' and 'azureBlob' may not be set when 'pointInTimeRecoveryRef' is set")
 		}
 	}
 	return nil
@@ -841,7 +841,11 @@ type MariaDBPointInTimeRecoveryStatus struct {
 	// LastArchivedGtid is the last archived GTID.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	LastArchivedGtid *mariadbrepl.Gtid `json:"lastArchivedGtid,omitempty"`
+	LastArchivedGtid *gtid.Gtid `json:"lastArchivedGtid,omitempty"`
+	// GtidStrictModePaused indicates that gtid_strict_mode has been temporarily paused to replay binlogs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	GtidStrictModePaused *bool `json:"gtidStrictModePaused,omitempty"`
 	// StorageReadyForArchival indicates that the storage is ready for archival, meaning that the sidecar agent can start archiving the binary logs.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -1046,9 +1050,6 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 
 // IsPointInTimeRecoveryEnabled indicates whether binary log archival is activated to enable point-in-time recovery.
 func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
-	if !m.IsReplicationEnabled() {
-		return false
-	}
 	return m.Spec.PointInTimeRecoveryRef != nil
 }
 
