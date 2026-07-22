@@ -78,7 +78,7 @@ func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *sqlCl
 
 func (wf *wrappedGrantFinalizer) patch(ctx context.Context, grant *mariadbv1alpha1.Grant,
 	patchFn func(*mariadbv1alpha1.Grant)) error {
-	patch := client.MergeFrom(grant.DeepCopy())
+	patch := client.MergeFromWithOptions(grant.DeepCopy(), client.MergeFromWithOptimisticLock{})
 	patchFn(grant)
 
 	if err := wf.Patch(ctx, grant, patch); err != nil {

@@ -34,6 +34,7 @@ func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB) (*monito
 		int(mariadb.Spec.Replicas),
 		mariadb.InternalServiceKey().Name,
 		mariadb.Spec.Port,
+		mariadb.Status.CurrentPrimaryPodIndex,
 		withEndpointInterval(metrics.ServiceMonitor.Interval),
 		withEndpointScrapeTimeout(metrics.ServiceMonitor.ScrapeTimeout),
 	)
@@ -79,6 +80,7 @@ func (b *Builder) BuildMaxScaleServiceMonitor(mxs *mariadbv1alpha1.MaxScale) (*m
 		int(mxs.Spec.Replicas),
 		mxs.InternalServiceKey().Name,
 		mxs.Spec.Admin.Port,
+		nil,
 		withEndpointInterval(metrics.ServiceMonitor.Interval),
 		withEndpointScrapeTimeout(metrics.ServiceMonitor.ScrapeTimeout),
 	)
@@ -119,15 +121,16 @@ func withEndpointScrapeTimeout(scrapeTimeout string) endpointOpt {
 }
 
 func serviceMonitorEndpoints(objMeta metav1.ObjectMeta, replicas int, serviceName string, port int32,
-	opts ...endpointOpt) []monitoringv1.Endpoint {
+	primaryPodIndex *int, opts ...endpointOpt) []monitoringv1.Endpoint {
 	endpoints := make([]monitoringv1.Endpoint, replicas)
 
 	for i := 0; i < replicas; i++ {
 		podName := statefulset.PodName(objMeta, i)
 		podFQDN := statefulset.PodFQDNWithService(objMeta, i, serviceName)
 		endpoint := monitoringv1.Endpoint{
-			Path: "/probe",
-			Port: MetricsPortName,
+			Path:           "/probe",
+			Port:           MetricsPortName,
+			RelabelConfigs: roleRelabelConfig(i, primaryPodIndex),
 			MetricRelabelConfigs: []monitoringv1.RelabelConfig{
 				{
 					Action:      "replace",
@@ -159,4 +162,21 @@ func serviceMonitorEndpoints(objMeta metav1.ObjectMeta, replicas int, serviceNam
 		endpoints[i] = endpoint
 	}
 	return endpoints
+}
+
+func roleRelabelConfig(podIndex int, primaryPodIndex *int) []monitoringv1.RelabelConfig {
+	if primaryPodIndex == nil {
+		return nil
+	}
+	role := "replica"
+	if podIndex == *primaryPodIndex {
+		role = "primary"
+	}
+	return []monitoringv1.RelabelConfig{
+		{
+			Action:      "replace",
+			Replacement: ptr.To(role),
+			TargetLabel: "role",
+		},
+	}
 }

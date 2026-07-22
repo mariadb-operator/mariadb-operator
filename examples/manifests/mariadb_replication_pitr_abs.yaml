@@ -42,17 +42,17 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+        metallb.io/loadBalancerIPs: 172.18.0.120
   primaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+        metallb.io/loadBalancerIPs: 172.18.0.130
   secondaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+        metallb.io/loadBalancerIPs: 172.18.0.131
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: PointInTimeRecovery
@@ -64,7 +64,7 @@ spec:
   storage:
     azureBlob:
       containerName: binlogs
-      serviceURL: https://172.18.0.60:10000/devstoreaccount1
+      serviceURL: https://azurite.default.svc.cluster.local:10000/devstoreaccount1
       prefix: mariadb
       storageAccountName: devstoreaccount1
       storageAccountKey:
@@ -90,12 +90,14 @@ spec:
     cron: "0 0 * * *"
     suspend: false
     immediate: true
+    # Update this identifier to schedule an on-demand backup.
+    # onDemand: "1"
   compression: bzip2
   maxRetention: 720h # 30 days
   storage:
     azureBlob:
       containerName: physicalbackup
-      serviceURL: https://172.18.0.60:10000/devstoreaccount1
+      serviceURL: https://azurite.default.svc.cluster.local:10000/devstoreaccount1
       prefix: mariadb
       storageAccountName: devstoreaccount1
       storageAccountKey:

@@ -38,6 +38,7 @@ type mariadbPodOpts struct {
 	includeProbes                bool
 	includeHAAnnotations         bool
 	includeAffinity              bool
+	includeLifecycle             bool
 }
 
 func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
@@ -188,8 +189,19 @@ func withHAAnnotations(includeHAAnnotations bool) mariadbPodOpt {
 	}
 }
 
+func withLifecycle(includeLifecycle bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeLifecycle = includeLifecycle
+	}
+}
+
 func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) (*corev1.PodTemplateSpec, error) {
-	containers, err := b.mariadbContainers(mariadb, opts...)
+	containerOpts := []mariadbPodOpt{
+		withLifecycle(true),
+	}
+	containerOpts = append(containerOpts, opts...)
+
+	containers, err := b.mariadbContainers(mariadb, containerOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
@@ -228,25 +240,27 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
-			AutomountServiceAccountToken: ptr.To(false),
-			ServiceAccountName:           mariadbServiceAccount(mariadb, opts...),
-			RestartPolicy:                ptr.Deref(mariadbOpts.restartPolicy, corev1.RestartPolicyAlways),
-			InitContainers:               initContainers,
-			Containers:                   containers,
-			ImagePullSecrets:             kadapter.ToKubernetesSlice(mariadb.Spec.ImagePullSecrets),
-			Volumes:                      volumes,
-			SecurityContext:              securityContext,
-			Affinity:                     mariadbAffinity(mariadb, opts...),
-			NodeSelector:                 mariadbNodeSelector(mariadb, opts...),
-			Tolerations:                  mariadb.Spec.Tolerations,
-			PriorityClassName:            ptr.Deref(mariadb.Spec.PriorityClassName, ""),
-			TopologySpreadConstraints:    mariadbTopologySpreadConstraints(mariadb, opts...),
+			AutomountServiceAccountToken:  ptr.To(false),
+			EnableServiceLinks:            mariadb.Spec.EnableServiceLinks,
+			ServiceAccountName:            mariadbServiceAccount(mariadb, opts...),
+			RestartPolicy:                 ptr.Deref(mariadbOpts.restartPolicy, corev1.RestartPolicyAlways),
+			InitContainers:                initContainers,
+			Containers:                    containers,
+			ImagePullSecrets:              kadapter.ToKubernetesSlice(mariadb.Spec.ImagePullSecrets),
+			Volumes:                       volumes,
+			SecurityContext:               securityContext,
+			Affinity:                      mariadbAffinity(mariadb, opts...),
+			NodeSelector:                  mariadbNodeSelector(mariadb, opts...),
+			Tolerations:                   mariadb.Spec.Tolerations,
+			PriorityClassName:             ptr.Deref(mariadb.Spec.PriorityClassName, ""),
+			TopologySpreadConstraints:     mariadbTopologySpreadConstraints(mariadb, opts...),
+			TerminationGracePeriodSeconds: mariadb.Spec.TerminationGracePeriodSeconds,
 		},
 	}, nil
 }
 
 func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations map[string]string) (*corev1.PodTemplateSpec, error) {
-	containers, err := b.maxscaleContainers(mxs)
+	containers, err := b.maxscaleContainers(mxs, withLifecycle(true))
 	if err != nil {
 		return nil, err
 	}
@@ -273,6 +287,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
+			EnableServiceLinks:           mxs.Spec.EnableServiceLinks,
 			ServiceAccountName:           ptr.Deref(mxs.Spec.ServiceAccountName, mxs.Name),
 			Containers:                   containers,
 			ImagePullSecrets:             kadapter.ToKubernetesSlice(mxs.Spec.ImagePullSecrets),

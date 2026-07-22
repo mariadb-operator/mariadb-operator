@@ -31,7 +31,7 @@ type PhysicalBackupPodTemplate struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -97,6 +97,11 @@ type PhysicalBackupSchedule struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Immediate *bool `json:"immediate,omitempty"`
+	// OnDemand is an identifier used to trigger an on-demand backup.
+	// If the identifier is different than the one tracked under status.lastScheduleOnDemand, a new physical backup will be triggered.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	OnDemand *string `json:"onDemand,omitempty"`
 }
 
 // Validate determines whether a PhysicalBackupSchedule is valid.
@@ -231,6 +236,11 @@ type PhysicalBackupSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+	// FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. It defaults to 5.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
 	// LogLevel to be used in the PhysicalBackup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
@@ -257,6 +267,10 @@ type PhysicalBackupStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	NextScheduleTime *metav1.Time `json:"nextScheduleTime,omitempty"`
+	// LastScheduleOnDemand is the last on-demand schedule identifier.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastScheduleOnDemand *string `json:"lastScheduleOnDemand,omitempty"`
 }
 
 func (b *PhysicalBackupStatus) SetCondition(condition metav1.Condition) {
@@ -339,6 +353,9 @@ func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.SuccessfulJobsHistoryLimit == nil {
 		b.Spec.SuccessfulJobsHistoryLimit = ptr.To(int32(5))
 	}
+	if b.Spec.FailedJobsHistoryLimit == nil {
+		b.Spec.FailedJobsHistoryLimit = ptr.To(int32(5))
+	}
 	b.Spec.SetDefaults(b)
 }
 
@@ -398,8 +415,4 @@ func (m *PhysicalBackupList) ListItems() []client.Object {
 		items[i] = item.DeepCopy()
 	}
 	return items
-}
-
-func init() {
-	SchemeBuilder.Register(&PhysicalBackup{}, &PhysicalBackupList{})
 }

@@ -21,6 +21,7 @@ type Client struct {
 	Galera      *Galera
 	Replication *Replication
 	Gtid        *Gtid
+	Environment *Environment
 }
 
 func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
@@ -33,6 +34,7 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 		Galera:      NewGalera(httpClient),
 		Replication: NewReplication(httpClient),
 		Gtid:        NewGtid(httpClient),
+		Environment: NewEnvironment(httpClient),
 	}, nil
 }
 

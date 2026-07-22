@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
@@ -93,7 +94,7 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -153,7 +154,7 @@ func TestMariadbPodMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -179,7 +180,7 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -209,7 +210,7 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -243,7 +244,7 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -270,7 +271,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -309,7 +310,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -843,7 +844,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						Affinity: &mariadbv1alpha1.AffinityConfig{
 							AntiAffinityEnabled: ptr.To(true),
 						},
@@ -863,7 +864,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						TopologySpreadConstraints: []mariadbv1alpha1.TopologySpreadConstraint{
 							{
 								MaxSkew:     1,
@@ -904,7 +905,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						Affinity: &mariadbv1alpha1.AffinityConfig{
 							AntiAffinityEnabled: ptr.To(true),
 						},
@@ -933,7 +934,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						Affinity: &mariadbv1alpha1.AffinityConfig{
 							AntiAffinityEnabled: ptr.To(true),
 						},
@@ -962,7 +963,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						Affinity: &mariadbv1alpha1.AffinityConfig{
 							Affinity: mariadbv1alpha1.Affinity{
 								NodeAffinity: &mariadbv1alpha1.NodeAffinity{
@@ -1026,6 +1027,89 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 	}
 }
 
+func TestMariadbPodLifecycleOnlyFirst(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-mariadb-lifecycle",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PostStart: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+				SidecarContainers: []mariadbv1alpha1.Container{
+					{
+						Image: "busybox",
+						Command: []string{
+							"sh",
+							"-c",
+							"sleep 1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	podTpl, err := builder.mariadbPodTemplate(mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+	}
+
+	if len(podTpl.Spec.Containers) < 2 {
+		t.Fatalf("expected at least two containers, got %d", len(podTpl.Spec.Containers))
+	}
+
+	if podTpl.Spec.Containers[0].Lifecycle == nil {
+		t.Error("expected lifecycle on first container")
+	}
+	if podTpl.Spec.Containers[1].Lifecycle != nil {
+		t.Error("did not expect lifecycle on second (sidecar) container")
+	}
+}
+
+func TestMaxScalePodLifecycleSingle(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	mxs := &mariadbv1alpha1.MaxScale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-maxscale-lifecycle",
+		},
+		Spec: mariadbv1alpha1.MaxScaleSpec{
+			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PostStart: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+	if err != nil {
+		t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+	}
+
+	if len(podTpl.Spec.Containers) != 1 {
+		t.Fatalf("expected one container, got %d", len(podTpl.Spec.Containers))
+	}
+
+	if podTpl.Spec.Containers[0].Lifecycle == nil {
+		t.Error("expected lifecycle on maxscale container")
+	}
+}
+
 func TestMariadbPodBuilderInitContainers(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
@@ -1042,7 +1126,7 @@ func TestMariadbPodBuilderInitContainers(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: nil,
 					},
 				},
@@ -1055,7 +1139,7 @@ func TestMariadbPodBuilderInitContainers(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
 							{
 								Image: "busybox:latest",
@@ -1113,7 +1197,7 @@ func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: nil,
 					},
 				},
@@ -1126,7 +1210,7 @@ func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
 								Image: "busybox:latest",
@@ -1251,5 +1335,50 @@ func TestMariadbConfigVolume(t *testing.T) {
 	expectedKey = "my.cnf"
 	if volume.Projected.Sources[1].ConfigMap.Items[0].Key != expectedKey {
 		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
+	}
+}
+
+func TestMariadbTerminationGracePeriodSeconds(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name: "test-mariadb-termination-grace",
+	}
+
+	tests := []struct {
+		name string
+		tgs  *int64
+	}{
+		{
+			name: "unset",
+			tgs:  nil,
+		},
+		{
+			name: "set",
+			tgs:  ptr.To(int64(5)),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mariadb := &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						TerminationGracePeriodSeconds: tt.tgs,
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			}
+
+			podTpl, err := builder.mariadbPodTemplate(mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+			if diff := cmp.Diff(podTpl.Spec.TerminationGracePeriodSeconds, tt.tgs); diff != "" {
+				t.Errorf("unexpected TerminationGracePeriodSeconds(-want +got):\n%s", diff)
+			}
+		})
 	}
 }

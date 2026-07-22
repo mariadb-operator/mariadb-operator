@@ -113,7 +113,7 @@ type ContainerTemplate struct {
 	// VolumeMounts to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty" webhook:"inmutable"`
+	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty"`
 	// LivenessProbe to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -134,6 +134,9 @@ type ContainerTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SecurityContext *SecurityContext `json:"securityContext,omitempty"`
+	// Lifecycle are actions that the management system should take in response to container lifecycle events.
+	// +optional
+	Lifecycle *Lifecycle `json:"lifecycle,omitempty"`
 }
 
 // JobContainerTemplate defines a template to configure Container objects that run in a Job.
@@ -435,76 +438,6 @@ func (a *AffinityConfig) SetDefaults(antiAffinityInstances ...string) {
 	}
 }
 
-// PodTemplate defines a template to configure Container objects.
-type PodTemplate struct {
-	// PodMetadata defines extra metadata for the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PodMetadata *Metadata `json:"podMetadata,omitempty"`
-	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
-	// InitContainers to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	InitContainers []Container `json:"initContainers,omitempty"`
-	// SidecarContainers to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SidecarContainers []Container `json:"sidecarContainers,omitempty"`
-	// SecurityContext holds pod-level security attributes and common container settings.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PodSecurityContext *PodSecurityContext `json:"podSecurityContext,omitempty"`
-	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutableinit"`
-	// Affinity to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Affinity *AffinityConfig `json:"affinity,omitempty"`
-	// NodeSelector to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// Tolerations to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Volumes to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Volumes []Volume `json:"volumes,omitempty"`
-	// PriorityClassName to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PriorityClassName *string `json:"priorityClassName,omitempty"`
-	// TopologySpreadConstraints to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	TopologySpreadConstraints []TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
-}
-
-// SetDefaults sets reasonable defaults.
-func (p *PodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
-	if p.ServiceAccountName == nil {
-		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
-	}
-	if p.Affinity != nil {
-		p.Affinity.SetDefaults(objMeta.Name)
-	}
-}
-
-// ServiceAccountKey defines the key for the ServiceAccount object.
-func (p *PodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
-		Namespace: objMeta.Namespace,
-	}
-}
-
 // JobPodTemplate defines a template to configure Container objects that run in a Job.
 type JobPodTemplate struct {
 	// PodMetadata defines extra metadata for the Pod.
@@ -514,7 +447,7 @@ type JobPodTemplate struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -542,7 +475,7 @@ type JobPodTemplate struct {
 }
 
 // FromPodTemplate sets the PodTemplate fields in the current JobPodTemplate.
-func (j *JobPodTemplate) FromPodTemplate(ptpl *PodTemplate) {
+func (j *JobPodTemplate) FromPodTemplate(ptpl *MariaDBPodTemplate) {
 	if j.PodMetadata == nil {
 		j.PodMetadata = ptpl.PodMetadata
 	}
@@ -738,19 +671,19 @@ type AzureBlob struct {
 	// ContainerName is the name of the storage container.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerName string `json:"containerName" webhook:"inmutable"`
+	ContainerName string `json:"containerName"`
 	// ServiceURL is the full URL for connecting to Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ServiceURL string `json:"serviceURL" webhook:"inmutable"`
+	ServiceURL string `json:"serviceURL"`
 	// Prefix indicates a folder/subfolder in the container. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Prefix string `json:"prefix" webhook:"inmutable"`
+	Prefix string `json:"prefix"`
 	// StorageAccountName is the name of the storage account. Pairs with StorageAccountKey for static credential authentication
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	StorageAccountName string `json:"storageAccountName,omitempty" webhook:"inmutable"`
+	StorageAccountName string `json:"storageAccountName,omitempty"`
 	// StorageAccountKey is a reference to a Secret key containing the Azure Blob Storage Storage account Key. Pairs with StorageAccountKey for static credential authentication
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -765,19 +698,19 @@ type S3 struct {
 	// Bucket is the name Name of the bucket to store backups.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Bucket string `json:"bucket" webhook:"inmutable"`
+	Bucket string `json:"bucket"`
 	// Endpoint is the S3 API endpoint without scheme.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Endpoint string `json:"endpoint" webhook:"inmutable"`
+	Endpoint string `json:"endpoint"`
 	// Region is the S3 region name to use.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Region string `json:"region" webhook:"inmutable"`
+	Region string `json:"region"`
 	// Prefix indicates a folder/subfolder in the bucket. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Prefix string `json:"prefix" webhook:"inmutable"`
+	Prefix string `json:"prefix"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -1075,7 +1008,7 @@ type Exporter struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// Args to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -1140,7 +1073,7 @@ type tlsValidationItem struct {
 	caFieldPath         string
 	certSecretRef       *LocalObjectReference
 	certFieldPath       string
-	certIssuerRef       *cmmeta.ObjectReference
+	certIssuerRef       *cmmeta.IssuerReference
 	certIssuerFieldPath string
 }
 
@@ -1164,4 +1097,12 @@ func validateTLSCert(item *tlsValidationItem) error {
 		)
 	}
 	return nil
+}
+
+// Cordoning defines the parameters for cordoning a resource, resulting in the connections being blocked.
+type Cordoning struct {
+	// Cordon blocks connections to the resource.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Cordon bool `json:"cordon,omitempty"`
 }

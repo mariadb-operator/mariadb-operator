@@ -50,19 +50,23 @@ var _ = Describe("ContextReader", func() {
 	})
 
 	It("should return a context deadline exceeded error", func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+		timeout := 1 * time.Second
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(timeout)
+
 		cr := &ContextReader{
 			ctx:           ctx,
 			wrappedReader: bytes.NewReader([]byte("hello world")),
 		}
-		p := make([]byte, 1)
-		n, err := cr.Read(p)
-
-		Expect(n).To(BeZero())
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring(context.DeadlineExceeded.Error()))
+		Eventually(func(g Gomega) bool {
+			p := make([]byte, 1)
+			n, err := cr.Read(p)
+			g.Expect(n).To(BeZero())
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(err.Error()).To(ContainSubstring(context.DeadlineExceeded.Error()))
+			return true
+		}, 1*time.Minute, 1*time.Second).Should(BeTrue())
 	})
 
 	It("should propagate the error", func() {

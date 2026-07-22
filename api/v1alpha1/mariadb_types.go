@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -465,7 +466,7 @@ type TLS struct {
 	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via serverCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServerCertIssuerRef *cmmeta.ObjectReference `json:"serverCertIssuerRef,omitempty"`
+	ServerCertIssuerRef *cmmeta.IssuerReference `json:"serverCertIssuerRef,omitempty"`
 	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue client certificates.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
@@ -484,12 +485,144 @@ type TLS struct {
 	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via clientCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientCertIssuerRef *cmmeta.ObjectReference `json:"clientCertIssuerRef,omitempty"`
+	ClientCertIssuerRef *cmmeta.IssuerReference `json:"clientCertIssuerRef,omitempty"`
 	// GaleraSSTEnabled determines whether Galera SST connections should use TLS.
 	// It disabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GaleraSSTEnabled *bool `json:"galeraSSTEnabled,omitempty"`
+	// ServerCertAdditionalNames is a list of additional certificate common names
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCertAdditionalNames []string `json:"serverCertAdditionalNames,omitempty"`
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
+type MariaDBVolumeSource struct {
+	VolumeSource `json:",inline"`
+	// +optional
+	Ephemeral *EphemeralVolumeSource `json:"ephemeral,omitempty"`
+}
+
+func (v MariaDBVolumeSource) ToKubernetesType() corev1.VolumeSource {
+	volumeSource := v.VolumeSource.ToKubernetesType()
+	if v.Ephemeral != nil {
+		volumeSource.Ephemeral = ptr.To(v.Ephemeral.ToKubernetesType())
+	}
+	return volumeSource
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
+type MariaDBVolume struct {
+	MariaDBVolumeSource `json:",inline"`
+	Name                string `json:"name"`
+}
+
+func (v MariaDBVolume) ToKubernetesType() corev1.Volume {
+	return corev1.Volume{
+		Name:         v.Name,
+		VolumeSource: v.MariaDBVolumeSource.ToKubernetesType(),
+	}
+}
+
+// MariaDBPodTemplate defines a template for MariaDB Pods. Refer to the Kubernetes dos: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pod-v1-core.
+type MariaDBPodTemplate struct {
+	// PodMetadata defines extra metadata for the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PodMetadata *Metadata `json:"podMetadata,omitempty"`
+	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	// InitContainers to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	InitContainers []Container `json:"initContainers,omitempty"`
+	// SidecarContainers to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SidecarContainers []Container `json:"sidecarContainers,omitempty"`
+	// SecurityContext holds pod-level security attributes and common container settings.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PodSecurityContext *PodSecurityContext `json:"podSecurityContext,omitempty"`
+	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutableinit"`
+	// Affinity to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Affinity *AffinityConfig `json:"affinity,omitempty"`
+	// NodeSelector to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// Tolerations to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Volumes to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Volumes []MariaDBVolume `json:"volumes,omitempty"`
+	// PriorityClassName to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PriorityClassName *string `json:"priorityClassName,omitempty"`
+	// TopologySpreadConstraints to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	TopologySpreadConstraints []TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	// EnableServiceLinks to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	EnableServiceLinks *bool `json:"enableServiceLinks,omitempty"`
+	// TerminationGracePeriodSeconds to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (p *MariaDBPodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
+	if p.ServiceAccountName == nil {
+		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
+	}
+	if p.Affinity != nil {
+		p.Affinity.SetDefaults(objMeta.Name)
+	}
+}
+
+// ServiceAccountKey defines the key for the ServiceAccount object.
+func (p *MariaDBPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
+		Namespace: objMeta.Namespace,
+	}
+}
+
+// MariaDBMaintenance defines different capabilities of the operator to allow for maintenance to be performed on MariaDB.
+type MariaDBMaintenance struct {
+	Cordoning `json:",inline"`
+	// Enabled turns on maintenance mode
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
+	// DrainConnections determines whether all connections in MariaDB should be drained after `drainGracePeriodSeconds`.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	DrainConnections bool `json:"drainConnections,omitempty"`
+	// DrainGracePeriodSeconds defines the grace period in seconds before a connection in MariaDB is drained.
+	// +optional
+	// +kubebuilder:default=30
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	DrainGracePeriodSeconds int `json:"drainGracePeriodSeconds,omitempty"`
+	// ReadOnly will allow only read statements to be performed on the resource.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
@@ -497,9 +630,9 @@ type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
-	// PodTemplate defines templates to configure Pod objects.
+	// MariaDBPodTemplate defines templates to configure Pod objects.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodTemplate `json:",inline"`
+	MariaDBPodTemplate `json:",inline"`
 	// SuspendTemplate defines whether the MariaDB reconciliation loop is enabled. This can be useful for maintenance, as disabling the reconciliation loop prevents the operator from interfering with user operations during maintenance activities.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SuspendTemplate `json:",inline"`
@@ -592,6 +725,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
+	// MultiCluster configures the multi-cluster topology.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MultiCluster *MultiCluster `json:"multiCluster,omitempty"`
 	// MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.
 	// Providing this reference implies delegating high availability tasks such as primary failover to MaxScale.
 	// +optional
@@ -660,6 +797,11 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
+	// Maintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.
+	// Not to be confused with `suspend`, maintenance does not interfere with the normal reconciliation of the operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Maintenance *MariaDBMaintenance `json:"maintenance,omitempty"`
 }
 
 // MariaDBTLSStatus aggregates the status of the certificates used by the MariaDB instance.
@@ -731,6 +873,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	CurrentPrimaryFailingSince *metav1.Time `json:"currentPrimaryFailingSince,omitempty"`
+	// CurrentMultiClusterPrimary is the current primary cluster name when using the multi-cluster topology.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	CurrentMultiClusterPrimary *string `json:"currentMultiClusterPrimary,omitempty"`
 	// ScaleOutInitialIndex is the initial index where the scale out operation started.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -757,6 +903,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	PointInTimeRecovery *MariaDBPointInTimeRecoveryStatus `json:"pointInTimeRecovery,omitempty"`
+	// RootPasswordHash is a hash of the root password. It is used to avoid unnecessary reconciliations.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	RootPasswordHash *string `json:"rootPasswordHash,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB
@@ -887,6 +1037,12 @@ func (m *MariaDB) IsHAEnabled() bool {
 	return m.IsReplicationEnabled() || m.IsGaleraEnabled()
 }
 
+// HasPendingHATopologyConfiguration indicates that an HA topology has been enabled, but not yet configured
+func (m *MariaDB) HasPendingHATopologyConfiguration() bool {
+	return (m.IsReplicationEnabled() && !m.HasConfiguredReplication()) ||
+		(m.IsGaleraEnabled() && !m.HasGaleraConfiguredCondition())
+}
+
 // IsMaxScaleEnabled indicates that a MaxScale instance is forwarding traffic to this MariaDB instance
 func (m *MariaDB) IsMaxScaleEnabled() bool {
 	return m.Spec.MaxScaleRef != nil
@@ -895,6 +1051,14 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 // IsPointInTimeRecoveryEnabled indicates whether binary log archival is activated to enable point-in-time recovery.
 func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
 	return m.Spec.PointInTimeRecoveryRef != nil
+}
+
+// InternalRootPasswordSecretKey returns the key for the internal root password secret.
+func (m *MariaDB) InternalRootPasswordSecretKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("internal-%s", m.Name),
+		Namespace: m.Namespace,
+	}
 }
 
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
@@ -1100,13 +1264,39 @@ func (m *MariaDB) ScalingOutError() error {
 	return nil
 }
 
-// ServerDNSNames are the Service DNS names used by server TLS certificates.
+// IsMaintenanceModeEnabled indicates whether the maintenance mode is enabled.
+func (m *MariaDB) IsMaintenanceModeEnabled() bool {
+	return ptr.Deref(m.Spec.Maintenance, MariaDBMaintenance{}).Enabled
+}
+
+// IsCordonEnabled indicates whether the cordoning is enabled.
+func (m *MariaDB) IsCordonEnabled() bool {
+	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.Cordon
+}
+
+// IsCordoned indicates that the reason the database is not ready is because it is cordoned
+// Since cordoned means connections are blocked, we set the status to not ready
+func (m *MariaDB) IsCordoned() bool {
+	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeReady)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonCordoned
+}
+
+// IsReadOnlyEnabled indicates whether the readonly is enabled.
+func (m *MariaDB) IsReadOnlyEnabled() bool {
+	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.ReadOnly
+}
+
+// TLSServerDNSNames are the Service DNS names used by server TLS certificates.
 func (m *MariaDB) TLSServerDNSNames() []string {
 	var names []string
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.Name)...)
 	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.PrimaryServiceKey().Name)...)
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.SecondaryServiceKey().Name)...)
+	names = append(names, ptr.Deref(m.Spec.TLS, TLS{}).ServerCertAdditionalNames...)
 	names = append(names, "localhost")
 	return names
 }
@@ -1205,6 +1395,23 @@ func (m *MariaDB) GetDataPlaneAgent() (*Topology, *Agent, error) {
 	return nil, nil, errors.New("agent could not be found")
 }
 
+// OrderedPodIndexes returns the MariaDB Pod indexes in order,
+// starting with the primary and following by the replicas in index ascending order.
+func (m *MariaDB) OrderedPodIndexes() ([]int, error) {
+	if m.Status.CurrentPrimaryPodIndex == nil {
+		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	podIndexes := []int{
+		*m.Status.CurrentPrimaryPodIndex,
+	}
+	for i := 0; i < int(m.Spec.Replicas); i++ {
+		if i != *m.Status.CurrentPrimaryPodIndex {
+			podIndexes = append(podIndexes, i)
+		}
+	}
+	return podIndexes, nil
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB
@@ -1221,8 +1428,4 @@ func (m *MariaDBList) ListItems() []client.Object {
 		items[i] = item.DeepCopy()
 	}
 	return items
-}
-
-func init() {
-	SchemeBuilder.Register(&MariaDB{}, &MariaDBList{})
 }

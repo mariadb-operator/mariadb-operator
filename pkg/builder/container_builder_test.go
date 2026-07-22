@@ -1184,6 +1184,113 @@ func TestContainerSecurityContext(t *testing.T) {
 	}
 }
 
+func TestBuildContainerLifecycle(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	tests := []struct {
+		name      string
+		container *mariadbv1alpha1.ContainerTemplate
+		opts      []mariadbPodOpt
+		want      *corev1.Lifecycle
+	}{
+
+		{
+			name:      "no lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{},
+			opts: []mariadbPodOpt{
+				withLifecycle(true),
+			},
+			want: nil,
+		},
+		{
+			name: "with postStart lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PostStart: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withLifecycle(true),
+			},
+			want: &corev1.Lifecycle{
+				PostStart: &corev1.LifecycleHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"echo", "hello"},
+					},
+				},
+			},
+		},
+		{
+			name: "with preStop lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PreStop: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withLifecycle(true),
+			},
+			want: &corev1.Lifecycle{
+				PreStop: &corev1.LifecycleHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"echo", "hello"},
+					},
+				},
+			},
+		},
+		{
+			name: "without lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PreStop: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withLifecycle(false),
+			},
+			want: nil,
+		},
+		{
+			name: "defaults to no lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PreStop: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := builder.buildContainerWithTemplate("mariadb", corev1.PullIfNotPresent, tt.container, tt.opts...)
+			if err != nil {
+				t.Fatalf("unexpected error building container: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.want, got.Lifecycle); diff != "" {
+				t.Errorf("unexpected Lifecycle (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestMariadbEnv(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -1306,6 +1413,8 @@ func TestMariadbEnv(t *testing.T) {
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
 							GtidStrictMode:     ptr.To(true),
+							GtidDomainID:       ptr.To(10),
+							ServerIDStartIndex: ptr.To(100),
 							SemiSyncEnabled:    ptr.To(true),
 							SemiSyncAckTimeout: &metav1.Duration{Duration: 10 * time.Second},
 							SemiSyncWaitPoint:  ptr.To(mariadbv1alpha1.WaitPointAfterCommit),
@@ -1328,6 +1437,14 @@ func TestMariadbEnv(t *testing.T) {
 					{
 						Name:  "MARIADB_REPL_GTID_STRICT_MODE",
 						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_GTID_DOMAIN_ID",
+						Value: "10",
+					},
+					{
+						Name:  "MARIADB_REPL_SERVER_ID_START_INDEX",
+						Value: "100",
 					},
 					{
 						Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
@@ -1738,7 +1855,7 @@ func TestMariadbContainers(t *testing.T) {
 			name: "Without sidecar container name",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
 								Image: "busybox",
@@ -1760,7 +1877,7 @@ func TestMariadbContainers(t *testing.T) {
 			name: "With sidecar container name",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1784,7 +1901,7 @@ func TestMariadbContainers(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1822,7 +1939,7 @@ func TestMariadbContainers(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1903,7 +2020,7 @@ func TestMariadbInitContainers(t *testing.T) {
 			name: "Without container name",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
 							{
 								Image: "busybox",
@@ -1925,7 +2042,7 @@ func TestMariadbInitContainers(t *testing.T) {
 			name: "With container name",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1949,7 +2066,7 @@ func TestMariadbInitContainers(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1987,7 +2104,7 @@ func TestMariadbInitContainers(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",

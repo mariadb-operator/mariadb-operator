@@ -28,17 +28,17 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+        metallb.io/loadBalancerIPs: 172.18.0.120
   primaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+        metallb.io/loadBalancerIPs: 172.18.0.130
   secondaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+        metallb.io/loadBalancerIPs: 172.18.0.131
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: PointInTimeRecovery
@@ -79,6 +79,8 @@ spec:
     cron: "0 0 * * *"
     suspend: false
     immediate: true
+    # Update this identifier to schedule an on-demand backup.
+    # onDemand: "1"
   compression: bzip2
   maxRetention: 720h # 30 days
   storage:

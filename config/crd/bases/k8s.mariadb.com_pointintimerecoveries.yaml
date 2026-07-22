@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.20.0
+    controller-gen.kubebuilder.io/version: v0.21.0
   name: pointintimerecoveries.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -23,6 +23,9 @@ spec:
     - jsonPath: .status.lastRecoverableTime
       name: Last Recoverable Time
       type: string
+    - jsonPath: .spec.strictMode
+      name: Strict Mode
+      type: boolean
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date

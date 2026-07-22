@@ -274,6 +274,10 @@ func (c *AzBlobClient) IsAuthenticated(ctx context.Context) bool {
 	return true
 }
 
+func (c *AzBlobClient) IsNotFound(err error) bool {
+	return getStatusCodeFromErr(err) == http.StatusNotFound
+}
+
 func (c *AzBlobClient) getFilePath(fileName string) string {
 	if filepath.IsAbs(fileName) {
 		return fileName

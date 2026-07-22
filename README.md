@@ -24,20 +24,25 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Multiple [highly available](./docs/high_availability.md) topologies supported:
   - [Asynchronous replication](./docs/replication.md)
   - [Synchronous multi-master via Galera](./docs/galera.md)
+  - __[Multi-cluster](./docs/multi-cluster.md)✨__: cross-cluster replication for multi-region deployments, disaster recovery, and blue-green upgrades.
   - [MaxScale](./docs/maxscale.md) as database proxy to load balance requests and perform  failover/switchover operations
 - Flexible [storage](./docs/storage.md) configuration. [Volume expansion](./docs/storage.md#volume-resize).
 - [Physical backups](./docs/physical_backup.md) based on [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) and [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).
 - [Logical backups](./docs/logical_backup.md) based on [mariadb-dump](https://mariadb.com/docs/server/clients-and-utilities/backup-restore-and-import-clients/mariadb-dump). 
-- Multiple [backup storage types](./docs/physical_backup.md#storage-types): S3 compatible, PVCs, Kubernetes volumes and `VolumeSnapshots`.
+- Multiple [backup storage types](./docs/physical_backup.md#storage-types): S3 compatible, Azure Blob Storage, PVCs, Kubernetes volumes and `VolumeSnapshots`.
 - Flexible backup configuration: [scheduling](./docs/physical_backup.md#scheduling), [compression](./docs/physical_backup.md#compression), [encryption](./docs/physical_backup.md#server-side-encryption-with-customer-provided-keys-sse-c), [retention policy](./docs/physical_backup.md#retention-policy), [target policy](./docs/physical_backup.md#target-policy), [timeout](./docs/physical_backup.md#timeout), [staging area](./docs/physical_backup.md#staging-area)...
 - [Target recovery time](./docs/physical_backup.md#target-recovery-time): restore the closest available backup to the specified time.
-- [Bootstrap new instances](./docs/physical_backup.md#restoration) from: Physical backups, logical backups, S3, PVCs, `VolumeSnapshots`...
+- [Bootstrap new instances](./docs/physical_backup.md#restoration) from: Physical backups, logical backups, S3, Azure Blob Storage, PVCs, `VolumeSnapshots`...
+- [Point-In-Time-Recovery](./docs/pitr.md): Archive binary logs to enable point-in-time restoration and significantly reduce RPO.
 - [Cluster-aware rolling update](./docs/updates.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
+- Zero-downtime blue-green updates: leverage the [multi-cluster topology](./docs/multi-cluster.md) to maintain two identical cluster topologies, upgrade one in the background, and switch between them without downtime.
 - Manual [update strategies](./docs/updates.md#update-strategies): `OnDelete` and `Never`.
 - Automated [data-plane updates](./docs/updates.md#auto-update-data-plane).
 - [my.cnf change detection](./docs/configuration.md#mycnf). Automatically trigger [updates](./docs/updates.md) when my.cnf changes.
 - [Suspend](./docs/suspend.md) operator reconciliation for maintenance operations.
+- [Maintenance mode](./docs/maintenance.md) for safe operational windows: cordon, drain connections, and read-only modes.
 - Issue, configure and rotate [TLS certificates](./docs/tls.md) and CAs.
+- Automated [root password rotation](./docs/security.md#root-password-rotation) by updating the referenced `Secret`.
 - Native integration with [cert-manager](https://github.com/cert-manager/cert-manager). Automatically create `Certificate` resources.
 - [Prometheus metrics](./docs/metrics.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) and maxscale-exporter.
 - Native integration with [prometheus-operator](https://github.com/prometheus-operator/prometheus-operator). Automatically create `ServiceMonitor` resources.
@@ -50,6 +55,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 - Install it using [helm](./docs/helm.md), [OLM](https://operatorhub.io/operator/mariadb-operator) or [static manifests](./deploy/manifests).
 - Multiple [deployment modes](./docs/helm.md#deployment-modes): cluster-wide and single namespace.
+- Helm charts published as [OCI artifacts](./docs/helm.md#oci-based-installation).
 - Helm chart to deploy [MariaDB clusters](./docs/helm.md#mariadb-cluster-helm-chart) and its associated CRs.
 - Multi-arch distroless [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - [GitOps](#gitops) friendly.
@@ -64,17 +70,18 @@ For example Custom Resources (CRs) demonstrating how to use the operator, refer 
 
 ## Helm installation
 
-You can easily deploy the operator to your cluster by installing the `mariadb-operator-crds` and `mariadb-operator` Helm charts:
+Helm charts are available as [OCI images on GitHub Container Registry](./docs/helm.md#oci-based-installation):
 
 ```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
-helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
-helm install mariadb-operator mariadb-operator/mariadb-operator
+helm install mariadb-operator-crds oci://ghcr.io/mariadb-operator/charts/mariadb-operator-crds
+helm install mariadb-operator oci://ghcr.io/mariadb-operator/charts/mariadb-operator
+helm install mariadb-cluster oci://ghcr.io/mariadb-operator/charts/mariadb-cluster
 ```
 
 Refer to the [helm documentation](./docs/helm.md) for further detail.
 
 ## Upgrading from older releases
+
 When upgrading from an older version of the operator, it’s important to understand how both operator and operand resources are affected.  Ensure you read both the [updates section of the helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/helm.md#updates), and the [release notes](https://github.com/mariadb-operator/mariadb-operator/releases) for any additional version-specific steps that may be required. Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version to the next.
 
 ## Openshift installation
@@ -102,8 +109,8 @@ This [migration guide](./docs/logical_backup.md#migrating-an-external-mariadb-to
 
 We are actively working on the following features, which will be released in upcoming versions. Stay tuned!
 
-- [ ] [Point In Time Recovery (PITR)](https://github.com/mariadb-operator/mariadb-operator/issues/507)
-- [ ] [Multi-cluster topology](https://github.com/mariadb-operator/mariadb-operator/issues/1543)
+- [x] ~~[Point In Time Recovery (PITR)](https://github.com/mariadb-operator/mariadb-operator/issues/507)~~
+- [x] ~~[Multi-cluster topology](https://github.com/mariadb-operator/mariadb-operator/issues/1543)~~
 
 ## Adopters
 
@@ -113,12 +120,13 @@ Please create a PR and add your company or project to our [ADOPTERS.md file](./A
 
 We welcome and encourage contributions to this project! Please check our [contributing](./CONTRIBUTING.md) and [development](./docs/development.md) guides. PRs welcome!
 
-## Star history
-
-[![Star history](https://api.star-history.com/svg?repos=mariadb-operator/mariadb-operator&type=Date)](https://star-history.com/#mariadb-operator/mariadb-operator&Date)
-
 ## Community
 
+- [Run and Operate MariaDB in a Cloud Native Way Using the MariaDB Operator](https://www.youtube.com/watch?v=UwNFpYRETf4) - [@mmontes11](https://github.com/mmontes11) @ BuildDevCon: DB Mastery Series, June 2026
+- [Running MariaDB Server on Kubernetes](https://www.youtube.com/watch?v=R1oD1uMqyv8) - Frédéric Descamps @ BuildDevCon: DB Mastery Series, June 2026
+- [Why MariaDB Operator 25.10 Is a Big Deal for Stateful Workloads on Kubernetes](https://www.mrplanb.com/blog/mariadb-operator-25-10-stateful-kubernetes) - Mr.PlanB blog, October 2025
+- [The MariaDB Operator for Kubernetes](https://kubeadm.org/mariadb-operator-kubernetes/) - kubeadm.org
+- [Can You Run a MariaDB Cluster on a $150 Kubernetes Lab? I Gave It a Shot](https://dzone.com/articles/mariadb-cluster-on-kubernetes-lab-test) - Alejandro Duarte @ DZone, May 2025 
 - [We Tested and Compared 6 Database Operators. The Results are In!](https://www.youtube.com/watch?v=l33pcnQ4cUQ&t=17m25s) - KubeCon EU, March 2024
 - [Get Started with MariaDB in Kubernetes and mariadb-operator](https://mariadb.com/resources/blog/get-started-with-mariadb-in-kubernetes-and-mariadb-operator/) - MariaDB Corporation blog, February 2024
 - [Run and operate MariaDB in Kubernetes with mariadb-operator](https://mariadb.org/mariadb-in-kubernetes-with-mariadb-operator/) - MariaDB Foundation blog, July 2023

@@ -55,7 +55,7 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	mariadb, err := tf.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.GetNamespace())
+	mariadb, err := tf.RefResolver.MariaDBObject(ctx, resource.MariaDBRef(), resource.GetNamespace())
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			if err := tf.WrappedFinalizer.RemoveFinalizer(ctx); err != nil {
@@ -67,7 +67,7 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 	}
 
 	// If MariaDB is being deleted, remove the finalizer
-	if !mariadb.DeletionTimestamp.IsZero() {
+	if !mariadb.GetDeletionTimestamp().IsZero() {
 		if err := tf.WrappedFinalizer.RemoveFinalizer(ctx); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error removing %s finalizer: %v", resource.GetName(), err)
 		}

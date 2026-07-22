@@ -2,7 +2,7 @@
 
 AZURE_STORAGE_ACCOUNT_NAME ?= devstoreaccount1
 AZURE_STORAGE_ACCOUNT_KEY ?= Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
-AZURE_SERVICE_URL ?= https://172.18.0.60:10000/devstoreaccount1
+AZURE_SERVICE_URL ?= https://azurite.default.svc.cluster.local:10000/devstoreaccount1
 
 .PHONY: azurite-seed-containers
 azurite-seed-containers: host-azurite ## Seeds development containers in azurite
@@ -24,7 +24,9 @@ azurite-containers: kubectl jq ## Lists azurite containers.
 
 .PHONY: install-azurite
 install-azurite: kubectl ## Sets up Azurite for local development
-	$(KUBECTL) apply -k ./hack/manifests/azurite/
+	CIDR_PREFIX=$$(go run ./hack/get_kind_cidr_prefix/main.go) && \
+	export CIDR_PREFIX=$${CIDR_PREFIX} && \
+	$(KUBECTL) kustomize ./hack/manifests/azurite/ | envsubst | $(KUBECTL) apply -f -
 
 	@if ! $(KUBECTL) get secret azurite-certs >/dev/null 2>&1; then \
 			echo "Certificates not found. Generating..."; \
@@ -35,6 +37,7 @@ install-azurite: kubectl ## Sets up Azurite for local development
 			echo "Secret 'azurite-certs' already exists. Skipping generation."; \
 	fi
 	$(KUBECTL) wait deployment.apps/azurite --for condition=Available --timeout 2m
+	$(KUBECTL) wait --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' svc/azurite --timeout=2m
 	$(MAKE) azurite-seed-containers
 
 .PHONY: uninstall-azurite

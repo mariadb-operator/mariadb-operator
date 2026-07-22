@@ -13,6 +13,7 @@
 - [High availability](./high_availability.md)
   - [Asynchronous replication](./replication.md)
   - [Synchronous multi-master via Galera](./galera.md)
+  - [Multi-cluster](./multi-cluster.md)
 - [MaxScale as database proxy](./maxscale.md)
 - [Data plane](./data_plane.md)
 
@@ -20,11 +21,13 @@
 
 - [Physical backups](./physical_backup.md)
 - [Logical backups](./logical_backup.md)
+- [Point-In-Time-Recovery](./pitr.md)
 
 ## Guides
 
 - [Storage](./storage.md)
 - [TLS](./tls.md)
+- [Security](./security.md)
 - [Configuration](./configuration.md)
 - [Connections](./connections.md)
 - [Updates](./updates.md)
@@ -33,6 +36,7 @@
 - [External MariaDB](./external_mariadb.md)
 - [Metadata](./metadata.md)
 - [Suspend reconciliation](./suspend.md)
+- [Maintenance](./maintenance.md)
 - [Registry](./registry.md)
 
 ## Reference

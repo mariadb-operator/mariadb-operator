@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"reflect"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -60,5 +61,84 @@ func TestJobContainerSecurityContext(t *testing.T) {
 	}
 	if container.SecurityContext != nil {
 		t.Error("expected SecurityContext to be nil")
+	}
+}
+
+func TestPhysicalBackupJobEnv(t *testing.T) {
+	secretKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: "test",
+		},
+		Key: "test",
+	}
+	tests := []struct {
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		expected []corev1.EnvVar
+	}{
+		{
+			name: "Environment with credentials",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: secretKeySelector,
+						Generate:          false,
+					},
+				},
+			},
+			expected: []corev1.EnvVar{
+				{Name: batchUserEnv, Value: "root"},
+				{
+					Name: batchPasswordEnv,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: ptr.To(secretKeySelector.ToKubernetesType()),
+					},
+				},
+			},
+		},
+		{
+			name: "Environment with credentials and additional env",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: secretKeySelector,
+						Generate:          false,
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Env: []mariadbv1alpha1.EnvVar{
+							{
+								Name:  "TEST",
+								Value: "TEST",
+							},
+						},
+					},
+				},
+			},
+			expected: []corev1.EnvVar{
+				{Name: batchUserEnv, Value: "root"},
+				{
+					Name: batchPasswordEnv,
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: ptr.To(secretKeySelector.ToKubernetesType()),
+					},
+				},
+				{Name: "TEST", Value: "TEST"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := physicalBackupJobEnv(tt.mariadb)
+
+			if len(got) != len(tt.expected) {
+				t.Errorf("got %d env vars, want %d", len(got), len(tt.expected))
+			}
+
+			// Using reflect.DeepEqual or cmp.Diff to validate the slice content
+			if !reflect.DeepEqual(got, tt.expected) {
+				t.Errorf("unexpected env vars:\ngot: %v\nwant: %v", got, tt.expected)
+			}
+		})
 	}
 }

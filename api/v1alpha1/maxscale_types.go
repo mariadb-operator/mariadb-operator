@@ -481,7 +481,7 @@ type MaxScaleTLS struct {
 	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via adminCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	AdminCertIssuerRef *cmmeta.ObjectReference `json:"adminCertIssuerRef,omitempty"`
+	AdminCertIssuerRef *cmmeta.IssuerReference `json:"adminCertIssuerRef,omitempty"`
 	// ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's listeners.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
@@ -499,7 +499,7 @@ type MaxScaleTLS struct {
 	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via listenerCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ListenerCertIssuerRef *cmmeta.ObjectReference `json:"listenerCertIssuerRef,omitempty"`
+	ListenerCertIssuerRef *cmmeta.IssuerReference `json:"listenerCertIssuerRef,omitempty"`
 	// ServerCASecretRef is a reference to a Secret containing the MariaDB server CA certificates. It is used to establish trust with MariaDB servers.
 	// The Secret should contain a 'ca.crt' key in order to establish trust.
 	// If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB CA bundle.
@@ -574,7 +574,7 @@ type MaxScalePodTemplate struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -603,6 +603,12 @@ type MaxScalePodTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	TopologySpreadConstraints []TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+	// EnableServiceLinks indicates whether information about services should be injected into pod's
+	// environment variables, matching the syntax of Docker links. Defaults to true if not specified.
+	// Set to false to disable injection of service link environment variables.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	EnableServiceLinks *bool `json:"enableServiceLinks,omitempty"`
 }
 
 // SetDefaults sets reasonable defaults.
@@ -621,6 +627,16 @@ func (p *MaxScalePodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types
 		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
 		Namespace: objMeta.Namespace,
 	}
+}
+
+// MaxScaleMaintenance defines different capabilities of the operator to allow for maintenance to be performed on MaxScale.
+type MaxScaleMaintenance struct {
+	Cordoning `json:",inline"`
+
+	// Enabled turns on maintenance mode
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // MaxScaleSpec defines the desired state of MaxScale.
@@ -717,6 +733,11 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RequeueInterval *metav1.Duration `json:"requeueInterval,omitempty"`
+	// Maintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.
+	// Not to be confused with `suspend`, maintenance does not interfere with the normal reconciliation of the operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Maintenance *MaxScaleMaintenance `json:"maintenance,omitempty"`
 }
 
 // MaxScaleAPIStatus is the state of the servers in the MaxScale API.
@@ -991,6 +1012,16 @@ func (m *MaxScale) IsReplicationSSLEnabled() bool {
 	return ptr.Deref(tls.ReplicationSSLEnabled, false)
 }
 
+// IsMaintenanceModeEnabled indicates whether the maintenance mode is enabled.
+func (m *MaxScale) IsMaintenanceModeEnabled() bool {
+	return ptr.Deref(m.Spec.Maintenance, MaxScaleMaintenance{}).Enabled
+}
+
+// IsCordonEnabled indicates whether the cordoning is enabled.
+func (m *MaxScale) IsCordonEnabled() bool {
+	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.Cordon
+}
+
 // APIUrl returns the URL of the admin API pointing to the Kubernetes Service.
 func (m *MaxScale) APIUrl() string {
 	fqdn := statefulset.ServiceFQDNWithService(m.ObjectMeta, m.Name)
@@ -1114,8 +1145,4 @@ func (m *MaxScaleList) ListItems() []client.Object {
 		items[i] = item.DeepCopy()
 	}
 	return items
-}
-
-func init() {
-	SchemeBuilder.Register(&MaxScale{}, &MaxScaleList{})
 }

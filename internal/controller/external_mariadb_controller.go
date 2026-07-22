@@ -15,7 +15,7 @@ import (
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,7 +24,7 @@ import (
 // ExternalMariaDBReconciler reconciles a ExternalMariaDB object
 type ExternalMariaDBReconciler struct {
 	client.Client
-	Recorder       record.EventRecorder
+	Recorder       events.EventRecorder
 	Builder        *builder.Builder
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready
@@ -52,6 +52,8 @@ func (r *ExternalMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err := r.Get(ctx, req.NamespacedName, &external_mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	logger := log.FromContext(ctx).V(1)
+
 	phases := []reconcilePhaseExternalMariaDB{
 		{
 			Name:      "Spec",
@@ -68,11 +70,10 @@ func (r *ExternalMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	for _, p := range phases {
+		logger.Info(fmt.Sprintf("Reconcile phase %s", p.Name), "phase", p.Name)
+
 		result, err := p.Reconcile(ctx, &external_mariadb)
 		if err != nil {
-
-			log.FromContext(ctx).V(1).Info("Phase name", "name", p.Name)
-
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(errBundle, err)
 
@@ -87,7 +88,8 @@ func (r *ExternalMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			}
 
 			if err := errBundle.ErrorOrNil(); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Name, err)
+				logger.Info("Error reconciling", "phase", p.Name, "err", err)
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 			}
 		}
 		if !result.IsZero() {

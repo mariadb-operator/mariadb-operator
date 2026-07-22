@@ -5,6 +5,7 @@ import (
 	cmd "github.com/mariadb-operator/mariadb-operator/v26/pkg/command"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
+	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 )
@@ -70,6 +71,16 @@ func jobEnv(mariadb interfaces.Connector) []corev1.EnvVar {
 				SecretKeyRef: ptr.To(suCredential.ToKubernetesType()),
 			},
 		})
+	}
+
+	return env
+}
+
+func physicalBackupJobEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
+	env := jobEnv(mariadb)
+
+	if mariadb.Spec.Env != nil {
+		env = append(env, kadapter.ToKubernetesSlice(mariadb.Spec.Env)...)
 	}
 
 	return env

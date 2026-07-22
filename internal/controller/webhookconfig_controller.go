@@ -21,7 +21,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -31,7 +31,7 @@ import (
 type WebhookConfigReconciler struct {
 	client.Client
 	scheme          *runtime.Scheme
-	recorder        record.EventRecorder
+	recorder        events.EventRecorder
 	certReconciler  *certctrl.CertReconciler
 	certOpts        []certctrl.CertReconcilerOpt
 	serviceKey      types.NamespacedName
@@ -42,7 +42,7 @@ type WebhookConfigReconciler struct {
 	ready           bool
 }
 
-func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder, leaderChan <-chan struct{},
+func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder events.EventRecorder, leaderChan <-chan struct{},
 	caSecretKey types.NamespacedName, caCommonName string, caLifetime time.Duration,
 	certSecretKey types.NamespacedName, certLifetime time.Duration, renewBeforePercentage int32,
 	serviceKey types.NamespacedName, requeueDuration time.Duration) *WebhookConfigReconciler {
@@ -165,7 +165,8 @@ func (r *WebhookConfigReconciler) reconcileValidatingWebhook(ctx context.Context
 		r.injectValidatingWebhook(cfg, certResult.CAKeyPair.CertPEM, logger)
 	}); err != nil {
 		logger.Error(err, "Could not update ValidatingWebhookConfig")
-		r.recorder.Eventf(&validatingWebhook, v1.EventTypeWarning, mariadbv1alpha1.ReasonWebhookUpdateFailed, err.Error())
+		r.recorder.Eventf(&validatingWebhook, nil, v1.EventTypeWarning, mariadbv1alpha1.ReasonWebhookUpdateFailed,
+			mariadbv1alpha1.ActionReconciling, err.Error())
 		return err
 	}
 	logger.Info("Updated webhook config")
@@ -208,7 +209,8 @@ func (r *WebhookConfigReconciler) reconcileMutatingWebhook(ctx context.Context, 
 		r.injectMutatingWebhook(cfg, certResult.CAKeyPair.CertPEM, logger)
 	}); err != nil {
 		logger.Error(err, "Could not update MutatingWebhookConfig")
-		r.recorder.Eventf(&mutatingWebhook, v1.EventTypeWarning, mariadbv1alpha1.ReasonWebhookUpdateFailed, err.Error())
+		r.recorder.Eventf(&mutatingWebhook, nil, v1.EventTypeWarning, mariadbv1alpha1.ReasonWebhookUpdateFailed,
+			mariadbv1alpha1.ActionReconciling, err.Error())
 		return err
 	}
 	logger.Info("Updated webhook config")

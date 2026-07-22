@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.20.0
+    controller-gen.kubebuilder.io/version: v0.21.0
   name: physicalbackups.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -75,11 +75,17 @@ spec:
                 - bzip2
                 - gzip
                 type: string
+              failedJobsHistoryLimit:
+                description: FailedJobsHistoryLimit defines the maximum number of
+                  failed Jobs to be displayed. It defaults to 5.
+                format: int32
+                minimum: 0
+                type: integer
               imagePullSecrets:
                 description: ImagePullSecrets is the list of pull Secrets to be used
                   to pull the image.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#localobjectreference-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#localobjectreference-v1-core.'
                   properties:
                     name:
                       default: ""
@@ -293,6 +299,11 @@ spec:
                     description: Immediate indicates whether the first backup should
                       be taken immediately after creating the PhysicalBackup.
                     type: boolean
+                  onDemand:
+                    description: |-
+                      OnDemand is an identifier used to trigger an on-demand backup.
+                      If the identifier is different than the one tracked under status.lastScheduleOnDemand, a new physical backup will be triggered.
+                    type: string
                   suspend:
                     default: false
                     description: Suspend defines whether the schedule is active or
@@ -440,14 +451,14 @@ spec:
                     description: Volume is a Kubernetes volume specification.
                     properties:
                       csi:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#csivolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#csivolumesource-v1-core.'
                         properties:
                           driver:
                             type: string
                           fsType:
                             type: string
                           nodePublishSecretRef:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#localobjectreference-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#localobjectreference-v1-core.'
                             properties:
                               name:
                                 default: ""
@@ -463,7 +474,7 @@ spec:
                         - driver
                         type: object
                       emptyDir:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#emptydirvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#emptydirvolumesource-v1-core.'
                         properties:
                           medium:
                             description: StorageMedium defines ways that storage can
@@ -477,7 +488,7 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       hostPath:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#hostpathvolumesource-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#hostpathvolumesource-v1-core'
                         properties:
                           path:
                             type: string
@@ -487,7 +498,7 @@ spec:
                         - path
                         type: object
                       nfs:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nfsvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nfsvolumesource-v1-core.'
                         properties:
                           path:
                             type: string
@@ -500,7 +511,7 @@ spec:
                         - server
                         type: object
                       persistentVolumeClaim:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeclaimvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#persistentvolumeclaimvolumesource-v1-core.'
                         properties:
                           claimName:
                             type: string
@@ -775,14 +786,14 @@ spec:
                     description: Volume is a Kubernetes volume specification.
                     properties:
                       csi:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#csivolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#csivolumesource-v1-core.'
                         properties:
                           driver:
                             type: string
                           fsType:
                             type: string
                           nodePublishSecretRef:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#localobjectreference-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#localobjectreference-v1-core.'
                             properties:
                               name:
                                 default: ""
@@ -798,7 +809,7 @@ spec:
                         - driver
                         type: object
                       emptyDir:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#emptydirvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#emptydirvolumesource-v1-core.'
                         properties:
                           medium:
                             description: StorageMedium defines ways that storage can
@@ -812,7 +823,7 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       hostPath:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#hostpathvolumesource-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#hostpathvolumesource-v1-core'
                         properties:
                           path:
                             type: string
@@ -822,7 +833,7 @@ spec:
                         - path
                         type: object
                       nfs:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nfsvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nfsvolumesource-v1-core.'
                         properties:
                           path:
                             type: string
@@ -835,7 +846,7 @@ spec:
                         - server
                         type: object
                       persistentVolumeClaim:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeclaimvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#persistentvolumeclaimvolumesource-v1-core.'
                         properties:
                           claimName:
                             type: string
@@ -1000,6 +1011,9 @@ spec:
                 description: LastScheduleCheckTime is the last time that the schedule
                   was checked.
                 format: date-time
+                type: string
+              lastScheduleOnDemand:
+                description: LastScheduleOnDemand is the last on-demand schedule identifier.
                 type: string
               lastScheduleTime:
                 description: LastScheduleTime is the last time that a backup was scheduled.

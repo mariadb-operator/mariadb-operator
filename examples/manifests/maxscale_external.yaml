@@ -69,7 +69,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.224
+        metallb.io/loadBalancerIPs: 172.18.0.224
 
   connection:
     secretName: mxs-galera-conn

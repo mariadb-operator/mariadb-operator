@@ -20,6 +20,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -222,7 +223,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		backupCmd,
 		b.env,
 		volumeMounts,
-		jobEnv(mariadb),
+		physicalBackupJobEnv(mariadb),
 		jobResources(backup.Spec.Resources),
 		mariadb,
 		backup.Spec.SecurityContext,
@@ -260,18 +261,32 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		return nil, err
 	}
 
-	var nodeSelector map[string]string
-	if ptr.Deref(backup.Spec.PodAffinity, true) {
-		// Schedule the Job is in the same node as the MariaDB Pod to be able to attach the data PVC.
-		// Required for ReadWriteOnce storage.
-		nodeSelector = map[string]string{
-			mdbmetadata.KubernetesHostnameLabel: pod.Spec.NodeName,
-		}
-	}
-
 	securityContext, err := b.buildPodSecurityContextWithUserGroup(backup.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
 	if err != nil {
 		return nil, err
+	}
+
+	var affinity *corev1.Affinity
+	if ptr.Deref(backup.Spec.PodAffinity, true) {
+		// Use dynamic pod affinity to schedule the Job on the same node as the MariaDB Pod.
+		// This allows the Job to be rescheduled if the MariaDB Pod moves to a different node
+		// (e.g., due to node replacement or eviction).
+		// Required for ReadWriteOnce storage.
+		affinity = &corev1.Affinity{
+			PodAffinity: &corev1.PodAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchLabels: labels.NewLabelsBuilder().
+								WithInstance(mariadb.Name).
+								WithStatefulSetPod(mariadb.ObjectMeta, *podIndex).
+								Build(),
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		}
 	}
 
 	job := &batchv1.Job{
@@ -286,7 +301,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 					Volumes:            volumes,
 					InitContainers:     initContainers,
 					Containers:         []corev1.Container{*operatorContainer},
-					NodeSelector:       nodeSelector,
+					Affinity:           affinity,
 					Tolerations:        backup.Spec.Tolerations,
 					SecurityContext:    securityContext,
 					ServiceAccountName: ptr.Deref(backup.Spec.ServiceAccountName, "default"),
@@ -596,7 +611,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		restoreCmd,
 		b.env,
 		volumeMounts,
-		nil,
+		physicalBackupJobEnv(mariadb),
 		jobResources(restoreJob.Resources),
 		mariadb,
 		mariadb.Spec.SecurityContext,
@@ -1186,6 +1201,13 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 		},
 	})
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
+
+	if mariadb.Spec.Volumes != nil {
+		volumes = append(volumes, kadapter.ToKubernetesSlice(mariadb.Spec.Volumes)...)
+	}
+	if mariadb.Spec.VolumeMounts != nil {
+		volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(mariadb.Spec.VolumeMounts)...)
+	}
 
 	return volumes, volumeMounts
 }

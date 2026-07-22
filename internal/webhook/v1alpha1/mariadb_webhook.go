@@ -7,13 +7,12 @@ import (
 	"reflect"
 
 	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/config/keys"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -22,7 +21,7 @@ var mariadblog = logf.Log.WithName("mariadb-resource")
 
 // SetupMariaDBWebhookWithManager registers the webhook for MariaDB in the manager.
 func SetupMariaDBWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&v1alpha1.MariaDB{}).
+	return ctrl.NewWebhookManagedBy(mgr, &v1alpha1.MariaDB{}).
 		WithValidator(&MariaDBCustomValidator{}).
 		Complete()
 }
@@ -33,14 +32,10 @@ func SetupMariaDBWebhookWithManager(mgr ctrl.Manager) error {
 // when it is created, updated, or deleted.
 type MariaDBCustomValidator struct{}
 
-var _ webhook.CustomValidator = &MariaDBCustomValidator{}
+var _ admission.Validator[*v1alpha1.MariaDB] = &MariaDBCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type MariaDB.
-func (v *MariaDBCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	mariadb, ok := obj.(*v1alpha1.MariaDB)
-	if !ok {
-		return nil, fmt.Errorf("expected a MariaDB object but got %T", obj)
-	}
+func (v *MariaDBCustomValidator) ValidateCreate(ctx context.Context, mariadb *v1alpha1.MariaDB) (admission.Warnings, error) {
 	mariadblog.V(1).Info("Validation for MariaDB upon creation", "name", mariadb.GetName())
 
 	validateFns := []func(*v1alpha1.MariaDB) error{
@@ -53,6 +48,7 @@ func (v *MariaDBCustomValidator) ValidateCreate(ctx context.Context, obj runtime
 		validateRootPassword,
 		validateMaxScale,
 		validateTLS,
+		validateMultiCluster,
 	}
 	for _, fn := range validateFns {
 		if err := fn(mariadb); err != nil {
@@ -63,19 +59,10 @@ func (v *MariaDBCustomValidator) ValidateCreate(ctx context.Context, obj runtime
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type MariaDB.
-func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	mariadb, ok := newObj.(*v1alpha1.MariaDB)
-	if !ok {
-		return nil, fmt.Errorf("expected a MariaDB object for the newObj but got %T", newObj)
-	}
-	oldMariadb, ok := oldObj.(*v1alpha1.MariaDB)
-	if !ok {
-		return nil, fmt.Errorf("expected a MariaDB object for the newObj but got %T", newObj)
-
-	}
+func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldMariadb, mariadb *v1alpha1.MariaDB) (admission.Warnings, error) {
 	mariadblog.V(1).Info("Validation for MariaDB upon update", "name", mariadb.GetName())
 
-	if err := inmutableWebhook.ValidateUpdate(mariadb, oldMariadb); err != nil {
+	if err := immutableWebhook.ValidateUpdate(mariadb, oldMariadb); err != nil {
 		return nil, err
 	}
 	validateFns := []func(*v1alpha1.MariaDB) error{
@@ -87,6 +74,7 @@ func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		validateStorage,
 		validateRootPassword,
 		validateTLS,
+		validateMultiCluster,
 	}
 	for _, fn := range validateFns {
 		if err := fn(mariadb); err != nil {
@@ -98,7 +86,7 @@ func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldObj, new
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type MariaDB.
-func (v *MariaDBCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *MariaDBCustomValidator) ValidateDelete(ctx context.Context, mariadb *v1alpha1.MariaDB) (admission.Warnings, error) {
 	return nil, nil
 }
 
@@ -318,6 +306,47 @@ func validateTLS(mariadb *v1alpha1.MariaDB) error {
 		if err := validateTLSCert(&item); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func validateMultiCluster(mariadb *v1alpha1.MariaDB) error {
+	multiCluster := ptr.Deref(mariadb.Spec.MultiCluster, v1alpha1.MultiCluster{})
+	if !multiCluster.Enabled {
+		return nil
+	}
+	if !mariadb.IsGaleraEnabled() && !mariadb.IsReplicationEnabled() {
+		return field.Invalid(
+			field.NewPath("spec").Child("multiCluster").Child("enabled"),
+			multiCluster.Enabled,
+			"either replication or Galera must be enabled when multi-cluster is enabled.",
+		)
+	}
+
+	if multiCluster.Primary == "" {
+		return field.Invalid(
+			field.NewPath("spec").Child("multiCluster").Child("primary"),
+			multiCluster.Primary,
+			"'spec.multiCluster.primary' must be specified",
+		)
+	}
+
+	memberIndex := datastructures.NewIndex(multiCluster.Members, func(m v1alpha1.MultiClusterMember) string {
+		return m.Name
+	})
+	if !datastructures.Has(memberIndex, mariadb.Name) {
+		return field.Invalid(
+			field.NewPath("spec").Child("multiCluster").Child("members"),
+			multiCluster.Members,
+			fmt.Sprintf("current cluster %s is not defined as a multi-cluster member.", mariadb.Name),
+		)
+	}
+	if !datastructures.Has(memberIndex, multiCluster.Primary) {
+		return field.Invalid(
+			field.NewPath("spec").Child("multiCluster").Child("members"),
+			multiCluster.Members,
+			fmt.Sprintf("primary cluster %s is not defined as a multi-cluster member.", multiCluster.Primary),
+		)
 	}
 	return nil
 }

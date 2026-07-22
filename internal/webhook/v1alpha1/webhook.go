@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-var inmutableWebhook = webhook.NewInmutableWebhook(
+var immutableWebhook = webhook.NewInmutableWebhook(
 	webhook.WithTagName("webhook"),
 )
 
@@ -19,7 +19,7 @@ type tlsValidationItem struct {
 	caFieldPath         string
 	certSecretRef       *v1alpha1.LocalObjectReference
 	certFieldPath       string
-	certIssuerRef       *cmmeta.ObjectReference
+	certIssuerRef       *cmmeta.IssuerReference
 	certIssuerFieldPath string
 }
 

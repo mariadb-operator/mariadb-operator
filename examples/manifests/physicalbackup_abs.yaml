@@ -11,7 +11,7 @@ spec:
   storage:
     azureBlob:
       containerName: physicalbackup
-      serviceURL: https://172.18.0.60:10000/devstoreaccount1
+      serviceURL: https://azurite.default.svc.cluster.local:10000/devstoreaccount1
       prefix: mariadb
       storageAccountName: devstoreaccount1
       storageAccountKey:

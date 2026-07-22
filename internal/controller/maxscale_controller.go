@@ -38,7 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,7 +53,7 @@ var maxScaleFinalizerName = "maxscale.k8s.mariadb.com/finalizer"
 type MaxScaleReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
 
 	Builder        *builder.Builder
 	ConditionReady *condition.Ready
@@ -573,10 +573,14 @@ func (r *MaxScaleReconciler) reconcileInternalService(ctx context.Context, maxsc
 
 func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) error {
 	key := client.ObjectKeyFromObject(maxscale)
-	selectorLabels :=
+	selectorLabelsBuilder :=
 		labels.NewLabelsBuilder().
-			WithMaxScaleSelectorLabels(maxscale).
-			Build()
+			WithMaxScaleSelectorLabels(maxscale)
+	if maxscale.IsMaintenanceModeEnabled() {
+		selectorLabelsBuilder = selectorLabelsBuilder.WithCordon(maxscale)
+	}
+	selectorLabels := selectorLabelsBuilder.Build()
+
 	ports := []corev1.ServicePort{
 		{
 			Name: "admin",
@@ -694,8 +698,29 @@ type maxscaleAuthReconcileItem struct {
 
 func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	mxs := req.mxs
-	// TODO: support for external databases by extending MariaDBRef
-	if !ptr.Deref(mxs.Spec.Auth.Generate, false) || mxs.Spec.MariaDBRef == nil {
+	logger := log.FromContext(ctx).WithName("auth").V(1)
+
+	// If servers are provided directly, we assume credentials have already been setup
+	if mxs.Spec.MariaDBRef == nil {
+		logger.Info("spec.servers provided manually. Skipping...")
+		return ctrl.Result{}, nil
+	}
+	mariadb, err := r.RefResolver.MariaDB(ctx, mxs.Spec.MariaDBRef, mxs.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
+	}
+	// This prevents:
+	// - MaxScale and MariaDB provisioning from happening in parallel.
+	// - Performing writes in mysql.user and  mysql.maxscale_config  (related to auth and monitor respectively)
+	// before MariaDB is fully configured and restored.
+	// - Provision MaxScale in the middle of a point-in-time restoration.
+	if mariadb.HasPendingHATopologyConfiguration() || mariadb.HasPendingBinlogReplay() {
+		logger.Info("Waiting for MariaDB to be fully configured and restored. Requeuing...")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	// Authentication has already been configured manually.
+	if !ptr.Deref(mxs.Spec.Auth.Generate, false) {
 		return ctrl.Result{}, nil
 	}
 
@@ -1014,10 +1039,18 @@ func (r *MaxScaleReconciler) reconcileInitInPod(ctx context.Context, mxs *mariad
 	reconcileMonitor := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 		return r.reconcileMonitor(ctx, req, logger)
 	}
+	reconcileServices := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+		return r.reconcileServices(ctx, req, logger)
+	}
+	reconcileListeners := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+		return r.reconcileListeners(ctx, req, logger)
+	}
 
 	reconcileFns := []reconcileFnMaxScale{
 		reconcileServers,
 		reconcileMonitor,
+		reconcileServices,
+		reconcileListeners,
 	}
 	for _, reconcileFn := range reconcileFns {
 		if result, err := reconcileFn(ctx, req); !result.IsZero() || err != nil {
@@ -1039,6 +1072,20 @@ func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv
 	allExist, err = client.Monitor.AllExists(ctx, []string{mxs.Spec.Monitor.Name})
 	if err != nil {
 		return false, fmt.Errorf("error checking if monitor exists: %v", err)
+	}
+	if !allExist {
+		return true, nil
+	}
+	allExist, err = client.Service.AllExists(ctx, mxs.ServiceIDs())
+	if err != nil {
+		return false, fmt.Errorf("error checking if all services exist: %v", err)
+	}
+	if !allExist {
+		return true, nil
+	}
+	allExist, err = client.Listener.AllExists(ctx, mxs.ListenerIDs())
+	if err != nil {
+		return false, fmt.Errorf("error checking if all listeners exist: %v", err)
 	}
 	if !allExist {
 		return true, nil
@@ -1461,7 +1508,7 @@ func (r *MaxScaleReconciler) reconcileSwitchover(ctx context.Context, req *reque
 			}
 
 			logger.Info("Primary server switched")
-			r.Recorder.Eventf(req.mxs, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
+			r.Recorder.Eventf(req.mxs, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched, mariadbv1alpha1.ActionReconciling,
 				"Primary server switched to '%s'", primary)
 		}
 
@@ -1473,7 +1520,7 @@ func (r *MaxScaleReconciler) reconcileSwitchover(ctx context.Context, req *reque
 		return ctrl.Result{}, nil
 	}
 	logger.Info("Switching primary server", "primary", primary, "new-primary", newPrimary)
-	r.Recorder.Eventf(req.mxs, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching,
+	r.Recorder.Eventf(req.mxs, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ActionReconciling,
 		"Switching primary server from '%s' to '%s'", primary, newPrimary)
 
 	if err := r.patchStatus(ctx, req.mxs, func(status *mariadbv1alpha1.MaxScaleStatus) error {

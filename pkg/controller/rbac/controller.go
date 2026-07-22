@@ -145,7 +145,7 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 		},
 		{
 			APIGroups: []string{
-				corev1.GroupName,
+				"events.k8s.io",
 			},
 			Resources: []string{
 				"events",

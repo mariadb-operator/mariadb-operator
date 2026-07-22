@@ -282,7 +282,7 @@ func readTargetFile() (string, error) {
 }
 
 func cleanupFile(fileName string, logger logr.Logger) error {
-	if !s3 || !abs || !cleanupTargetFile {
+	if (!s3 && !abs) || !cleanupTargetFile {
 		return nil
 	}
 	filePath := backup.GetFilePath(path, fileName)
@@ -318,6 +318,7 @@ func handleBackupMeta(ctx context.Context, backupLogger logr.Logger) error {
 	if err != nil {
 		return fmt.Errorf("error getting backup GTID: %v", err)
 	}
+	// TODO: support multiple GTID domain IDs
 	gtid, err := replication.ParseGtid(rawGTID)
 	if err != nil {
 		return fmt.Errorf("error parsing GTID %s: %v", rawGTID, err)

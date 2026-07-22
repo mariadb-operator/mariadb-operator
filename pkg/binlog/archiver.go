@@ -29,7 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -46,12 +46,12 @@ type Archiver struct {
 	env         *environment.PodEnvironment
 	client      client.Client
 	refResolver *refresolver.RefResolver
-	recorder    record.EventRecorder
+	recorder    events.EventRecorder
 	logger      logr.Logger
 }
 
 func NewArchiver(dataDir string, env *environment.PodEnvironment, client client.Client,
-	recorder record.EventRecorder, logger logr.Logger) *Archiver {
+	recorder events.EventRecorder, logger logr.Logger) *Archiver {
 	return &Archiver{
 		dataDir:     dataDir,
 		env:         env,
@@ -457,7 +457,8 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mar
 	}
 	msg := fmt.Sprintf("Binary log %s archived", binlog)
 	a.logger.Info(msg)
-	a.recorder.Event(mdb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonBinlogArchived, msg)
+	a.recorder.Eventf(mdb, pitr, corev1.EventTypeNormal, mariadbv1alpha1.ReasonBinlogArchived,
+		mariadbv1alpha1.ActionArchiving, msg)
 
 	return nil
 }
@@ -518,8 +519,8 @@ func (a *Archiver) updateStatusWithError(ctx context.Context, mdb *mariadbv1alph
 		}); err != nil {
 			return fmt.Errorf("error patching MariaDB status: %v", err)
 		}
-		a.recorder.Eventf(mdb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogArchivalError,
-			"Error archiving binary logs: %v", archiveErr)
+		a.recorder.Eventf(mdb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogArchivalError,
+			mariadbv1alpha1.ActionArchiving, "Error archiving binary logs: %v", archiveErr)
 	} else {
 		if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetArchivedBinlogs(status)
@@ -619,7 +620,7 @@ func (a *Archiver) getLastRecoverableTime(binlogIndex *BinlogIndex, backup *mari
 		)
 		return nil, nil
 	}
-	gtid, err := gtid.ParseGtidWithDomainId(lastGtid, gtidDomainId, a.logger)
+	lastRecoverableGtid, err := gtid.ParseGtidWithDomainId(lastGtid, gtidDomainId, a.logger)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing GTID: %v", err)
 	}
@@ -627,7 +628,7 @@ func (a *Archiver) getLastRecoverableTime(binlogIndex *BinlogIndex, backup *mari
 	// getting the most recent timeline, disabling strict mode to prevent errors.
 	// last recoverable time will be checked before bootstrapping, returning error if strict mode is enabled.
 	binlogMetas, err := binlogIndex.BuildTimeline(
-		gtid,
+		lastRecoverableGtid,
 		time.Now(),
 		false,
 		a.logger.WithName("binlog-timeline").V(1),
@@ -636,7 +637,7 @@ func (a *Archiver) getLastRecoverableTime(binlogIndex *BinlogIndex, backup *mari
 		a.logger.V(1).Info(
 			"Unable to build current binlog timeline. Skipping last recoverable time tracking...",
 			"err", err,
-			"gtid", gtid.String(),
+			"gtid", lastRecoverableGtid.String(),
 			"physicalbackup", backup.Name,
 		)
 		return nil, nil

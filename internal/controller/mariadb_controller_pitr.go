@@ -15,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	replicationctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
@@ -22,7 +23,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -84,7 +84,8 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		return ctrl.Result{}, fmt.Errorf("error getting SQL client: %v", err)
 	}
 	defer sqlClient.Close()
-	if err := r.pauseGtidStrictMode(ctx, mdb, sqlClient, logger); err != nil {
+
+	if err := replicationctrl.PauseGtidStrictMode(ctx, mdb, sqlClient, r.Client, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error pausing gtid_strict_mode: %v", err)
 	}
 
@@ -95,7 +96,7 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		return result, err
 	}
 
-	if err := r.resumeGtidStrictMode(ctx, mdb, sqlClient, logger); err != nil {
+	if err := replicationctrl.ResumeGtidStrictMode(ctx, mdb, sqlClient, r.Client, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error resuming gtid_strict_mode: %v", err)
 	}
 
@@ -201,7 +202,8 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 		}
 		errMsg := fmt.Sprintf("Invalid binary log timeline: %v", err)
 		logger.Error(err, errMsg)
-		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogTimelineInvalid, errMsg)
+		r.Recorder.Eventf(mariadb, pitr, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogTimelineInvalid,
+			mariadbv1alpha1.ActionReconciling, errMsg)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			condition.SetReplayBinlogsError(status, errMsg)
@@ -247,57 +249,6 @@ func (r *MariaDBReconciler) validateBinlogTimeline(ctx context.Context, mdb *mar
 	logger.Info("Got binlog timeline", "timeline", binlogPath)
 
 	return nil
-}
-
-func (r *MariaDBReconciler) pauseGtidStrictMode(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, sqlClient *sql.Client,
-	logger logr.Logger) error {
-	pitr := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{})
-	if pitr.GtidStrictModePaused != nil && *pitr.GtidStrictModePaused {
-		return nil
-	}
-
-	// TODO: gtidStrictMode, err := sqlClient.GtidStrictMode(ctx)
-
-	gtidStrictMode, err := sqlClient.WsrepGtidMode(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting gtid_strict_mode: %v", err)
-	}
-	if !gtidStrictMode {
-		return nil
-	}
-
-	logger.Info("Temporarily disabling gtid_strict_mode to replay binlogs")
-	// TODO: 	if err := sqlClient.DisableGtidStrictMode(ctx); err != nil {
-	if err := sqlClient.DisableWsrepGtidMode(ctx); err != nil {
-		return fmt.Errorf("error disabling gtid_strict_mode: %v", err)
-	}
-	return r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		if status.PointInTimeRecovery == nil {
-			status.PointInTimeRecovery = &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{}
-		}
-		status.PointInTimeRecovery.GtidStrictModePaused = ptr.To(true)
-		return nil
-	})
-}
-
-func (r *MariaDBReconciler) resumeGtidStrictMode(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, sqlClient *sql.Client,
-	logger logr.Logger) error {
-	pitr := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{})
-	if pitr.GtidStrictModePaused == nil || !*pitr.GtidStrictModePaused {
-		return nil
-	}
-
-	logger.Info("Enabling back gtid_strict_mode")
-	// TODO: 	if err := sqlClient.EnableGtidStrictMode(ctx); err != nil {
-	if err := sqlClient.EnableWsrepGtidMode(ctx); err != nil {
-		return fmt.Errorf("error enabling gtid_strict_mode: %v", err)
-	}
-	return r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		if status.PointInTimeRecovery != nil {
-			status.PointInTimeRecovery.GtidStrictModePaused = nil
-		}
-		return nil
-	})
 }
 
 func (r *MariaDBReconciler) reconcilePITRStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
@@ -439,65 +390,13 @@ func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alph
 		return nil, errors.New("error getting s3 client. No s3 config found")
 	}
 
-	minioOpts := []minio.MinioOpt{
-		minio.WithRegion(s3.Region),
-		minio.WithPrefix(s3.Prefix),
-	}
-
-	if s3.AccessKeyIdSecretKeyRef != nil && s3.SecretAccessKeySecretKeyRef != nil {
-		accessKeyID, err := r.RefResolver.SecretKeyRef(ctx, *s3.AccessKeyIdSecretKeyRef, pitr.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting S3 access key ID: %v", err)
-		}
-		secretAccessKey, err := r.RefResolver.SecretKeyRef(ctx, *s3.SecretAccessKeySecretKeyRef, pitr.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting S3 access key ID: %v", err)
-		}
-		var sessionToken string
-		if s3.SessionTokenSecretKeyRef != nil {
-			sessionToken, err = r.RefResolver.SecretKeyRef(ctx, *s3.SessionTokenSecretKeyRef, pitr.Namespace)
-			if err != nil {
-				return nil, fmt.Errorf("error getting S3 session token: %v", err)
-			}
-		}
-		minioOpts = append(minioOpts, minio.WithCredsProviders(&credentials.Static{
-			Value: credentials.Value{
-				AccessKeyID:     accessKeyID,
-				SecretAccessKey: secretAccessKey,
-				SessionToken:    sessionToken,
-				SignerType:      credentials.SignatureDefault,
-			},
-		}))
-	}
-
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSConfig{})
-	if tls.Enabled {
-		minioOpts = append(minioOpts, minio.WithTLS(true))
-		caCertBytes, err := r.RefResolver.SecretKeyRef(ctx, *s3.TLS.CASecretKeyRef, pitr.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting CA cert: %v", err)
-		}
-		minioOpts = append(minioOpts, minio.WithCACertBytes([]byte(caCertBytes)))
-	}
-
-	if s3.SSEC != nil {
-		ssecKey, err := r.RefResolver.SecretKeyRef(ctx, s3.SSEC.CustomerKeySecretKeyRef, pitr.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting SSEC key: %v", err)
-		}
-		minioOpts = append(minioOpts, minio.WithSSECCustomerKey(ssecKey))
-	}
-
-	s3Client, err := minio.NewMinioClient(
-		"", // not needed: in-memory methods (io.Reader instead of a file) are used in this context
-		s3.Bucket,
-		s3.Endpoint,
-		minioOpts...,
+	return minio.NewMinioClientFromS3Config(
+		ctx,
+		*r.RefResolver,
+		*s3,
+		"",
+		pitr.Namespace,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("error getting S3 client: %v", err)
-	}
-	return s3Client, nil
 }
 
 func (r *MariaDBReconciler) shouldReconcilePITR(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (bool, error) {

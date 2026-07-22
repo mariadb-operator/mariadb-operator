@@ -85,7 +85,7 @@ var certControllerCmd = &cobra.Command{
 		webhookConfigReconciler := controller.NewWebhookConfigReconciler(
 			mgr.GetClient(),
 			mgr.GetScheme(),
-			mgr.GetEventRecorderFor("webhook-config"),
+			mgr.GetEventRecorder("webhook-config"),
 			mgr.Elected(),
 			types.NamespacedName{
 				Name:      caSecretName,

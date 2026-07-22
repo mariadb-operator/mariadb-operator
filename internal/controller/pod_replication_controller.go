@@ -8,14 +8,12 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
 
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -28,20 +26,13 @@ var (
 // PodReplicationController reconciles a Pod object
 type PodReplicationController struct {
 	client.Client
-	recorder    record.EventRecorder
-	builder     *builder.Builder
-	refResolver *refresolver.RefResolver
-	replConfig  *replication.ReplicationConfigClient
+	recorder events.EventRecorder
 }
 
-func NewPodReplicationController(client client.Client, recorder record.EventRecorder, builder *builder.Builder,
-	refResolver *refresolver.RefResolver, replConfig *replication.ReplicationConfigClient) PodReadinessController {
+func NewPodReplicationController(client client.Client, recorder events.EventRecorder) PodReadinessController {
 	return &PodReplicationController{
-		Client:      client,
-		recorder:    recorder,
-		builder:     builder,
-		refResolver: refResolver,
-		replConfig:  replConfig,
+		Client:   client,
+		recorder: recorder,
 	}
 }
 
@@ -142,7 +133,7 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	}
 
 	logger.Info("Switching primary", "primary", primary, "new-primary", *newPrimary)
-	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching,
+	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ActionReconciling,
 		"Switching primary from index '%d' to index '%d'", *primary, *newPrimary)
 
 	return nil

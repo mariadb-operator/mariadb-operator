@@ -47,13 +47,13 @@ func (h *ReplicationHandler) GetGtid(w http.ResponseWriter, r *http.Request) {
 		h.responseWriter.WriteErrorf(w, "error reading GTID file '%s': %v", gtid.MariaDBOperatorFileName, err)
 		return
 	}
-	gtid, err := gtid.ParseRawGtidInMetaFile(bytes)
+	g, err := gtid.ParseRawGtidInMetaFile(bytes)
 	if err != nil {
 		h.responseWriter.WriteErrorf(w, "error parsing GTID: %v", err)
 		return
 	}
 
 	h.responseWriter.WriteOK(w, GtidResponse{
-		Gtid: gtid,
+		Gtid: g,
 	})
 }

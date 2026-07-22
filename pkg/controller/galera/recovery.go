@@ -58,8 +58,8 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 
 	if rs.bootstrapTimeout(mariadb) {
 		logger.Info("Galera cluster bootstrap timed out. Resetting recovery status")
-		r.recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraClusterBootstrapTimeout,
-			"Galera cluster bootstrap timed out")
+		r.recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraClusterBootstrapTimeout,
+			mariadbv1alpha1.ActionReconciling, "Galera cluster bootstrap timed out")
 
 		if err := r.resetRecovery(ctx, mariadb, rs); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error resetting recovery: %v", err)
@@ -175,36 +175,58 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 		})
 	}
 
+	logger.Info("Ensuring bootstrap disabled in non-bootstrap Pods")
 	for _, podKey := range podKeys {
-		podLogger := logger.WithValues("pod", podKey.Name)
-
-		syncTimeout := ptr.Deref(recovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
-		syncCtx, syncCancel := context.WithTimeout(ctx, syncTimeout)
-		defer syncCancel()
-
 		if podKey.Name == bootstrapPodKey.Name {
-			podLogger.Info("Bootstrapping cluster")
-			r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterBootstrap,
-				"Bootstrapping Galera cluster in Pod '%s'", podKey.Name)
+			continue
+		}
 
-			if err := r.enableBootstrapWithSource(syncCtx, mariadbKey, src, agentClientSet, podLogger); err != nil {
-				return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", podKey.Name, err)
-			}
-		} else {
+		if err := func() error {
+			podLogger := logger.WithValues("pod", podKey.Name)
+
+			syncTimeout := ptr.Deref(recovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+			syncCtx, syncCancel := context.WithTimeout(ctx, syncTimeout)
+			defer syncCancel()
+
 			podLogger.V(1).Info("Ensuring bootstrap disabled in Pod")
-
 			if err := r.disableBootstrapInPod(syncCtx, mariadbKey, podKey, agentClientSet, podLogger); err != nil {
 				return fmt.Errorf("error disabling bootstrap in Pod '%s': %v", podKey.Name, err)
 			}
+			return nil
+		}(); err != nil {
+			return err
 		}
+	}
 
-		if err := wait.PollWithMariaDB(syncCtx, mariadbKey, r.Client, podLogger, func(ctx context.Context) error {
-			if err := r.ensurePodSynced(ctx, mariadbKey, podKey, sqlClientSet, podLogger); err != nil {
-				return fmt.Errorf("error ensuring Pod '%s' synced: %v", podKey.Name, err)
+	for _, podKey := range podKeys {
+		if err := func() error {
+			podLogger := logger.WithValues("pod", podKey.Name)
+
+			syncTimeout := ptr.Deref(recovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+			syncCtx, syncCancel := context.WithTimeout(ctx, syncTimeout)
+			defer syncCancel()
+
+			if podKey.Name == bootstrapPodKey.Name {
+				podLogger.Info("Bootstrapping cluster")
+				r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterBootstrap,
+					mariadbv1alpha1.ActionReconciling, "Bootstrapping Galera cluster in Pod '%s'", podKey.Name)
+
+				if err := r.enableBootstrapWithSource(syncCtx, mariadbKey, src, agentClientSet, podLogger); err != nil {
+					return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", podKey.Name, err)
+				}
+			}
+
+			if err := wait.PollWithMariaDB(syncCtx, mariadbKey, r.Client, podLogger, func(ctx context.Context) error {
+				if err := r.ensurePodSynced(ctx, mariadbKey, podKey, sqlClientSet, podLogger); err != nil {
+					return fmt.Errorf("error ensuring Pod '%s' synced: %v", podKey.Name, err)
+				}
+				return nil
+			}); err != nil {
+				return fmt.Errorf("error restarting Pod '%s': %v", podKey.Name, err)
 			}
 			return nil
-		}); err != nil {
-			return fmt.Errorf("error restarting Pod '%s': %v", podKey.Name, err)
+		}(); err != nil {
+			return err
 		}
 	}
 
@@ -284,8 +306,8 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 					"sequence", galeraState.Seqno,
 					"uuid", galeraState.UUID,
 				)
-				r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodStateFetched,
-					"Galera state fetched in Pod '%s'", pod.Name)
+				r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodStateFetched,
+					mariadbv1alpha1.ActionReconciling, "Galera state fetched in Pod '%s'", pod.Name)
 				rs.setState(pod.Name, galeraState)
 
 				return nil
@@ -386,8 +408,8 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 						"sequence", bootstrap.Seqno,
 						"uuid", bootstrap.UUID,
 					)
-					r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodRecovered,
-						"Recovered Galera sequence in Pod '%s'", pod.Name)
+					r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodRecovered,
+						mariadbv1alpha1.ActionReconciling, "Recovered Galera sequence in Pod '%s'", pod.Name)
 					rs.setRecovered(pod.Name, &bootstrap)
 
 					return nil

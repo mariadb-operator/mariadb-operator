@@ -359,6 +359,7 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		}
 		prevGtids := make([]*gtid.Gtid, len(listEvent.GTIDs))
 		for i, gtid := range listEvent.GTIDs {
+			// TODO: support multiple GTID domain IDs
 			gtid, err := toMariadbGtid(&gtid)
 			if err != nil {
 				return nil, err
@@ -373,6 +374,7 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		if err != nil {
 			return nil, fmt.Errorf("error decoding first GTID event: %v", err)
 		}
+		// TODO: support multiple GTID domain IDs
 		gtid, err := toMariadbGtid(&firstGtid.GTID)
 		if err != nil {
 			return nil, err
@@ -384,6 +386,7 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		if err != nil {
 			return nil, fmt.Errorf("error decoding last GTID event: %v", err)
 		}
+		// TODO: support multiple GTID domain IDs
 		gtid, err := toMariadbGtid(&lastGtid.GTID)
 		if err != nil {
 			return nil, err
@@ -411,9 +414,9 @@ func decodeGTIDEvent(rawEvent []byte, serverId uint32) (*replication.MariadbGTID
 
 func toMariadbGtid(mysqlGtid *mysql.MariadbGTID) (*gtid.Gtid, error) {
 	rawGtid := mysqlGtid.String()
-	gtid, err := gtid.ParseGtid(rawGtid)
+	gtidObj, err := gtid.ParseGtid(rawGtid)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
 	}
-	return gtid, nil
+	return gtidObj, nil
 }

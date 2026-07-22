@@ -587,6 +587,217 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				},
 				false,
 			),
+			Entry(
+				"Valid multi-cluster disabled",
+				&v1alpha1.MariaDB{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MariaDBSpec{
+						MultiCluster: &v1alpha1.MultiCluster{
+							Enabled: false,
+						},
+						Storage: v1alpha1.Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Multi-cluster enabled without HA",
+				&v1alpha1.MariaDB{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MariaDBSpec{
+						MultiCluster: &v1alpha1.MultiCluster{
+							Enabled: true,
+							MultiClusterSpec: v1alpha1.MultiClusterSpec{
+								Primary: meta.Name,
+								Members: []v1alpha1.MultiClusterMember{
+									{
+										Name: meta.Name,
+									},
+									{
+										Name: "replica-cluster",
+									},
+								},
+							},
+						},
+						Storage: v1alpha1.Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Multi-cluster enabled without primary",
+				&v1alpha1.MariaDB{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MariaDBSpec{
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Primary: v1alpha1.PrimaryReplication{
+									PodIndex: func() *int { i := 0; return &i }(),
+								},
+							},
+							Enabled: true,
+						},
+						Replicas: 3,
+						MultiCluster: &v1alpha1.MultiCluster{
+							Enabled: true,
+							MultiClusterSpec: v1alpha1.MultiClusterSpec{
+								Members: []v1alpha1.MultiClusterMember{
+									{
+										Name: meta.Name,
+									},
+									{
+										Name: "replica-cluster",
+									},
+								},
+							},
+						},
+						Storage: v1alpha1.Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Multi-cluster enabled with current cluster not in members",
+				&v1alpha1.MariaDB{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MariaDBSpec{
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Primary: v1alpha1.PrimaryReplication{
+									PodIndex: func() *int { i := 0; return &i }(),
+								},
+							},
+							Enabled: true,
+						},
+						Replicas: 3,
+						MultiCluster: &v1alpha1.MultiCluster{
+							Enabled: true,
+							MultiClusterSpec: v1alpha1.MultiClusterSpec{
+								Primary: meta.Name,
+								Members: []v1alpha1.MultiClusterMember{
+									{
+										Name: "replica-cluster",
+									},
+								},
+							},
+						},
+						Storage: v1alpha1.Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Multi-cluster enabled with primary cluster not in members",
+				&v1alpha1.MariaDB{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MariaDBSpec{
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Primary: v1alpha1.PrimaryReplication{
+									PodIndex: func() *int { i := 0; return &i }(),
+								},
+							},
+							Enabled: true,
+						},
+						Replicas: 3,
+						MultiCluster: &v1alpha1.MultiCluster{
+							Enabled: true,
+							MultiClusterSpec: v1alpha1.MultiClusterSpec{
+								Primary: "other-primary",
+								Members: []v1alpha1.MultiClusterMember{
+									{
+										Name: meta.Name,
+									},
+									{
+										Name: "other-cluster",
+									},
+								},
+							},
+						},
+						Storage: v1alpha1.Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid multi-cluster with replication",
+				&v1alpha1.MariaDB{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MariaDBSpec{
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Primary: v1alpha1.PrimaryReplication{
+									PodIndex: func() *int { i := 0; return &i }(),
+								},
+							},
+							Enabled: true,
+						},
+						Replicas: 3,
+						MultiCluster: &v1alpha1.MultiCluster{
+							Enabled: true,
+							MultiClusterSpec: v1alpha1.MultiClusterSpec{
+								Primary: meta.Name,
+								Members: []v1alpha1.MultiClusterMember{
+									{
+										Name: meta.Name,
+									},
+									{
+										Name: "replica-cluster",
+									},
+								},
+							},
+						},
+						Storage: v1alpha1.Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Valid multi-cluster with Galera",
+				&v1alpha1.MariaDB{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MariaDBSpec{
+						Galera: &v1alpha1.Galera{
+							Enabled: true,
+							GaleraSpec: v1alpha1.GaleraSpec{
+								SST:            v1alpha1.SSTMariaBackup,
+								ReplicaThreads: 1,
+							},
+						},
+						Replicas: 3,
+						MultiCluster: &v1alpha1.MultiCluster{
+							Enabled: true,
+							MultiClusterSpec: v1alpha1.MultiClusterSpec{
+								Primary: meta.Name,
+								Members: []v1alpha1.MultiClusterMember{
+									{
+										Name: meta.Name,
+									},
+									{
+										Name: "replica-cluster",
+									},
+								},
+							},
+						},
+						Storage: v1alpha1.Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+			),
 		)
 	})
 
@@ -604,7 +815,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				Spec: v1alpha1.MariaDBSpec{
 					Image:           "mariadb:11.3.3",
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					PodTemplate: v1alpha1.PodTemplate{
+					MariaDBPodTemplate: v1alpha1.MariaDBPodTemplate{
 						PriorityClassName: ptr.To("PriorityClassName"),
 					},
 					ContainerTemplate: v1alpha1.ContainerTemplate{

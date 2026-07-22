@@ -107,6 +107,15 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		return result, errBundle.ErrorOrNil()
 	}
 
+	if mdb, ok := mariadb.(*mariadbv1alpha1.MariaDB); ok {
+		if mdb.HasPendingBinlogReplay() {
+			if err := r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherFailed("MariaDB has pending binlog replay")); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
+			}
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+	}
+
 	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
 	mdbClient, err := sqlClient.NewClientWithMariaDB(ctx, mariadb, r.RefResolver)
 	if err != nil {

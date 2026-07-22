@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler"
 	galerahandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/galera"
 	gtidhandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
@@ -33,6 +34,7 @@ var galeraCommand = &cobra.Command{
 		}
 		logger.Info("Galera agent starting")
 
+		//@WARN: The `PodEnvironment` should always be passed as a reference. See: `pkg/agent/handler/environment.go`
 		env, err := environment.GetPodEnv(context.Background())
 		if err != nil {
 			logger.Error(err, "Error getting environment variables")
@@ -60,10 +62,16 @@ var galeraCommand = &cobra.Command{
 		}
 
 		apiLogger := logger.WithName("api")
-		handlers := []router.RouteHandler{
+		responseWriter := mdbhttp.NewResponseWriter(&apiLogger)
+		apiHandlers := []router.RouteHandler{
 			galerahandler.NewGaleraHandler(
 				fileManager,
-				mdbhttp.NewResponseWriter(&apiLogger),
+				responseWriter,
+				&apiLogger,
+			),
+			handler.NewEnvironmentHandler(
+				env,
+				responseWriter,
 				&apiLogger,
 			),
 			gtidhandler.NewGtidHandler(
@@ -73,7 +81,7 @@ var galeraCommand = &cobra.Command{
 			),
 		}
 		apiServer, err := getAPIServer(
-			handlers,
+			apiHandlers,
 			env,
 			k8sClient,
 			apiLogger,
@@ -119,7 +127,7 @@ var galeraCommand = &cobra.Command{
 				stateDir,
 				env,
 				k8sClient,
-				mgr.GetEventRecorderFor("binlog-archival"),
+				mgr.GetEventRecorder("binlog-archival"),
 				logger.WithName("binlog-archival"),
 			)
 			go func() {

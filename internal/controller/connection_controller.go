@@ -155,7 +155,7 @@ func (r *ConnectionReconciler) getMariadb(ctx context.Context, ref *mariadbv1alp
 
 func (r *ConnectionReconciler) getExternalMariadb(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
 	conn *mariadbv1alpha1.Connection) (*mariadbv1alpha1.ExternalMariaDB, error) {
-	emdb, refErr := r.RefResolver.ExternalMariaDB(ctx, ref, conn.Namespace)
+	emdb, refErr := r.RefResolver.ExternalMariaDB(ctx, &ref.ObjectReference, conn.Namespace)
 	if refErr != nil {
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, refErr)

@@ -43,7 +43,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -99,7 +99,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             "mariadb:lts",
@@ -142,7 +142,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             "mariadb:lts",
@@ -180,7 +180,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -236,7 +236,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -305,7 +305,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -362,7 +362,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -424,7 +424,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -478,7 +478,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -544,7 +544,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -631,7 +631,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -718,7 +718,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -789,7 +789,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -846,7 +846,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -890,7 +890,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -924,7 +924,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
 							},
@@ -958,7 +958,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
@@ -1066,7 +1066,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                OnDeleteUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
@@ -1185,7 +1185,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                OnDeleteUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
@@ -1254,7 +1254,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 					},
@@ -1343,7 +1343,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 					},
@@ -1441,7 +1441,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 					},
@@ -1841,6 +1841,18 @@ var _ = Describe("MariaDB types", func() {
 					},
 					S3: &S3{
 						Bucket: "test",
+					},
+				},
+				true,
+			),
+			Entry(
+				"Mutually exclusive 7",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					AzureBlob: &AzureBlob{
+						ContainerName: "test",
 					},
 				},
 				true,
@@ -2415,5 +2427,55 @@ var _ = Describe("MariaDB types", func() {
 				"MariaDB.k8s.mariadb.com \"mariadb-validation\" is invalid: spec: Invalid value: An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations for Galera. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation.", //nolint
 			),
 		)
+	})
+})
+
+var _ = Describe("MariaDBVolume conversion", func() {
+	It("converts MariaDBVolumeSource and MariaDBVolume to k8s types", func() {
+		vctpl := &VolumeClaimTemplate{
+			PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
+				Resources: corev1.VolumeResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("1Gi"),
+					},
+				},
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			},
+			Metadata: &Metadata{
+				Labels:      map[string]string{"foo": "bar"},
+				Annotations: map[string]string{"a": "b"},
+			},
+		}
+
+		src := MariaDBVolumeSource{
+			VolumeSource: VolumeSource{
+				StorageVolumeSource: StorageVolumeSource{
+					EmptyDir: &EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory},
+				},
+				Secret: &SecretVolumeSource{SecretName: "s"},
+			},
+			Ephemeral: &EphemeralVolumeSource{VolumeClaimTemplate: vctpl},
+		}
+
+		got := src.ToKubernetesType()
+
+		Expect(got.EmptyDir).ToNot(BeNil())
+		Expect(got.Secret).ToNot(BeNil())
+		Expect(got.Secret.SecretName).To(Equal("s"))
+		Expect(got.Ephemeral).ToNot(BeNil())
+		Expect(got.Ephemeral.VolumeClaimTemplate).ToNot(BeNil())
+
+		meta := got.Ephemeral.VolumeClaimTemplate.ObjectMeta
+		Expect(meta.Labels).To(HaveKeyWithValue("foo", "bar"))
+		Expect(meta.Annotations).To(HaveKeyWithValue("a", "b"))
+
+		req := got.Ephemeral.VolumeClaimTemplate.Spec.Resources.Requests[corev1.ResourceStorage]
+		Expect(req.Cmp(resource.MustParse("1Gi"))).To(Equal(0))
+
+		mv := MariaDBVolume{MariaDBVolumeSource: src, Name: "data"}
+		vol := mv.ToKubernetesType()
+		Expect(vol.Name).To(Equal("data"))
+		Expect(vol.VolumeSource.Ephemeral).ToNot(BeNil())
+		Expect(vol.VolumeSource.EmptyDir).To(Equal(got.EmptyDir))
 	})
 })

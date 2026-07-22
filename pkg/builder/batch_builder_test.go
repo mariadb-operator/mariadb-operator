@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/stretchr/testify/assert"
@@ -74,7 +74,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -146,7 +146,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -452,24 +452,24 @@ func TestBackupJobMeta(t *testing.T) {
 	}
 }
 
-func TestPhysicalBackupJobNodeSelector(t *testing.T) {
+func TestPhysicalBackupJobPodAffinity(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	podObjMeta := metav1.ObjectMeta{
 		Name: "mariadb-0",
 	}
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "physicalbackup-test",
+			Name: "mariadb",
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{},
 	}
 
 	tests := []struct {
-		name             string
-		backup           *mariadbv1alpha1.PhysicalBackup
-		pod              *corev1.Pod
-		wantErr          bool
-		wantNodeSelector bool
+		name            string
+		backup          *mariadbv1alpha1.PhysicalBackup
+		pod             *corev1.Pod
+		wantErr         bool
+		wantPodAffinity bool
 	}{
 		{
 			name:   "error when pod nodeName is empty",
@@ -480,11 +480,11 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 					NodeName: "",
 				},
 			},
-			wantErr:          true,
-			wantNodeSelector: false,
+			wantErr:         true,
+			wantPodAffinity: false,
 		},
 		{
-			name: "nodeSelector set when podAffinity is true (default)",
+			name: "podAffinity set when podAffinity is true (default)",
 			backup: &mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
@@ -500,11 +500,11 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 					NodeName: "node-1",
 				},
 			},
-			wantErr:          false,
-			wantNodeSelector: true,
+			wantErr:         false,
+			wantPodAffinity: true,
 		},
 		{
-			name: "nodeSelector set when podAffinity is true (explicit)",
+			name: "podAffinity set when podAffinity is true (explicit)",
 			backup: &mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					PodAffinity: ptr.To(true),
@@ -521,11 +521,11 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 					NodeName: "node-1",
 				},
 			},
-			wantErr:          false,
-			wantNodeSelector: true,
+			wantErr:         false,
+			wantPodAffinity: true,
 		},
 		{
-			name: "nodeSelector not set when podAffinity is false",
+			name: "podAffinity not set when podAffinity is false",
 			backup: &mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					PodAffinity: ptr.To(false),
@@ -542,8 +542,8 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 					NodeName: "node-1",
 				},
 			},
-			wantErr:          false,
-			wantNodeSelector: false,
+			wantErr:         false,
+			wantPodAffinity: false,
 		},
 	}
 
@@ -565,20 +565,21 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			nodeSelector := job.Spec.Template.Spec.NodeSelector
-			if tt.wantNodeSelector {
-				assert.NotNil(t, nodeSelector, "expected nodeSelector to be set")
-				assert.Equal(
-					t,
-					tt.pod.Spec.NodeName,
-					nodeSelector["kubernetes.io/hostname"],
-					errors.New("expected nodeSelector to be set to pod's nodeName"),
-				)
+			affinity := job.Spec.Template.Spec.Affinity
+			if tt.wantPodAffinity {
+				assert.NotNil(t, affinity, "expected affinity to be set")
+				assert.NotNil(t, affinity.PodAffinity, "expected podAffinity to be set")
+				assert.NotEmpty(t, affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution, "expected required pod affinity terms")
+
+				term := affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution[0]
+				assert.Equal(t, "kubernetes.io/hostname", term.TopologyKey)
+				assert.Equal(t, mariadb.Name, term.LabelSelector.MatchLabels["app.kubernetes.io/instance"])
+				assert.Equal(t, tt.pod.Name, term.LabelSelector.MatchLabels["statefulset.kubernetes.io/pod-name"])
 			} else {
 				assert.True(
 					t,
-					nodeSelector == nil || nodeSelector["kubernetes.io/hostname"] == "",
-					fmt.Errorf("expected nodeSelector to be nil or not set, got %v", nodeSelector),
+					affinity == nil || affinity.PodAffinity == nil,
+					fmt.Errorf("expected affinity to be nil or not have podAffinity, got %v", affinity),
 				)
 			}
 		})
@@ -847,7 +848,7 @@ func TestPhysicalBackupJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -910,7 +911,7 @@ func TestPhysicalBackupJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -1079,7 +1080,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -1151,7 +1152,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -1520,7 +1521,7 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -1565,7 +1566,7 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject":    "false",
@@ -1613,7 +1614,7 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -1699,7 +1700,7 @@ func TestPhysicalBackupRestoreJobImagePullSecrets(t *testing.T) {
 							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -1766,7 +1767,7 @@ func TestGaleraInitJobImagePullSecrets(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -1911,7 +1912,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -1953,7 +1954,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 							},
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -2002,7 +2003,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -2141,7 +2142,7 @@ func TestGaleraInitContainers(t *testing.T) {
 			Name: "mariadb-obj",
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			PodTemplate: mariadbv1alpha1.PodTemplate{
+			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 				InitContainers: []mariadbv1alpha1.Container{
 					{
 						Name:    "init",
@@ -2235,7 +2236,7 @@ func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 							},
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -2406,7 +2407,7 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 							},
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -2451,7 +2452,7 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 							},
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -2503,7 +2504,7 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -2949,7 +2950,7 @@ func TestGaleraRecoveryContainers(t *testing.T) {
 			Name: "mariadb-obj",
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			PodTemplate: mariadbv1alpha1.PodTemplate{
+			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 				InitContainers: []mariadbv1alpha1.Container{
 					{
 						Name:    "init",
@@ -3095,7 +3096,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -3167,7 +3168,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -3487,7 +3488,7 @@ func TestBuildPITRJob(t *testing.T) {
 							"database.myorg.io": "test",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Annotations: map[string]string{
 								"pod.myorg.io": "test",
@@ -3606,6 +3607,132 @@ func TestBuildPITRJob(t *testing.T) {
 	}
 }
 
+func TestJobPhysicalBackupVolumes(t *testing.T) {
+	podIndex := 0
+
+	tests := []struct {
+		name            string
+		storageVolume   mariadbv1alpha1.StorageVolumeSource
+		s3              *mariadbv1alpha1.S3
+		abs             *mariadbv1alpha1.AzureBlob
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantVolumeNames []string
+	}{
+		{
+			name: "Basic backup volumes",
+			storageVolume: mariadbv1alpha1.StorageVolumeSource{
+				EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume},
+		},
+		{
+			name: "S3 Volumes",
+			s3: &mariadbv1alpha1.S3{
+				TLS: &mariadbv1alpha1.TLSConfig{
+					Enabled:        true,
+					CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume, S3PKI},
+		},
+		{
+			name: "ABS Volumes",
+			abs: &mariadbv1alpha1.AzureBlob{
+				TLS: &mariadbv1alpha1.TLSConfig{
+					Enabled:        true,
+					CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume, ABSPKI},
+		},
+		{
+			name: "PKI Volumes",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume, builderpki.PKIVolume},
+		},
+		{
+			name: "Additional env",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						VolumeMounts: []mariadbv1alpha1.VolumeMount{
+							{
+								Name: "test",
+							},
+						},
+					},
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						Volumes: []mariadbv1alpha1.MariaDBVolume{
+							{
+								Name: "test",
+							},
+						},
+					},
+				},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume, builderpki.PKIVolume, "test"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			volumes, volumeMounts := jobPhysicalBackupVolumes(tt.storageVolume, tt.s3, tt.abs, tt.mariadb, &podIndex)
+
+			if len(volumes) != len(tt.wantVolumeNames) {
+				t.Errorf("got %d volumes, want %d", len(volumes), len(tt.wantVolumeNames))
+			}
+			if len(volumeMounts) != len(tt.wantVolumeNames) {
+				t.Errorf("got %d volumeMounts, want %d", len(volumes), len(tt.wantVolumeNames))
+			}
+
+			for _, wantName := range tt.wantVolumeNames {
+				foundVol := false
+				for _, v := range volumes {
+					if v.Name == wantName {
+						foundVol = true
+						break
+					}
+				}
+				if !foundVol {
+					t.Errorf("volume %s not found in volumes", wantName)
+				}
+
+				// Check if each expected volume mount exists
+				foundMount := false
+				for _, vm := range volumeMounts {
+					if vm.Name == wantName {
+						foundMount = true
+						break
+					}
+				}
+				if !foundMount {
+					t.Errorf("volume mount %s not found in volumeMounts", wantName)
+				}
+			}
+		})
+	}
+}
+
 func hasVolumePVC(volumes []corev1.Volume, volumeName string) bool {
 	for _, v := range volumes {
 		if v.PersistentVolumeClaim != nil && v.Name == volumeName {
@@ -3625,9 +3752,9 @@ func getVolumeSource(name string, job *v1.Job) *corev1.VolumeSource {
 }
 
 func mustParseGtid(t *testing.T, rawGtid string) *gtid.Gtid {
-	gtid, err := gtid.ParseGtid(rawGtid)
+	g, err := gtid.ParseGtid(rawGtid)
 	if err != nil {
 		t.Fatalf("unexpected error parsing GTID: %v", err)
 	}
-	return gtid
+	return g
 }

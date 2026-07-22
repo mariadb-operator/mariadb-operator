@@ -27,6 +27,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/maintenance"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
@@ -260,8 +261,9 @@ var rootCmd = &cobra.Command{
 
 		client := mgr.GetClient()
 		scheme := mgr.GetScheme()
-		galeraRecorder := mgr.GetEventRecorderFor("galera")
-		replRecorder := mgr.GetEventRecorderFor("replication")
+		galeraRecorder := mgr.GetEventRecorder("galera")
+		replRecorder := mgr.GetEventRecorder("replication")
+		maintenanceRecorder := mgr.GetEventRecorder("maintenance")
 
 		kubeClientset, err := kubernetes.NewForConfig(restConfig)
 		if err != nil {
@@ -304,15 +306,15 @@ var rootCmd = &cobra.Command{
 		deployReconciler := deployment.NewDeploymentReconciler(client)
 		pvcReconciler := pvc.NewPVCReconciler(client)
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
-		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"), discovery, builder)
+		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorder("cert"), discovery, builder)
 
-		replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
+		topologyManager := replication.NewTopologyManager(client)
 		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
 			replRecorder,
 			builder,
 			env,
-			replConfigClient,
+			topologyManager,
 			replication.WithRefResolver(refResolver),
 			replication.WithSecretReconciler(secretReconciler),
 			replication.WithServiceReconciler(serviceReconciler),
@@ -327,10 +329,12 @@ var rootCmd = &cobra.Command{
 			galeraRecorder,
 			env,
 			builder,
+			topologyManager,
 			galera.WithRefResolver(refResolver),
 			galera.WithConfigMapReconciler(configMapReconciler),
 			galera.WithServiceReconciler(serviceReconciler),
 		)
+		maintenanceReconciler := maintenance.NewMaintenanceReconciler(client, maintenanceRecorder)
 
 		podReplicationController := controller.NewPodController(
 			"pod-replication",
@@ -339,9 +343,6 @@ var rootCmd = &cobra.Command{
 			controller.NewPodReplicationController(
 				client,
 				replRecorder,
-				builder,
-				refResolver,
-				replConfigClient,
 			),
 			[]string{
 				metadata.MariadbAnnotation,
@@ -362,15 +363,15 @@ var rootCmd = &cobra.Command{
 		if err = (&controller.MariaDBReconciler{
 			Client:   client,
 			Scheme:   scheme,
-			Recorder: mgr.GetEventRecorderFor("mariadb"),
+			Recorder: mgr.GetEventRecorder("mariadb"),
 
-			Environment:      env,
-			Builder:          builder,
-			RefResolver:      refResolver,
-			ConditionReady:   conditionReady,
-			Discovery:        discovery,
-			BackupProcessor:  backupProcessor,
-			ReplConfigClient: replConfigClient,
+			Environment:     env,
+			Builder:         builder,
+			RefResolver:     refResolver,
+			ConditionReady:  conditionReady,
+			Discovery:       discovery,
+			BackupProcessor: backupProcessor,
+			TopologyManager: topologyManager,
 
 			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,
@@ -386,6 +387,7 @@ var rootCmd = &cobra.Command{
 
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
+			MaintenanceReconciler: maintenanceReconciler,
 		}).SetupWithManager(ctx, mgr, env, ctrlcontroller.Options{MaxConcurrentReconciles: mariadbMaxConcurrentReconciles}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
@@ -393,7 +395,7 @@ var rootCmd = &cobra.Command{
 		if err = (&controller.MaxScaleReconciler{
 			Client:      client,
 			Scheme:      scheme,
-			Recorder:    mgr.GetEventRecorderFor("maxscale"),
+			Recorder:    mgr.GetEventRecorder("maxscale"),
 			RefResolver: refResolver,
 
 			Builder:        builder,
@@ -433,7 +435,7 @@ var rootCmd = &cobra.Command{
 		if err = (&controller.PhysicalBackupReconciler{
 			Client:            client,
 			Scheme:            scheme,
-			Recorder:          mgr.GetEventRecorderFor("physicalbackup"),
+			Recorder:          mgr.GetEventRecorder("physicalbackup"),
 			Builder:           builder,
 			Discovery:         discovery,
 			RefResolver:       refResolver,

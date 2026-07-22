@@ -22,8 +22,10 @@ import (
 )
 
 const (
-	ConfigFileName    = "0-galera.cnf"
-	BootstrapFileName = recovery.BootstrapFileName
+	ConfigFileName         = "0-galera.cnf"
+	BootstrapFileName      = recovery.BootstrapFileName
+	gtidDomainIDOffset     = 1
+	pitrGtidDomainIDOffset = 10
 )
 
 var BootstrapFile = []byte(`[galera]
@@ -46,6 +48,11 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 		return nil, errors.New("MariaDB Galera not enabled, unable to render config file")
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+
+	wsrepGtidDomainID, gtidDomainID, err := c.gtidDomainIDs(podEnv.PodName, galera)
+	if err != nil {
+		return nil, fmt.Errorf("error getting gtid_domain_id: %v", err)
+	}
 
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
@@ -80,7 +87,7 @@ tca={{ .SSTSSLCAPath }}
 tcert={{ .SSTSSLCertPath }}
 tkey={{ .SSTSSLKeyPath }}
 {{- end }}
-{{- if .PITREnabled }}
+{{- if and .PITREnabled (not .MultiClusterEnabled) }}
 
 # PITR
 wsrep_gtid_mode=ON
@@ -89,7 +96,19 @@ log_slave_updates
 log_bin
 log_basename={{ .LogBaseName }}
 gtid_domain_id={{ .GtidDomainID }}
-server_id={{ .ServerId }}
+{{- end }}
+{{- if and .MultiClusterEnabled .WsrepGtidDomainID .GtidDomainID .ServerID }}
+
+# Multi-cluster
+log-bin
+log_slave_updates=ON
+wsrep_gtid_mode=ON
+wsrep_gtid_domain_id={{ .WsrepGtidDomainID }}
+gtid_domain_id={{ .GtidDomainID }}
+server_id={{ .ServerID }}
+{{- if .PITREnabled }}
+log_basename={{ .LogBaseName }}
+{{- end }}
 {{- end }}
 `)
 	buf := new(bytes.Buffer)
@@ -110,18 +129,6 @@ server_id={{ .ServerId }}
 	providerOptions, err := c.getProviderOptions(podEnv, galera.ProviderOptions)
 	if err != nil {
 		return nil, fmt.Errorf("error getting provider options: %v", err)
-	}
-
-	// See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/using-mariadb-gtids-with-mariadb-galera-cluster
-	var wsrepDomainID, gtidDomainID, serverId int
-	if c.mariadb.IsPointInTimeRecoveryEnabled() {
-		wsrepDomainID = 0
-		serverId = 10
-		// gtid_domain_id must differ from wsrep_gtid_domain_id and be unique on each node
-		gtidDomainID, err = gtidDomainIDFromPodName(podEnv.PodName, 10)
-		if err != nil {
-			return nil, fmt.Errorf("error getting gtid_domain_id from Pod %s: %v", podEnv.PodName, err)
-		}
 	}
 
 	err = tpl.Execute(buf, struct {
@@ -147,11 +154,12 @@ server_id={{ .ServerId }}
 		SSTSSLCertPath string
 		SSTSSLKeyPath  string
 
-		PITREnabled       bool
-		WsrepGtidDomainID int
-		LogBaseName       string
-		GtidDomainID      int
-		ServerId          int
+		PITREnabled         bool
+		LogBaseName         string
+		MultiClusterEnabled bool
+		WsrepGtidDomainID   *int
+		GtidDomainID        *int
+		ServerID            *int
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        galera.ReplicaThreads,
@@ -175,11 +183,12 @@ server_id={{ .ServerId }}
 		SSTSSLCertPath: podEnv.TLSClientCertPath,
 		SSTSSLKeyPath:  podEnv.TLSClientKeyPath,
 
-		PITREnabled:       c.mariadb.IsPointInTimeRecoveryEnabled(),
-		WsrepGtidDomainID: wsrepDomainID,
-		LogBaseName:       c.mariadb.Name,
-		GtidDomainID:      gtidDomainID,
-		ServerId:          serverId,
+		PITREnabled:         c.mariadb.IsPointInTimeRecoveryEnabled(),
+		LogBaseName:         c.mariadb.Name,
+		MultiClusterEnabled: c.mariadb.IsMultiClusterEnabled(),
+		WsrepGtidDomainID:   wsrepGtidDomainID,
+		GtidDomainID:        gtidDomainID,
+		ServerID:            galera.ServerID,
 	})
 	if err != nil {
 		return nil, err
@@ -237,6 +246,30 @@ func (c *ConfigFile) getProviderOptions(env *environment.PodEnvironment, options
 
 	providerOpts := newProviderOptions(wsrepOpts)
 	return providerOpts.marshal(), nil
+}
+
+// gtidDomainIDs resolves 'wsrep_gtid_domain_id' and 'gtid_domain_id' for the given pod.
+// 'gtid_domain_id' is derived from the pod name, relying on the natural incrementation of pod naming in statefulsets.
+// An offset is added since 'gtid_domain_id' and 'wsrep_gtid_domain_id' must never match and they will for the first pod ("-0").
+// Multi-cluster takes precedence when both it and PITR are enabled: its 'wsrep_gtid_domain_id' is user-configured
+// See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
+func (c *ConfigFile) gtidDomainIDs(podName string, galera mariadbv1alpha1.Galera) (wsrep *int, gtid *int, err error) {
+	if c.mariadb.IsMultiClusterEnabled() && galera.GtidDomainID != nil {
+		podIndex, err := statefulset.PodIndex(podName)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error getting Pod index: %v", err)
+		}
+		return galera.GtidDomainID, ptr.To(gtidDomainIDOffset + *galera.GtidDomainID + *podIndex), nil
+	}
+
+	if c.mariadb.IsPointInTimeRecoveryEnabled() {
+		podIndex, err := statefulset.PodIndex(podName)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error getting Pod index: %v", err)
+		}
+		return ptr.To(0), ptr.To(pitrGtidDomainIDOffset + *podIndex), nil
+	}
+	return nil, nil, nil
 }
 
 func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byte, error) {
@@ -361,14 +394,6 @@ func thisHostIP(ip string) (string, error) {
 	}
 
 	return hostIP, nil
-}
-
-func gtidDomainIDFromPodName(podName string, baseIndex int) (int, error) {
-	podIndex, err := statefulset.PodIndex(podName)
-	if err != nil {
-		return 0, fmt.Errorf("error getting Pod index: %v", err)
-	}
-	return baseIndex + *podIndex, nil
 }
 
 func createTpl(name, t string) *template.Template {

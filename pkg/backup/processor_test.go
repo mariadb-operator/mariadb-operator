@@ -330,8 +330,18 @@ func TestLogicalIsValidBackupFile(t *testing.T) {
 			wantValid:  true,
 		},
 		{
-			name:       "valid with compression",
+			name:       "valid with legacy compression",
 			backupFile: "backup.2023-12-18T16:14:00Z.bzip2.sql",
+			wantValid:  true,
+		},
+		{
+			name:       "valid with gzip compression",
+			backupFile: "backup.2023-12-18T16:14:00Z.sql.gz",
+			wantValid:  true,
+		},
+		{
+			name:       "valid with bzip2 compression",
+			backupFile: "backup.2023-12-18T16:14:00Z.sql.bz2",
 			wantValid:  true,
 		},
 	}
