@@ -545,12 +545,27 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, key types.NamespacedName) error {
 	var physicalBackup mariadbv1alpha1.PhysicalBackup
 	if err := r.Get(ctx, key, &physicalBackup); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+	} else if err := r.Delete(ctx, &physicalBackup); err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	return r.cleanupPhysicalBackupStoragePVC(ctx, key)
+}
+
+func (r *MariaDBReconciler) cleanupPhysicalBackupStoragePVC(ctx context.Context, key types.NamespacedName) error {
+	var pvc corev1.PersistentVolumeClaim
+	if err := r.Get(ctx, key, &pvc); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
 		return err
 	}
-	return r.Delete(ctx, &physicalBackup)
+	if err := r.Delete(ctx, &pvc); err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	return nil
 }
 
 func isReplicaBootstrapScaleOutRecovery(mariadb *mariadbv1alpha1.MariaDB, fromIndex int, pvcUIDs map[int]string) bool {

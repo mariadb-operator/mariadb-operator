@@ -844,6 +844,9 @@ func TestCompleteReplicaRecoveryKeepsPersistedTarget(t *testing.T) {
 	if err := batchv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("error adding batch scheme: %v", err)
 	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
 
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1294,6 +1297,9 @@ func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryBackup(t *testing
 	if err := batchv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("error adding batch scheme: %v", err)
 	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
 
 	recoveryStart := metav1.NewTime(time.Date(2026, 3, 23, 22, 36, 21, 0, time.UTC))
 	backupTime := metav1.NewTime(time.Date(2026, 3, 23, 22, 33, 44, 0, time.UTC))
@@ -1346,6 +1352,7 @@ func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryBackup(t *testing
 		mariadb,
 		nil,
 		nil,
+		nil,
 		logr.Discard(),
 	)
 	if err != nil {
@@ -1380,6 +1387,9 @@ func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryArtifactsForRecre
 	}
 	if err := batchv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("error adding batch scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
 	}
 
 	backupTime := metav1.NewTime(time.Date(2026, 3, 23, 22, 33, 44, 0, time.UTC))
@@ -1428,6 +1438,7 @@ func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryArtifactsForRecre
 			},
 		},
 		[]string{"mariadb-0"},
+		nil,
 		logr.Discard(),
 	)
 	if err != nil {
@@ -1462,6 +1473,9 @@ func TestEnsureReplicaPhysicalBackupCurrentKeepsCurrentRecoveryArtifactsForPVC(t
 	}
 	if err := batchv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("error adding batch scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
 	}
 
 	backupTime := metav1.NewTime(time.Date(2026, 3, 23, 22, 36, 21, 0, time.UTC))
@@ -1510,6 +1524,7 @@ func TestEnsureReplicaPhysicalBackupCurrentKeepsCurrentRecoveryArtifactsForPVC(t
 			},
 		},
 		[]string{"mariadb-0"},
+		nil,
 		logr.Discard(),
 	)
 	if err != nil {
@@ -1534,6 +1549,9 @@ func TestResetReplicaRecoveryIfNotNeededCleansRecoveryArtifacts(t *testing.T) {
 	}
 	if err := batchv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("error adding batch scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
 	}
 
 	mariadb := &mariadbv1alpha1.MariaDB{
@@ -1638,6 +1656,9 @@ func TestSetReplicaRecoveredAndCleanupPreservesCompletedPVCAnnotation(t *testing
 	}
 	if err := batchv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("error adding batch scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
 	}
 
 	mariadb := &mariadbv1alpha1.MariaDB{
@@ -1839,11 +1860,12 @@ func TestRetryReplicaRecoveryWithFreshBackupDeletesArtifactsOncePerPVC(t *testin
 	if retried {
 		t.Fatalf("expected only one fresh-backup retry per PVC")
 	}
-	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(retryBackup), &mariadbv1alpha1.PhysicalBackup{}); err != nil {
-		t.Fatalf("expected PhysicalBackup to remain after retry budget is exhausted, got err=%v", err)
+	err = fakeClient.Get(context.Background(), client.ObjectKeyFromObject(retryBackup), &mariadbv1alpha1.PhysicalBackup{})
+	if !apierrors.IsNotFound(err) {
+		t.Fatalf("expected stale PhysicalBackup deleted after retry budget is exhausted, got err=%v", err)
 	}
-	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(retryJob), &batchv1.Job{}); err != nil {
-		t.Fatalf("expected init Job to remain after retry budget is exhausted, got err=%v", err)
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(retryJob), &batchv1.Job{}); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected stale init Job deleted after retry budget is exhausted, got err=%v", err)
 	}
 }
 
@@ -2128,15 +2150,15 @@ func TestHandleReplicaRecoveryArtifactFailureRetriesOncePerPVC(t *testing.T) {
 		context.Background(),
 		client.ObjectKeyFromObject(physicalBackup),
 		&mariadbv1alpha1.PhysicalBackup{},
-	); err != nil {
-		t.Fatalf("expected exhausted retry PhysicalBackup to remain, got %v", err)
+	); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected exhausted retry PhysicalBackup deleted, got %v", err)
 	}
 	if err := fakeClient.Get(
 		context.Background(),
 		client.ObjectKeyFromObject(initJob),
 		&batchv1.Job{},
-	); err != nil {
-		t.Fatalf("expected exhausted retry init Job to remain, got %v", err)
+	); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected exhausted retry init Job deleted, got %v", err)
 	}
 	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
 		t.Fatalf("error getting exhausted retry MariaDB: %v", err)
@@ -2245,5 +2267,77 @@ func TestReconcileReplicaRecoveryErrorRetriesLegacyArtifactFailure(t *testing.T)
 		&batchv1.Job{},
 	); !apierrors.IsNotFound(err) {
 		t.Fatalf("expected failed init Job to be deleted before retry, got %v", err)
+	}
+}
+
+func TestIsReplicaPhysicalBackupStaleByReplicaError(t *testing.T) {
+	backupTime := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: metav1.NewTime(backupTime),
+		},
+	}
+	newMariadb := func(errTime time.Time, ioErrno, sqlErrno int) *mariadbv1alpha1.MariaDB {
+		return &mariadbv1alpha1.MariaDB{
+			Status: mariadbv1alpha1.MariaDBStatus{
+				Replication: &mariadbv1alpha1.ReplicationStatus{
+					Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+						"mariadb-0": {
+							ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+								LastIOErrno:  &ioErrno,
+								LastSQLErrno: &sqlErrno,
+							},
+							LastErrorTransitionTime: metav1.NewTime(errTime),
+						},
+					},
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		replicas []string
+		want     bool
+	}{
+		{
+			name:     "error newer than backup",
+			mariadb:  newMariadb(backupTime.Add(time.Minute), 1236, 0),
+			replicas: []string{"mariadb-0"},
+			want:     true,
+		},
+		{
+			name:     "error older than backup",
+			mariadb:  newMariadb(backupTime.Add(-time.Minute), 1236, 0),
+			replicas: []string{"mariadb-0"},
+			want:     false,
+		},
+		{
+			name:     "no current error",
+			mariadb:  newMariadb(backupTime.Add(time.Minute), 0, 0),
+			replicas: []string{"mariadb-0"},
+			want:     false,
+		},
+		{
+			name:     "replica without status",
+			mariadb:  newMariadb(backupTime.Add(time.Minute), 1236, 0),
+			replicas: []string{"mariadb-1"},
+			want:     false,
+		},
+		{
+			name:     "no replicas to recover",
+			mariadb:  newMariadb(backupTime.Add(time.Minute), 1236, 0),
+			replicas: nil,
+			want:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isReplicaPhysicalBackupStaleByReplicaError(physicalBackup, tt.mariadb, tt.replicas)
+			if got != tt.want {
+				t.Fatalf("expected %v, got %v", tt.want, got)
+			}
+		})
 	}
 }
