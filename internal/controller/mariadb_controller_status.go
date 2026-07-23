@@ -42,7 +42,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	}
 	replStatus, replErrStatusErr := r.getReplicaStatus(ctx, mdb, logger)
 	if replErrStatusErr != nil {
-		logger.Info("error getting replication status", "err", replStatus)
+		logger.Info("error getting replication status", "err", replErrStatusErr)
 	}
 
 	mxsPrimaryPodIndex, mxsErr, result, err := r.syncObservedPrimaryStatus(ctx, mdb, replRoles, statusLogger, logger)
