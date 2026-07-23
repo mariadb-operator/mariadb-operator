@@ -599,7 +599,14 @@ func (r *MariaDBReconciler) getPVCRecoveryQuiesceAction(ctx context.Context, mar
 		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, err
 	}
 	if pod == nil {
-		if _, ok := storedReplicaRecoveryNode(mariadb.Annotations, *podIndex); !ok {
+		_, nodeOk, err := r.storedAvailableReplicaRecoveryNode(ctx, mariadb, *podIndex, logger)
+		if err != nil {
+			return pvcRecoveryQuiesceAction{}, ctrl.Result{}, err
+		}
+		if !nodeOk {
+			if err := r.ensureStatefulSetPresent(ctx, mariadb); err != nil {
+				return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error ensuring StatefulSet present: %v", err)
+			}
 			logger.V(1).Info("Waiting for replica pod to exist before pausing PVC recovery target", "replica", replica)
 			return pvcRecoveryQuiesceAction{}, ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
@@ -767,6 +774,55 @@ func (r *MariaDBReconciler) reconcileAndWaitForJobReplicaRecovery(ctx context.Co
 	return r.waitForInitJobComplete(ctx, mariadb, jobKey, logger)
 }
 
+func (r *MariaDBReconciler) storedAvailableReplicaRecoveryNode(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	podIndex int, logger logr.Logger) (string, bool, error) {
+	nodeName, ok := storedReplicaRecoveryNode(mariadb.Annotations, podIndex)
+	if !ok || nodeName == "" {
+		return "", false, nil
+	}
+	available, err := r.isReplicaRecoveryNodeAvailable(ctx, nodeName)
+	if err != nil {
+		logger.V(1).Info("Error checking replica recovery node availability", "node", nodeName, "err", err)
+	}
+	if available {
+		return nodeName, true, nil
+	}
+	logger.Info("Replica recovery node is unavailable. Unpinning recovery from node", "node", nodeName)
+	if err := r.clearReplicaRecoveryNodeAnnotation(ctx, mariadb, podIndex); err != nil {
+		return "", false, fmt.Errorf("error clearing replica recovery node annotation: %v", err)
+	}
+	return "", false, nil
+}
+
+func (r *MariaDBReconciler) isReplicaRecoveryNodeAvailable(ctx context.Context, nodeName string) (bool, error) {
+	var node corev1.Node
+	if err := r.Get(ctx, types.NamespacedName{Name: nodeName}, &node); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return true, err
+	}
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == corev1.NodeReady {
+			return cond.Status == corev1.ConditionTrue, nil
+		}
+	}
+	return false, nil
+}
+
+func (r *MariaDBReconciler) ensureStatefulSetPresent(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	var sts appsv1.StatefulSet
+	err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts)
+	if err == nil {
+		return nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return err
+	}
+	_, err = r.reconcileStatefulSet(ctx, mariadb)
+	return err
+}
+
 func (r *MariaDBReconciler) getPodIfExists(ctx context.Context, key types.NamespacedName) (*corev1.Pod, error) {
 	var pod corev1.Pod
 	if err := r.Get(ctx, key, &pod); err != nil {
@@ -803,7 +859,11 @@ func (r *MariaDBReconciler) ensureRecoveryJobCreated(ctx context.Context, physic
 	}
 
 	if pod == nil || pod.Spec.NodeName == "" {
-		if nodeName, ok := storedReplicaRecoveryNode(mariadb.Annotations, podIndex); ok && nodeName != "" {
+		nodeName, nodeOk, err := r.storedAvailableReplicaRecoveryNode(ctx, mariadb, podIndex, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if nodeOk {
 			logger.V(1).Info("Using stored recovery node to create PhysicalBackup init job", "node", nodeName)
 			pod = &corev1.Pod{
 				Spec: corev1.PodSpec{
@@ -811,6 +871,9 @@ func (r *MariaDBReconciler) ensureRecoveryJobCreated(ctx context.Context, physic
 				},
 			}
 		} else if pod == nil {
+			if err := r.ensureStatefulSetPresent(ctx, mariadb); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error ensuring StatefulSet present: %v", err)
+			}
 			logger.V(1).Info("Waiting for Pod to exist before creating recovery Job")
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		} else {

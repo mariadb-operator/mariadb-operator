@@ -634,6 +634,27 @@ func (r *MariaDBReconciler) syncReplicaRecoveryNodeAnnotation(ctx context.Contex
 	})
 }
 
+func (r *MariaDBReconciler) clearReplicaRecoveryNodeAnnotation(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB, podIndex int) error {
+	key := client.ObjectKeyFromObject(mariadb)
+
+	var current mariadbv1alpha1.MariaDB
+	if err := r.Get(ctx, key, &current); err != nil {
+		return fmt.Errorf("error getting MariaDB: %v", err)
+	}
+	annotationKey := replicaRecoveryNodeAnnotationKey(podIndex)
+	if _, ok := current.Annotations[annotationKey]; ok {
+		if err := r.patch(ctx, &current, func(mdb *mariadbv1alpha1.MariaDB) error {
+			delete(mdb.Annotations, annotationKey)
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	delete(mariadb.Annotations, annotationKey)
+	return nil
+}
+
 func (r *MariaDBReconciler) clearReplicaRecoveryNodeAnnotations(ctx context.Context,
 	mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
@@ -832,9 +853,8 @@ func (r *MariaDBReconciler) ensureStoragePVCPresent(ctx context.Context, mariadb
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	if pvc.Status.Phase != corev1.ClaimBound {
-		logger.V(1).Info("Waiting for storage PVC to be bound", "pvc", pvc.Name, "phase", pvc.Status.Phase)
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	if pvc.Status.Phase == corev1.ClaimLost {
+		return ctrl.Result{}, fmt.Errorf("storage PVC '%s' is in Lost phase", pvc.Name)
 	}
 	return ctrl.Result{}, nil
 }

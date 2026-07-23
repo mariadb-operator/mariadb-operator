@@ -1092,6 +1092,20 @@ func TestEnsureRecoveryJobCreatedUsesStoredNodeAnnotationWhenPodMissing(t *testi
 		t.Fatalf("error adding batch scheme: %v", err)
 	}
 
+	recoveryNode := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-a",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		},
+	}
+
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mariadb",
@@ -1144,7 +1158,7 @@ func TestEnsureRecoveryJobCreatedUsesStoredNodeAnnotationWhenPodMissing(t *testi
 
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(mariadb, replicaPVC, physicalBackup).
+		WithObjects(mariadb, replicaPVC, physicalBackup, recoveryNode).
 		Build()
 
 	disc, err := discovery.NewFakeDiscovery()
@@ -2423,5 +2437,98 @@ func TestGetPVCRecoveryQuiesceActionIgnoresStaleCompletedJob(t *testing.T) {
 	}
 	if _, ok := updated.Annotations[replicaRecoveryCompletedPVCUIDAnnotationKey(0)]; ok {
 		t.Fatal("expected completed PVC annotation not to be recorded for stale job")
+	}
+}
+
+func TestStoredAvailableReplicaRecoveryNode(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+
+	newNode := func(ready corev1.ConditionStatus) *corev1.Node {
+		return &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-a",
+			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: ready,
+					},
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name       string
+		node       *corev1.Node
+		wantNodeOk bool
+		wantClear  bool
+	}{
+		{
+			name:       "ready node keeps pin",
+			node:       newNode(corev1.ConditionTrue),
+			wantNodeOk: true,
+		},
+		{
+			name:       "not ready node unpins",
+			node:       newNode(corev1.ConditionFalse),
+			wantNodeOk: false,
+			wantClear:  true,
+		},
+		{
+			name:       "missing node unpins",
+			node:       nil,
+			wantNodeOk: false,
+			wantClear:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mariadb := &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb",
+					Namespace: "test",
+					Annotations: map[string]string{
+						replicaRecoveryNodeAnnotationKey(1): "node-a",
+					},
+				},
+			}
+			objects := []client.Object{mariadb}
+			if tt.node != nil {
+				objects = append(objects, tt.node)
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(objects...).
+				Build()
+			reconciler := &MariaDBReconciler{Client: fakeClient}
+
+			nodeName, nodeOk, err := reconciler.storedAvailableReplicaRecoveryNode(context.Background(), mariadb, 1, logr.Discard())
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if nodeOk != tt.wantNodeOk {
+				t.Fatalf("expected nodeOk=%v, got %v (node=%q)", tt.wantNodeOk, nodeOk, nodeName)
+			}
+
+			var updated mariadbv1alpha1.MariaDB
+			if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+				t.Fatalf("error getting MariaDB: %v", err)
+			}
+			_, stillPinned := updated.Annotations[replicaRecoveryNodeAnnotationKey(1)]
+			if tt.wantClear && stillPinned {
+				t.Fatal("expected node annotation cleared")
+			}
+			if !tt.wantClear && !stillPinned {
+				t.Fatal("expected node annotation preserved")
+			}
+		})
 	}
 }
