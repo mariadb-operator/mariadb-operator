@@ -359,6 +359,10 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 		setOpt(&opts)
 	}
 	if !opts.forceReplicaConfiguration {
+		// avoid deleting binary logs during archival to prevent drifting from object storage
+		if req.mariadb.IsPointInTimeRecoveryEnabled() {
+			return []ConfigureReplicaOpt{WithResetMaster(false)}, nil
+		}
 		return nil, nil
 	}
 

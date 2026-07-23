@@ -209,3 +209,56 @@ func (f *fakeReplicaStateClient) ReplicaStatus(context.Context, logr.Logger) (*m
 func (f *fakeReplicaStateClient) ReplicationMasterHost(context.Context) (string, error) {
 	return f.masterHost, f.masterHostErr
 }
+
+func TestGetReplicaOptsPreservesBinlogsOnPITRDriftRepair(t *testing.T) {
+	reconciler := &ReplicationReconciler{}
+	req := &ReconcileRequest{
+		mariadb: &mariadbv1alpha1.MariaDB{
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Replication: &mariadbv1alpha1.Replication{
+					Enabled: true,
+				},
+				PointInTimeRecoveryRef: &mariadbv1alpha1.LocalObjectReference{
+					Name: "pitr",
+				},
+			},
+		},
+	}
+
+	replicaOpts, err := reconciler.getReplicaOpts(context.Background(), req, "mariadb-1", 1, logr.Discard())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	opts := ConfigureReplicaOpts{
+		ResetMaster: true,
+	}
+	for _, setOpt := range replicaOpts {
+		setOpt(&opts)
+	}
+	if opts.ResetMaster {
+		t.Fatal("expected drift repair to preserve binary logs when PITR is enabled")
+	}
+}
+
+func TestGetReplicaOptsResetsMasterWithoutPITR(t *testing.T) {
+	reconciler := &ReplicationReconciler{}
+	req := &ReconcileRequest{
+		mariadb: &mariadbv1alpha1.MariaDB{},
+	}
+
+	replicaOpts, err := reconciler.getReplicaOpts(context.Background(), req, "mariadb-1", 1, logr.Discard())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	opts := ConfigureReplicaOpts{
+		ResetMaster: true,
+	}
+	for _, setOpt := range replicaOpts {
+		setOpt(&opts)
+	}
+	if !opts.ResetMaster {
+		t.Fatal("expected drift repair to reset master when PITR is disabled")
+	}
+}
