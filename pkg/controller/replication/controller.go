@@ -267,7 +267,12 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	if !opts.forceReplicaConfiguration {
 		role, ok := replRoles[pod]
 		if ok && role == mariadbv1alpha1.ReplicationRoleReplica {
-			skip, err := shouldSkipReplicaConfiguration(ctx, client, logger)
+			expectedMasterHost := statefulset.PodFQDNWithService(
+				req.mariadb.ObjectMeta,
+				primaryPodIndex,
+				req.mariadb.InternalServiceKey().Name,
+			)
+			skip, err := shouldSkipReplicaConfiguration(ctx, client, expectedMasterHost, logger)
 			if err != nil {
 				logger.V(1).Info("Replica state verification failed, reconfiguring replica", "err", err, "pod", pod)
 			} else if skip {
@@ -292,6 +297,7 @@ type replicationPodStateClient interface {
 	IsSystemVariableEnabled(ctx context.Context, variable string) (bool, error)
 	IsReplicationReplica(ctx context.Context) (bool, error)
 	ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadbv1alpha1.ReplicaStatusVars, error)
+	ReplicationMasterHost(ctx context.Context) (string, error)
 }
 
 func shouldSkipPrimaryConfiguration(ctx context.Context, client replicationPodStateClient, logger logr.Logger) (bool, error) {
@@ -310,7 +316,8 @@ func shouldSkipPrimaryConfiguration(ctx context.Context, client replicationPodSt
 	return !isReplica, nil
 }
 
-func shouldSkipReplicaConfiguration(ctx context.Context, client replicationPodStateClient, logger logr.Logger) (bool, error) {
+func shouldSkipReplicaConfiguration(ctx context.Context, client replicationPodStateClient, expectedMasterHost string,
+	logger logr.Logger) (bool, error) {
 	readOnly, err := client.IsSystemVariableEnabled(ctx, "read_only")
 	if err != nil {
 		return false, fmt.Errorf("error checking read_only: %v", err)
@@ -326,7 +333,23 @@ func shouldSkipReplicaConfiguration(ctx context.Context, client replicationPodSt
 	if status == nil {
 		return false, nil
 	}
-	return ptr.Deref(status.SlaveIORunning, false) && ptr.Deref(status.SlaveSQLRunning, false), nil
+	if !ptr.Deref(status.SlaveIORunning, false) || !ptr.Deref(status.SlaveSQLRunning, false) {
+		return false, nil
+	}
+
+	masterHost, err := client.ReplicationMasterHost(ctx)
+	if err != nil {
+		return false, fmt.Errorf("error getting replication master host: %v", err)
+	}
+	if masterHost != expectedMasterHost {
+		logger.Info(
+			"Replica replicating from unexpected primary",
+			"master-host", masterHost,
+			"expected-master-host", expectedMasterHost,
+		)
+		return false, nil
+	}
+	return true, nil
 }
 
 func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *ReconcileRequest, pod string, index int,

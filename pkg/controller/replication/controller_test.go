@@ -77,12 +77,16 @@ func TestShouldSkipPrimaryConfiguration(t *testing.T) {
 }
 
 func TestShouldSkipReplicaConfiguration(t *testing.T) {
+	expectedMasterHost := "mariadb-0.mariadb-internal.default.svc.cluster.local"
+
 	tests := []struct {
 		name          string
 		readOnly      bool
 		readOnlyErr   error
 		replicaStatus *mariadbv1alpha1.ReplicaStatusVars
 		replicaErr    error
+		masterHost    string
+		masterHostErr error
 		wantSkip      bool
 		wantErr       bool
 	}{
@@ -93,7 +97,28 @@ func TestShouldSkipReplicaConfiguration(t *testing.T) {
 				SlaveIORunning:  ptr.To(true),
 				SlaveSQLRunning: ptr.To(true),
 			},
-			wantSkip: true,
+			masterHost: expectedMasterHost,
+			wantSkip:   true,
+		},
+		{
+			name:     "replica following unexpected primary must be reconfigured",
+			readOnly: true,
+			replicaStatus: &mariadbv1alpha1.ReplicaStatusVars{
+				SlaveIORunning:  ptr.To(true),
+				SlaveSQLRunning: ptr.To(true),
+			},
+			masterHost: "mariadb-1.mariadb-internal.default.svc.cluster.local",
+			wantSkip:   false,
+		},
+		{
+			name:     "master host error is returned",
+			readOnly: true,
+			replicaStatus: &mariadbv1alpha1.ReplicaStatusVars{
+				SlaveIORunning:  ptr.To(true),
+				SlaveSQLRunning: ptr.To(true),
+			},
+			masterHostErr: errors.New("master host unavailable"),
+			wantErr:       true,
 		},
 		{
 			name:     "writable replica must be reconfigured",
@@ -140,9 +165,11 @@ func TestShouldSkipReplicaConfiguration(t *testing.T) {
 				readOnlyErr:   tt.readOnlyErr,
 				replicaStatus: tt.replicaStatus,
 				replicaErr:    tt.replicaErr,
+				masterHost:    tt.masterHost,
+				masterHostErr: tt.masterHostErr,
 			}
 
-			got, err := shouldSkipReplicaConfiguration(context.Background(), client, logr.Discard())
+			got, err := shouldSkipReplicaConfiguration(context.Background(), client, expectedMasterHost, logr.Discard())
 			if tt.wantErr && err == nil {
 				t.Fatalf("expected error")
 			}
@@ -163,6 +190,8 @@ type fakeReplicaStateClient struct {
 	isReplicaErr  error
 	replicaStatus *mariadbv1alpha1.ReplicaStatusVars
 	replicaErr    error
+	masterHost    string
+	masterHostErr error
 }
 
 func (f *fakeReplicaStateClient) IsSystemVariableEnabled(context.Context, string) (bool, error) {
@@ -175,4 +204,8 @@ func (f *fakeReplicaStateClient) IsReplicationReplica(context.Context) (bool, er
 
 func (f *fakeReplicaStateClient) ReplicaStatus(context.Context, logr.Logger) (*mariadbv1alpha1.ReplicaStatusVars, error) {
 	return f.replicaStatus, f.replicaErr
+}
+
+func (f *fakeReplicaStateClient) ReplicationMasterHost(context.Context) (string, error) {
+	return f.masterHost, f.masterHostErr
 }
