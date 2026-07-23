@@ -77,9 +77,21 @@ var replicationCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if err := waitForReplicaRecovery(ctx, env, &mdb, *podIndex, k8sClient); err != nil {
+		recovering, err := waitForReplicaRecovery(ctx, env, &mdb, *podIndex, k8sClient)
+		if err != nil {
 			logger.Error(err, "error waiting for replica recovery")
 			os.Exit(1)
+		}
+		if !recovering {
+			restored, err := isReplicaRestoreComplete(ctx, &mdb, *podIndex, k8sClient)
+			if err != nil {
+				logger.Error(err, "error checking replica restore state. Keeping GTID state file")
+			} else if !restored {
+				if err := cleanupStateFile(fileManager, replicationresources.MariaDBOperatorFileName); err != nil {
+					logger.Error(err, "error cleaning up GTID state file")
+					os.Exit(1)
+				}
+			}
 		}
 		if err := cleanupReplicaState(fileManager, &mdb, *podIndex); err != nil {
 			logger.Error(err, "error cleaning up replica state")
@@ -99,19 +111,21 @@ func createReplicationConfig(env *environment.PodEnvironment, fileManager *filem
 }
 
 func waitForReplicaRecovery(ctx context.Context, env *environment.PodEnvironment, mdb *mariadbv1alpha1.MariaDB,
-	podIndex int, client ctrlclient.Client) error {
+	podIndex int, client ctrlclient.Client) (bool, error) {
 	if !mdb.IsReplicaBeingRecovered(env.PodName) {
-		return nil
+		return false, nil
 	}
 	logger.Info("Waiting for replica recovery")
 	key := ctrlclient.ObjectKeyFromObject(mdb)
 
-	return wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(context.Context) (bool, error) {
+	recovering := true
+	if err := wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(context.Context) (bool, error) {
 		var mariadb mariadbv1alpha1.MariaDB
 		if err := client.Get(ctx, key, &mariadb); err != nil {
 			return false, fmt.Errorf("error getting MariaDB: %v", err)
 		}
 		if !mariadb.IsReplicaBeingRecovered(env.PodName) {
+			recovering = false
 			return true, nil
 		}
 		restored, err := isReplicaRestoreComplete(ctx, &mariadb, podIndex, client)
@@ -125,7 +139,10 @@ func waitForReplicaRecovery(ctx context.Context, env *environment.PodEnvironment
 		}
 		logger.V(1).Info("Replica is being recovered")
 		return false, nil
-	})
+	}); err != nil {
+		return false, err
+	}
+	return recovering, nil
 }
 
 func isReplicaRestoreComplete(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, podIndex int,

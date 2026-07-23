@@ -45,6 +45,13 @@ func newReplicationTestMariadb(replicaToRecover string, annotations map[string]s
 		mdb.Status.Replication = &mariadbv1alpha1.ReplicationStatus{
 			ReplicaToRecover: &replicaToRecover,
 		}
+		mdb.Status.Conditions = []metav1.Condition{
+			{
+				Type:   mariadbv1alpha1.ConditionTypeReplicaRecovered,
+				Status: metav1.ConditionFalse,
+				Reason: mariadbv1alpha1.ConditionReasonReplicaRecovered,
+			},
+		}
 	}
 	return mdb
 }
@@ -234,8 +241,12 @@ func TestWaitForReplicaRecoveryUnblocksOnCompletedRestoreJob(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := waitForReplicaRecovery(ctx, env, mdb, 0, fakeClient); err != nil {
+	recovering, err := waitForReplicaRecovery(ctx, env, mdb, 0, fakeClient)
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if !recovering {
+		t.Fatal("expected recovering to be true when unblocked by restore Job")
 	}
 }
 
@@ -260,8 +271,12 @@ func TestWaitForReplicaRecoveryUnblocksOnCompletedPVCAnnotation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := waitForReplicaRecovery(ctx, env, mdb, 0, fakeClient); err != nil {
+	recovering, err := waitForReplicaRecovery(ctx, env, mdb, 0, fakeClient)
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if !recovering {
+		t.Fatal("expected recovering to be true when unblocked by completed PVC annotation")
 	}
 }
 
@@ -276,7 +291,11 @@ func TestWaitForReplicaRecoverySkipsWhenNotBeingRecovered(t *testing.T) {
 		MariadbName:  "mariadb",
 	}
 
-	if err := waitForReplicaRecovery(context.Background(), env, mdb, 0, fakeClient); err != nil {
+	recovering, err := waitForReplicaRecovery(context.Background(), env, mdb, 0, fakeClient)
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if recovering {
+		t.Fatal("expected recovering to be false when replica is not being recovered")
 	}
 }
