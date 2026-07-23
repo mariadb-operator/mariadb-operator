@@ -2341,3 +2341,87 @@ func TestIsReplicaPhysicalBackupStaleByReplicaError(t *testing.T) {
 		})
 	}
 }
+
+func TestGetPVCRecoveryQuiesceActionIgnoresStaleCompletedJob(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+		},
+	}
+	jobKey := mariadb.PhysicalBackupInitJobKey(0)
+	staleJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      jobKey.Name,
+			Namespace: jobKey.Namespace,
+			Annotations: map[string]string{
+				initJobStoragePVCUIDAnnotation: "old-pvc-uid",
+			},
+		},
+		Status: batchv1.JobStatus{
+			Conditions: []batchv1.JobCondition{
+				{
+					Type:   batchv1.JobComplete,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		},
+	}
+	pvcKey := mariadb.PVCKey(builder.StorageVolume, 0)
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pvcKey.Name,
+			Namespace: pvcKey.Namespace,
+			UID:       "new-pvc-uid",
+		},
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb-0",
+			Namespace: "test",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "node-a",
+		},
+	}
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(mariadb, staleJob, pvc, pod).
+		Build()
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	action, result, err := reconciler.getPVCRecoveryQuiesceAction(context.Background(), mariadb, "mariadb-0", logr.Discard())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.IsZero() {
+		t.Fatalf("expected zero result, got %v", result)
+	}
+	if !action.pending {
+		t.Fatal("expected pending quiesce action for stale completed job")
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if _, ok := updated.Annotations[replicaRecoveryCompletedPVCUIDAnnotationKey(0)]; ok {
+		t.Fatal("expected completed PVC annotation not to be recorded for stale job")
+	}
+}

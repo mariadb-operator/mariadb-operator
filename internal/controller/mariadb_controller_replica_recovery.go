@@ -573,11 +573,15 @@ func (r *MariaDBReconciler) getPVCRecoveryQuiesceAction(ctx context.Context, mar
 	if err != nil {
 		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error getting replica storage PVC state: %v", err)
 	}
-	initJobComplete, err := r.isInitJobComplete(ctx, mariadb.PhysicalBackupInitJobKey(*podIndex))
-	if err != nil {
-		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error checking recovery Job status: %v", err)
+	var initJob batchv1.Job
+	initJobFound := true
+	if err := r.Get(ctx, mariadb.PhysicalBackupInitJobKey(*podIndex), &initJob); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error checking recovery Job status: %v", err)
+		}
+		initJobFound = false
 	}
-	if initJobComplete {
+	if initJobFound && jobpkg.IsJobComplete(&initJob) && !isInitJobStaleForPVC(&initJob, pvcState) {
 		if pvcStateFound && pvcState.UID != "" {
 			if err := r.recordReplicaRecoveryCompletedPVC(ctx, mariadb, *podIndex, pvcState.UID); err != nil {
 				return pvcRecoveryQuiesceAction{}, ctrl.Result{}, err
