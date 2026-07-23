@@ -1,5 +1,7 @@
 package metadata
 
+import "fmt"
+
 var (
 	WatchLabel              = "k8s.mariadb.com/watch"
 	PhysicalBackupNameLabel = "physicalbackup.k8s.mariadb.com/name"
@@ -29,3 +31,12 @@ var (
 
 	MetaCtrlFieldPath = ".metadata.controller"
 )
+
+const (
+	InitJobStoragePVCUIDAnnotation                 = "k8s.mariadb.com/init-job-storage-pvc-uid"
+	ReplicaRecoveryCompletedPVCUIDAnnotationPrefix = "k8s.mariadb.com/replica-recovery-completed-pvc-uid-"
+)
+
+func ReplicaRecoveryCompletedPVCUIDAnnotationKey(podIndex int) string {
+	return fmt.Sprintf("%s%d", ReplicaRecoveryCompletedPVCUIDAnnotationPrefix, podIndex)
+}

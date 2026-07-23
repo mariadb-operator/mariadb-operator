@@ -7,13 +7,19 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/filemanager"
+	jobpkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	replicationresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"github.com/spf13/cobra"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,10 +74,10 @@ var replicationCommand = &cobra.Command{
 		var mdb mariadbv1alpha1.MariaDB
 		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
 			logger.Error(err, "Error getting MariaDB")
-			os.Exit(0)
+			os.Exit(1)
 		}
 
-		if err := waitForReplicaRecovery(ctx, env, &mdb, k8sClient); err != nil {
+		if err := waitForReplicaRecovery(ctx, env, &mdb, *podIndex, k8sClient); err != nil {
 			logger.Error(err, "error waiting for replica recovery")
 			os.Exit(1)
 		}
@@ -93,7 +99,7 @@ func createReplicationConfig(env *environment.PodEnvironment, fileManager *filem
 }
 
 func waitForReplicaRecovery(ctx context.Context, env *environment.PodEnvironment, mdb *mariadbv1alpha1.MariaDB,
-	client ctrlclient.Client) error {
+	podIndex int, client ctrlclient.Client) error {
 	if !mdb.IsReplicaBeingRecovered(env.PodName) {
 		return nil
 	}
@@ -105,12 +111,52 @@ func waitForReplicaRecovery(ctx context.Context, env *environment.PodEnvironment
 		if err := client.Get(ctx, key, &mariadb); err != nil {
 			return false, fmt.Errorf("error getting MariaDB: %v", err)
 		}
-		if mariadb.IsReplicaBeingRecovered(env.PodName) {
-			logger.V(1).Info("Replica is being recovered")
+		if !mariadb.IsReplicaBeingRecovered(env.PodName) {
+			return true, nil
+		}
+		restored, err := isReplicaRestoreComplete(ctx, &mariadb, podIndex, client)
+		if err != nil {
+			logger.V(1).Info("Error checking replica restore Job", "err", err)
 			return false, nil
 		}
-		return true, nil
+		if restored {
+			logger.Info("Replica restore Job completed. Starting to get replication configured")
+			return true, nil
+		}
+		logger.V(1).Info("Replica is being recovered")
+		return false, nil
 	})
+}
+
+func isReplicaRestoreComplete(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, podIndex int,
+	client ctrlclient.Client) (bool, error) {
+	var pvc corev1.PersistentVolumeClaim
+	if err := client.Get(ctx, mdb.PVCKey(builder.StorageVolume, podIndex), &pvc); err != nil {
+		return false, fmt.Errorf("error getting storage PVC: %v", err)
+	}
+	completedUID := mdb.Annotations[metadata.ReplicaRecoveryCompletedPVCUIDAnnotationKey(podIndex)]
+	if completedUID != "" && completedUID == string(pvc.UID) {
+		return true, nil
+	}
+
+	var job batchv1.Job
+	if err := client.Get(ctx, mdb.PhysicalBackupInitJobKey(podIndex), &job); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("error getting restore Job: %v", err)
+	}
+	if !jobpkg.IsJobComplete(&job) {
+		return false, nil
+	}
+	if jobPVCUID := job.Annotations[metadata.InitJobStoragePVCUIDAnnotation]; jobPVCUID != "" {
+		return jobPVCUID == string(pvc.UID), nil
+	}
+	if !job.CreationTimestamp.IsZero() && !pvc.CreationTimestamp.IsZero() &&
+		job.CreationTimestamp.Time.Before(pvc.CreationTimestamp.Time) {
+		return false, nil
+	}
+	return true, nil
 }
 
 // Cleanup previous replica state files during initialization
