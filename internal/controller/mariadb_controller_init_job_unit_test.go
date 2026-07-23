@@ -116,8 +116,8 @@ func TestReconcilePhysicalBackupInitErrorPreservesCustomError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.RequeueAfter != 30*time.Second {
-		t.Fatalf("expected requeue after 30s, got %v", result.RequeueAfter)
+	if !result.IsZero() {
+		t.Fatalf("expected init to resume after transient error, got %v", result)
 	}
 }
 

@@ -237,6 +237,10 @@ func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb 
 			logger.Info("Unable to scale out MariaDB. Requeuing...", "err", errMsg)
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
+		if mariadb.IsScalingOut() {
+			logger.Info("Resuming scale out after error", "err", errMsg)
+			return ctrl.Result{}, nil
+		}
 	}
 
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})

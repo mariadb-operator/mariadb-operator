@@ -204,8 +204,8 @@ func (r *MariaDBReconciler) reconcilePITRInitError(ctx context.Context, mariadb 
 func (r *MariaDBReconciler) reconcilePhysicalBackupInitError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
 	if initErr := mariadb.InitError(); initErr != nil && !strings.Contains(initErr.Error(), "storage PVCs already exist") {
-		logger.Info("Unable to init MariaDB. Requeuing...", "err", initErr.Error())
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		logger.Info("Resuming MariaDB init after error", "err", initErr.Error())
+		return ctrl.Result{}, nil
 	}
 
 	pvcs, err := pvc.ListStoragePVCs(ctx, r.Client, mariadb)
