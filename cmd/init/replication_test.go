@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -57,13 +58,12 @@ func newReplicationTestMariadb(replicaToRecover string, annotations map[string]s
 }
 
 func newRestoreJob(mdb *mariadbv1alpha1.MariaDB, podIndex int, complete bool, pvcUID string,
-	creationTimestamp time.Time) *batchv1.Job {
+	completionTimestamp time.Time) *batchv1.Job {
 	key := mdb.PhysicalBackupInitJobKey(podIndex)
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              key.Name,
-			Namespace:         key.Namespace,
-			CreationTimestamp: metav1.NewTime(creationTimestamp),
+			Name:      key.Name,
+			Namespace: key.Namespace,
 		},
 	}
 	if pvcUID != "" {
@@ -78,6 +78,7 @@ func newRestoreJob(mdb *mariadbv1alpha1.MariaDB, podIndex int, complete bool, pv
 				Status: corev1.ConditionTrue,
 			},
 		}
+		job.Status.CompletionTime = ptr.To(metav1.NewTime(completionTimestamp))
 	}
 	return job
 }
@@ -152,7 +153,7 @@ func TestIsReplicaRestoreComplete(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "legacy restore Job without annotation newer than PVC",
+			name: "legacy restore Job completed after PVC creation",
 			objects: func(mdb *mariadbv1alpha1.MariaDB) []ctrlclient.Object {
 				return []ctrlclient.Object{
 					newRestoreJob(mdb, 0, true, "", baseTime.Add(time.Hour)),
@@ -162,7 +163,7 @@ func TestIsReplicaRestoreComplete(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "legacy restore Job without annotation older than PVC",
+			name: "legacy restore Job completed before PVC creation",
 			objects: func(mdb *mariadbv1alpha1.MariaDB) []ctrlclient.Object {
 				return []ctrlclient.Object{
 					newRestoreJob(mdb, 0, true, "", baseTime),

@@ -169,8 +169,8 @@ func isReplicaRestoreComplete(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
 	if jobPVCUID := job.Annotations[metadata.InitJobStoragePVCUIDAnnotation]; jobPVCUID != "" {
 		return jobPVCUID == string(pvc.UID), nil
 	}
-	if !job.CreationTimestamp.IsZero() && !pvc.CreationTimestamp.IsZero() &&
-		job.CreationTimestamp.Time.Before(pvc.CreationTimestamp.Time) {
+	if job.Status.CompletionTime != nil && !pvc.CreationTimestamp.IsZero() &&
+		job.Status.CompletionTime.Time.Before(pvc.CreationTimestamp.Time) {
 		return false, nil
 	}
 	return true, nil
