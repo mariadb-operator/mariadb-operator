@@ -125,12 +125,6 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
-		if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
-			return ctrl.Result{}, err
-		}
-		if err := r.cleanupPhysicalBackupStagingPVC(ctx, mariadb); err != nil {
-			return ctrl.Result{}, err
-		}
 	} else {
 		logger.Info("Provisioning StatefulSet", "replicas", mariadb.Spec.Replicas)
 		if err := r.upscaleStatefulSet(ctx, mariadb, mariadb.Spec.Replicas); err != nil {
@@ -140,6 +134,15 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 
 	if err := r.ensureReplicationConfigured(ctx, fromIndex, mariadb, snapshotKey, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error ensuring replication configured: %v", err)
+	}
+
+	if bootstrapFrom.VolumeSnapshotRef == nil {
+		if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
+			return ctrl.Result{}, err
+		}
+		if err := r.cleanupPhysicalBackupStagingPVC(ctx, mariadb); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -327,6 +330,18 @@ func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariad
 
 func (r *MariaDBReconciler) reconcileAndWaitForInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName, podIndex int, logger logr.Logger, restoreOpts ...builder.RestoreOpt) (ctrl.Result, error) {
+	pod, err := r.getPodIfExists(ctx, types.NamespacedName{
+		Name:      stsobj.PodName(mariadb.ObjectMeta, podIndex),
+		Namespace: mariadb.Namespace,
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if pod != nil && pod.Status.Phase == corev1.PodRunning {
+		logger.V(1).Info("Pod already running. Skipping init Job", "pod", pod.Name)
+		return ctrl.Result{}, nil
+	}
+
 	var job batchv1.Job
 	if err := r.Get(ctx, key, &job); err != nil {
 		if apierrors.IsNotFound(err) {
