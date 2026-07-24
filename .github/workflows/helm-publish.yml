@@ -1,0 +1,73 @@
+name: Helm publish
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "deploy/charts/mariadb-operator/**"
+  workflow_dispatch:
+
+env:
+  HELM_VERSION: "v3.19.2"
+  ARTIFACTKEEPER_URL: https://artifactkeeper.yacode.dev
+  ARTIFACTKEEPER_REPO: MariaDBOperator
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    env:
+      ARTIFACTKEEPER_TOKEN: ${{ secrets.ARTIFACTKEEPER_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Version
+        id: version
+        run: |
+          VERSION=$(awk '/^version:/{print $2}' deploy/charts/mariadb-operator/Chart.yaml)
+          echo "value=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Check published
+        id: published
+        run: |
+          if curl -sf "${ARTIFACTKEEPER_URL}/helm/${ARTIFACTKEEPER_REPO}/index.yaml" \
+            | grep -q "version: ${{ steps.version.outputs.value }}$"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package
+        if: steps.published.outputs.exists == 'false'
+        run: |
+          helm package deploy/charts/mariadb-operator --dependency-update -d dist
+
+      - name: Publish
+        if: steps.published.outputs.exists == 'false'
+        run: |
+          CHART=mariadb-operator-${{ steps.version.outputs.value }}.tgz
+          HTTP_CODE=$(curl -sS --retry 3 --retry-all-errors \
+            -o response.txt -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${ARTIFACTKEEPER_TOKEN}" \
+            -H "X-API-Key: ${ARTIFACTKEEPER_TOKEN}" \
+            -F "file=@dist/${CHART};filename=${CHART}" \
+            -F "path=${CHART}" \
+            "${ARTIFACTKEEPER_URL}/api/v1/repositories/${ARTIFACTKEEPER_REPO}/artifacts")
+          if [ "$HTTP_CODE" = "409" ]; then
+            echo "Chart ${CHART} already published. Skipping."
+            exit 0
+          fi
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Publish failed with HTTP ${HTTP_CODE}"
+            cat response.txt
+            exit 1
+          fi
+          echo "Published ${CHART}"
