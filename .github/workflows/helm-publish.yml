@@ -58,9 +58,8 @@ jobs:
             -X POST \
             -H "Authorization: Bearer ${ARTIFACTKEEPER_TOKEN}" \
             -H "X-API-Key: ${ARTIFACTKEEPER_TOKEN}" \
-            -F "file=@dist/${CHART};filename=${CHART}" \
-            -F "path=${CHART}" \
-            "${ARTIFACTKEEPER_URL}/api/v1/repositories/${ARTIFACTKEEPER_REPO}/artifacts")
+            -F "chart=@dist/${CHART}" \
+            "${ARTIFACTKEEPER_URL}/helm/${ARTIFACTKEEPER_REPO}/api/charts")
           if [ "$HTTP_CODE" = "409" ]; then
             echo "Chart ${CHART} already published. Skipping."
             exit 0
