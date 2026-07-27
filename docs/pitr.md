@@ -28,7 +28,7 @@ Point-in-time recovery (PITR) is a feature that allows you to restore a MariaDB 
 
 The operator uses [mariadb-binlog](https://mariadb.com/docs/server/clients-and-utilities/logging-tools/mariadb-binlog) to replay binary logs, in particular, it filters binlog events by passing a GTID to mariadb-binlog via the [`--start-position`](https://mariadb.com/docs/server/clients-and-utilities/logging-tools/mariadb-binlog/mariadb-binlog-options#j-pos-start-position-pos) flag. This is only supported by __MariaDB server 10.8 and later__, so make sure you are using a compatible MariaDB version.
 
-Regarding supported MariaB topologies, at the moment, binary log archiving and point-in-time recovery are only supported by the __[asynchronous replication topology](./replication.md)__, which already relies on the binary logs for replication. Galera and standalone topologies will be supported in upcoming releases.
+Regarding supported MariaDB topologies, binary log archiving and point-in-time recovery are supported by the __[asynchronous replication](./replication.md)__, __[Galera](./galera.md)__ and __standalone__ topologies. In the asynchronous replication topology, the binary logs are archived from the primary `Pod`, as replication already relies on them. In the Galera and standalone topologies, binary logging is enabled by the operator when a `pointInTimeRecoveryRef` is configured, and the archival is always performed from the `Pod` with index `0`: although all Galera nodes share the same GTIDs, their binary log files differ, so a single, stable `Pod` must be the archival source to guarantee a consistent binlog timeline.
 
 ## Storage types
 
@@ -133,6 +133,24 @@ spec:
     name: pitr
 ```
 
+The same applies to the Galera and standalone topologies: setting `pointInTimeRecoveryRef` enables binary logging and archival, no additional configuration is needed. See the [Galera PITR example](../examples/manifests/mariadb_galera_pitr_s3.yaml) for a full manifest:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  storage:
+    size: 1Gi
+  replicas: 3
+  galera:
+    enabled: true
+  # sidecar agent will archive binary logs to the configured storage.
+  pointInTimeRecoveryRef:
+    name: pitr
+```
+
 Once a full base backup has been completed and the binary logs have been archived, you can perform a point-in-time restoration. For example, you can create a new `MariaDB` instance with the following configuration:
 
 ```yaml
@@ -178,7 +196,7 @@ The backup taken in the new primary will establish a baseline for a new [binlog 
 
 ## Archival
 
-The mariadb-operator [sidecar agent](./data_plane.md#agent-sidecar) will periodically check for new binary logs and archive them to the configured object storage. The archival process is performed on the primary `Pod` in the asynchronous replication topology, you may check the logs of the agent sidecar container, Kubernetes events and status of the `MariaDB` objects to monitor the current status of the archival process:
+The mariadb-operator [sidecar agent](./data_plane.md#agent-sidecar) will periodically check for new binary logs and archive them to the configured object storage. The archival process is performed on the primary `Pod` in the asynchronous replication topology, and on the `Pod` with index `0` in the Galera and standalone topologies (see [supported topologies](#supported-mariadb-versions-and-topologies)). Bear in mind that, in the Galera and standalone topologies, no binary logs are archived while `Pod` `0` is unavailable, even if the rest of the cluster remains healthy — the last recoverable time will not advance until it comes back. You may check the logs of the agent sidecar container, Kubernetes events and status of the `MariaDB` objects to monitor the current status of the archival process:
 
 ```bash
 kubectl logs -l k8s.mariadb.com/role=primary -c agent --tail 20
