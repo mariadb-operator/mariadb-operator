@@ -107,7 +107,7 @@ func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) (bool, err
 		if err != nil {
 			return false, fmt.Errorf("error getting index in Pod %s: %v", a.env.PodName, err)
 		}
-		if *podIndex != 0 {
+		if *podIndex != mdb.BinlogArchiverPodIndex() {
 			a.logger.V(1).Info("Current Pod has not been designated to perform archival, skipping binary log archival...")
 			return false, nil
 		}

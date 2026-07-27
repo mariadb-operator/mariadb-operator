@@ -34,7 +34,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -2223,6 +2223,11 @@ func (in *MariaDBPointInTimeRecoveryStatus) DeepCopyInto(out *MariaDBPointInTime
 	if in.LastArchivedGtid != nil {
 		in, out := &in.LastArchivedGtid, &out.LastArchivedGtid
 		*out = new(gtid.Gtid)
+		**out = **in
+	}
+	if in.WsrepGtidModePaused != nil {
+		in, out := &in.WsrepGtidModePaused, &out.WsrepGtidModePaused
+		*out = new(bool)
 		**out = **in
 	}
 	if in.StorageReadyForArchival != nil {

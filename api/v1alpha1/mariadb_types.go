@@ -842,10 +842,10 @@ type MariaDBPointInTimeRecoveryStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastArchivedGtid *gtid.Gtid `json:"lastArchivedGtid,omitempty"`
-	// GtidStrictModePaused indicates that gtid_strict_mode has been temporarily paused to replay binlogs.
+	// WsrepGtidModePaused indicates that Galera cluster-wide GTID management (wsrep_gtid_mode) has been temporarily disabled on the archiver Pod to replay binary logs.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	GtidStrictModePaused *bool `json:"gtidStrictModePaused,omitempty"`
+	WsrepGtidModePaused *bool `json:"wsrepGtidModePaused,omitempty"`
 	// StorageReadyForArchival indicates that the storage is ready for archival, meaning that the sidecar agent can start archiving the binary logs.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -1051,6 +1051,14 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 // IsPointInTimeRecoveryEnabled indicates whether binary log archival is activated to enable point-in-time recovery.
 func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
 	return m.Spec.PointInTimeRecoveryRef != nil
+}
+
+// BinlogArchiverPodIndex is the Pod index that archives binary logs and into which they are replayed during
+// point-in-time recovery. In the Galera topology all nodes share the same GTIDs but hold different binary log
+// files, so archival must be pinned to a single, stable Pod to keep a consistent binlog timeline.
+// TODO: make this user-configurable and immutable via a 'podArchiverIndex' field. Defaults to 0 for now.
+func (m *MariaDB) BinlogArchiverPodIndex() int {
+	return 0
 }
 
 // InternalRootPasswordSecretKey returns the key for the internal root password secret.
@@ -1361,6 +1369,7 @@ type Topology string
 var (
 	TopologyGalera      Topology = "galera"
 	TopologyReplication Topology = "replication"
+	TopologyStandalone  Topology = "standalone"
 )
 
 // Get MariaDB data-plane init container

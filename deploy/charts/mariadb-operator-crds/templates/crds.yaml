@@ -8914,6 +8914,11 @@ spec:
                       is ready for archival, meaning that the sidecar agent can start
                       archiving the binary logs.
                     type: boolean
+                  wsrepGtidModePaused:
+                    description: WsrepGtidModePaused indicates that Galera cluster-wide
+                      GTID management (wsrep_gtid_mode) has been temporarily disabled
+                      on the archiver Pod to replay binary logs.
+                    type: boolean
                 type: object
               replicas:
                 description: Replicas indicates the number of current instances.

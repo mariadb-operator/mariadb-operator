@@ -834,18 +834,17 @@ func (c *Client) EnableGtidStrictMode(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "gtid_strict_mode", "1")
 }
 
+// WsrepGtidMode reports whether the node has Galera cluster-wide GTID management enabled.
 func (c *Client) WsrepGtidMode(ctx context.Context) (bool, error) {
-	rawGtidStrictMode, err := c.SystemVariable(ctx, "wsrep_gtid_mode")
-	if err != nil {
-		return false, err
-	}
-	return parseBool(rawGtidStrictMode)
+	return c.IsSystemVariableEnabled(ctx, "wsrep_gtid_mode")
 }
 
+// DisableWsrepGtidMode turns off Galera cluster-wide GTID management on the node. It is required for binlog replay.
 func (c *Client) DisableWsrepGtidMode(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "wsrep_gtid_mode", "0")
 }
 
+// EnableWsrepGtidMode re-enables Galera cluster-wide GTID management on the node.
 func (c *Client) EnableWsrepGtidMode(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "wsrep_gtid_mode", "1")
 }
