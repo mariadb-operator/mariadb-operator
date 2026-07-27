@@ -300,16 +300,14 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 		secretKeyRefs = append(secretKeyRefs, *mariadb.Spec.PasswordSecretKeyRef)
 	}
 
-	if mariadb.IsHAEnabled() {
-		_, agent, err := mariadb.GetDataPlaneAgent()
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting data-plane agent: %v", err)
-		}
+	_, agent, err := mariadb.GetDataPlaneAgent()
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting data-plane agent: %v", err)
+	}
 
-		basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
-		if basicAuth.Enabled && !reflect.ValueOf(agent.BasicAuth.PasswordSecretKeyRef).IsZero() {
-			secretKeyRefs = append(secretKeyRefs, agent.BasicAuth.PasswordSecretKeyRef)
-		}
+	basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+	if basicAuth.Enabled && !reflect.ValueOf(agent.BasicAuth.PasswordSecretKeyRef).IsZero() {
+		secretKeyRefs = append(secretKeyRefs, agent.BasicAuth.PasswordSecretKeyRef)
 	}
 	if mariadb.IsReplicationEnabled() {
 		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
@@ -681,19 +679,40 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 	if mariadb.Spec.ServicePorts != nil {
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
-	if mariadb.IsHAEnabled() {
-		_, agent, err := mariadb.GetDataPlaneAgent()
-		if err != nil {
-			return fmt.Errorf("error getting data-plane agent: %v", err)
-		}
+
+	_, agent, err := mariadb.GetDataPlaneAgent()
+	if err != nil {
+		return fmt.Errorf("error getting data-plane agent: %v", err)
+	}
+	ports = append(ports, []corev1.ServicePort{
+		{
+			Name: agentresources.AgentPortName,
+			Port: agent.Port,
+		},
+		{
+			Name: agentresources.AgentProbePortName,
+			Port: agent.ProbePort,
+		},
+	}...)
+
+	if mariadb.IsGaleraEnabled() {
 		ports = append(ports, []corev1.ServicePort{
 			{
-				Name: agentresources.AgentPortName,
-				Port: agent.Port,
+				// App protocol is a fix for istio to recognize protocol before attempting MariaDB Galera cluster Pod-to-Pod communication.
+				// See: https://github.com/istio/istio/issues/38655#issuecomment-1169819447
+				Name:        galeraresources.GaleraClusterPortName,
+				Port:        galeraresources.GaleraClusterPort,
+				AppProtocol: ptr.To(galeraresources.MysqlAppProtocol),
 			},
 			{
-				Name: agentresources.AgentProbePortName,
-				Port: agent.ProbePort,
+				Name:        galeraresources.GaleraISTPortName,
+				Port:        galeraresources.GaleraISTPort,
+				AppProtocol: ptr.To(galeraresources.MysqlAppProtocol),
+			},
+			{
+				Name:        galeraresources.GaleraSSTPortName,
+				Port:        galeraresources.GaleraSSTPort,
+				AppProtocol: ptr.To(galeraresources.MysqlAppProtocol),
 			},
 		}...)
 

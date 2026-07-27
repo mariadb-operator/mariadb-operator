@@ -2351,6 +2351,11 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(Galera)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Agent != nil {
+		in, out := &in.Agent, &out.Agent
+		*out = new(Agent)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.MultiCluster != nil {
 		in, out := &in.MultiCluster, &out.MultiCluster
 		*out = new(MultiCluster)

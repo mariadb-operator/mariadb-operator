@@ -124,7 +124,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	var containers []corev1.Container
 	containers = append(containers, *mariadbContainer)
 
-	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlane {
+	if mariadbOpts.includeDataPlane {
 		agentContainer, err := b.dataPlaneAgentContainer(mariadb, opts...)
 		if err != nil {
 			return nil, err
@@ -230,6 +230,12 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts
 			ContainerPort: agent.ProbePort,
 		},
 	}
+	// Galera and replication share the generated MariaDB config dir ('/etc/mysql/mariadb.conf.d'), which is not mounted in the standalone topology.
+	// In stsandalone always-present projected config volume ('/etc/mysql/conf.d') is used instead.
+	configDir := galeraresources.GaleraConfigMountPath
+	if *topology == mariadbv1alpha1.TopologyStandalone {
+		configDir = ConfigMountPath
+	}
 	container.Args = func() []string {
 		var args []string
 		args = append(args, []string{
@@ -237,7 +243,7 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts
 			string(*topology),
 			fmt.Sprintf("--addr=:%d", agent.Port),
 			fmt.Sprintf("--probe-addr=:%d", agent.ProbePort),
-			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
+			fmt.Sprintf("--config-dir=%s", configDir),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
 		}...)
 		if agent.GracefulShutdownTimeout != nil {
@@ -414,6 +420,16 @@ func mariadbArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
 	var mariadbArgs []string
 	if mariadb.Spec.Args != nil {
 		mariadbArgs = append(mariadbArgs, mariadb.Spec.Args...)
+	}
+
+	// @TODO: Figure out a better way to do this?
+	//  The standalone topology does not have binary logs enabled by default.
+	//  Galera and replication enable them via their respective configuration files when needed.
+	if !mariadb.IsHAEnabled() && mariadb.IsPointInTimeRecoveryEnabled() {
+		mariadbArgs = append(mariadbArgs,
+			"--log-bin",
+			fmt.Sprintf("--log-basename=%s", mariadb.Name),
+		)
 	}
 	return mariadbArgs
 }
@@ -739,7 +755,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			MountPath: MariadbConfigMountPath,
 		})
 	}
-	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlane {
+	if mariadbOpts.includeDataPlane {
 		_, agent, err := mariadb.GetDataPlaneAgent()
 		if err != nil {
 			return nil, fmt.Errorf("error getting data-plane agent: %v", err)
@@ -844,24 +860,29 @@ func mariadbPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 }
 
 func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error) {
-	if mariadb.IsHAEnabled() && !mariadb.UseStandaloneProbes() {
-		return mariadbAgentProbe(mariadb, "/liveness", mariadb.Spec.LivenessProbe)
+	if mariadb.UseStandaloneProbes() || useMariadbProbeHandler(mariadb, mariadb.Spec.LivenessProbe) {
+		return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe), nil
 	}
-	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe), nil
+	return mariadbAgentProbe(mariadb, "/liveness", mariadb.Spec.LivenessProbe)
 }
 
 func mariadbStartupProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error) {
-	if mariadb.IsHAEnabled() && !mariadb.UseStandaloneProbes() {
-		return mariadbAgentProbe(mariadb, "/liveness", mariadb.Spec.StartupProbe)
+	if mariadb.UseStandaloneProbes() || useMariadbProbeHandler(mariadb, mariadb.Spec.StartupProbe) {
+		return mariadbProbe(mariadb, mariadb.Spec.StartupProbe), nil
 	}
-	return mariadbProbe(mariadb, mariadb.Spec.StartupProbe), nil
+	return mariadbAgentProbe(mariadb, "/liveness", mariadb.Spec.StartupProbe)
 }
 
 func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error) {
-	if mariadb.IsHAEnabled() {
-		return mariadbAgentProbe(mariadb, "/readiness", mariadb.Spec.ReadinessProbe)
+	if useMariadbProbeHandler(mariadb, mariadb.Spec.ReadinessProbe) {
+		return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe), nil
 	}
-	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe), nil
+	return mariadbAgentProbe(mariadb, "/readiness", mariadb.Spec.ReadinessProbe)
+}
+
+// useMariadbProbeHandler checks that a user-defined probe handler must be honored instead of the agent probe.
+func useMariadbProbeHandler(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.Probe) bool {
+	return !mariadb.IsHAEnabled() && probe != nil && probe.ProbeHandler != (mariadbv1alpha1.ProbeHandler{})
 }
 
 func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.Probe) *corev1.Probe {

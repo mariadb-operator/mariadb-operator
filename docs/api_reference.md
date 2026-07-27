@@ -82,6 +82,7 @@ Agent is a sidecar agent that co-operates with mariadb-operator.
 _Appears in:_
 - [Galera](#galera)
 - [GaleraSpec](#galeraspec)
+- [MariaDBSpec](#mariadbspec)
 - [Replication](#replication)
 - [ReplicationSpec](#replicationspec)
 
@@ -1477,6 +1478,7 @@ _Appears in:_
 | `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with MariaDB. |  |  |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA. |  |  |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |  |  |
+| `agent` _[Agent](#agent)_ | Agent configures the data-plane sidecar agent in the standalone topology. It defaults automatically when neither Galera nor replication are enabled.<br />In the Galera and replication topologies, the agent is configured via 'galera.agent' and 'replication.agent' respectively.<br />@TODO: This should be used for ALL topologies now that the agent is available, but I will leave this for later |  |  |
 | `multiCluster` _[MultiCluster](#multicluster)_ | MultiCluster configures the multi-cluster topology. |  |  |
 | `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this reference implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
 | `pointInTimeRecoveryRef` _[LocalObjectReference](#localobjectreference)_ | PointInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.<br />Providing this reference implies configuring binary logs in the MariaDB instance and binary log archival in the sidecar agent. |  |  |

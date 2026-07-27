@@ -725,6 +725,12 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
+	// Agent configures the data-plane sidecar agent in the standalone topology. It defaults automatically when neither Galera nor replication are enabled.
+	// In the Galera and replication topologies, the agent is configured via 'galera.agent' and 'replication.agent' respectively.
+	// @TODO: This should be used for ALL topologies now that the agent is available, but I will leave this for later
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Agent *Agent `json:"agent,omitempty"`
 	// MultiCluster configures the multi-cluster topology.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -1006,6 +1012,15 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	if m.IsReplicationEnabled() {
 		if err := m.Spec.Replication.SetDefaults(m, env); err != nil {
 			return fmt.Errorf("error setting replication defaults: %v", err)
+		}
+	}
+	// @TODO: This should be FOR ALL topologies
+	if !m.IsHAEnabled() {
+		if m.Spec.Agent == nil {
+			m.Spec.Agent = &Agent{}
+		}
+		if err := m.Spec.Agent.SetDefaults(m, env); err != nil {
+			return fmt.Errorf("error setting agent defaults: %v", err)
 		}
 	}
 	if m.Spec.BootstrapFrom != nil {
@@ -1390,9 +1405,6 @@ func (m *MariaDB) GetDataPlaneInitContainer() (*Topology, *InitContainer, error)
 
 // Get MariaDB data-plane agent
 func (m *MariaDB) GetDataPlaneAgent() (*Topology, *Agent, error) {
-	if !m.IsHAEnabled() {
-		return nil, nil, errors.New("high availability must be enabled")
-	}
 	galera := ptr.Deref(m.Spec.Galera, Galera{})
 	if galera.Enabled {
 		return &TopologyGalera, &galera.Agent, nil
@@ -1401,7 +1413,8 @@ func (m *MariaDB) GetDataPlaneAgent() (*Topology, *Agent, error) {
 	if replication.Enabled {
 		return &TopologyReplication, &replication.Agent, nil
 	}
-	return nil, nil, errors.New("agent could not be found")
+	agent := ptr.Deref(m.Spec.Agent, Agent{})
+	return &TopologyStandalone, &agent, nil
 }
 
 // OrderedPodIndexes returns the MariaDB Pod indexes in order,

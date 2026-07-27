@@ -593,7 +593,13 @@ func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB) ([]s
 	if b.StartGtid == nil {
 		return nil, errors.New("startGtid must be set")
 	}
-	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
+	var connectionFlagOpts []ConnectionFlagOpt
+	// In the Galera and standalone topologies the replay must target the exact archiver Pod.
+	if !mariadb.IsReplicationEnabled() {
+		host := statefulset.PodFQDNWithService(mariadb.ObjectMeta, mariadb.BinlogArchiverPodIndex(), mariadb.InternalServiceKey().Name)
+		connectionFlagOpts = append(connectionFlagOpts, WithHostConnectionFlag(host))
+	}
+	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb, connectionFlagOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}

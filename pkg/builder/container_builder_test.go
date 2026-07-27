@@ -26,16 +26,19 @@ func TestMariadbStartupProbe(t *testing.T) {
 		wantProbe *corev1.Probe
 	}{
 		{
-			name:    "MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{},
+			name: "MariaDB",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Agent: &mariadbv1alpha1.Agent{
+						ProbePort: 5566,
+					},
+				},
+			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -47,6 +50,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Agent: &mariadbv1alpha1.Agent{
+						ProbePort: 5566,
+					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						StartupProbe: &mariadbv1alpha1.Probe{
 							FailureThreshold: 10,
@@ -58,12 +64,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -358,16 +361,19 @@ func TestMariadbLivenessProbe(t *testing.T) {
 		wantProbe *corev1.Probe
 	}{
 		{
-			name:    "MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{},
+			name: "MariaDB",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Agent: &mariadbv1alpha1.Agent{
+						ProbePort: 5566,
+					},
+				},
+			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -379,6 +385,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			name: "MariaDB with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Agent: &mariadbv1alpha1.Agent{
+						ProbePort: 5566,
+					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						LivenessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
@@ -390,12 +399,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -685,16 +691,19 @@ func TestMariadbReadinessProbe(t *testing.T) {
 		wantProbe *corev1.Probe
 	}{
 		{
-			name:    "MariaDB empty",
-			mariadb: &mariadbv1alpha1.MariaDB{},
+			name: "MariaDB empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Agent: &mariadbv1alpha1.Agent{
+						ProbePort: 5566,
+					},
+				},
+			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/readiness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -706,6 +715,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			name: "MariaDB with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Agent: &mariadbv1alpha1.Agent{
+						ProbePort: 5566,
+					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						ReadinessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
@@ -717,12 +729,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/readiness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -1831,6 +1840,40 @@ func TestContainerArgs(t *testing.T) {
 				"--verbose",
 			},
 		},
+		{
+			name: "MariaDB standalone with PITR",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-test",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PointInTimeRecoveryRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "pitr",
+					},
+				},
+			},
+			wantArgs: []string{
+				"--log-bin",
+				"--log-basename=mariadb-test",
+			},
+		},
+		{
+			name: "MariaDB replication with PITR",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-test",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PointInTimeRecoveryRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "pitr",
+					},
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+			},
+			wantArgs: nil,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1838,6 +1881,60 @@ func TestContainerArgs(t *testing.T) {
 			args := mariadbArgs(tt.mariadb)
 			if !reflect.DeepEqual(tt.wantArgs, args) {
 				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantArgs, args)
+			}
+		})
+	}
+}
+
+func TestDataPlaneAgentConfigDir(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	tests := []struct {
+		name          string
+		mariadb       *mariadbv1alpha1.MariaDB
+		wantConfigDir string
+	}{
+		{
+			name: "standalone",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Agent: &mariadbv1alpha1.Agent{Port: 5555, ProbePort: 5566},
+				},
+			},
+			wantConfigDir: "--config-dir=/etc/mysql/conf.d",
+		},
+		{
+			name: "galera",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled:    true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{Agent: mariadbv1alpha1.Agent{Port: 5555, ProbePort: 5566}},
+					},
+				},
+			},
+			wantConfigDir: "--config-dir=/etc/mysql/mariadb.conf.d",
+		},
+		{
+			name: "replication",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled:         true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{Agent: mariadbv1alpha1.Agent{Port: 5555, ProbePort: 5566}},
+					},
+				},
+			},
+			wantConfigDir: "--config-dir=/etc/mysql/mariadb.conf.d",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			container, err := builder.dataPlaneAgentContainer(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building agent container: %v", err)
+			}
+			if !slices.Contains(container.Args, tt.wantConfigDir) {
+				t.Errorf("expected agent args to contain %q, got: %v", tt.wantConfigDir, container.Args)
 			}
 		})
 	}
@@ -1983,10 +2080,10 @@ func TestMariadbContainers(t *testing.T) {
 				t.Fatalf("unexpected error building containers: %v", err)
 			}
 
-			container := containers[1]
+			container := containers[2]
 
 			if container.Name != tt.wantName {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, containers[1].Name)
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, container.Name)
 			}
 			if tt.wantEnvKeys != nil {
 				idx := datastructures.NewIndex(container.Env, func(env corev1.EnvVar) string {
