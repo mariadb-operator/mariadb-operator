@@ -982,7 +982,6 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 		backupRef := ptr.Deref(bootstrapFrom.BackupRef, mariadbv1alpha1.TypedLocalObjectReference{})
 		var physicalBackup *mariadbv1alpha1.PhysicalBackup
 
-		// TODO: integration tests
 		if bootstrapFrom.PointInTimeRecoveryRef != nil {
 			logger.V(1).Info("Defaulting bootstrapFrom with PointInTimeRecovery")
 

@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
+var _ = Describe("MariaDB PITR with Replication", Ordered, Label("basic"), func() {
 	var (
 		// Used for MariaDB, PITR, PhysicalBackup
 		key = types.NamespacedName{
@@ -111,7 +111,7 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 	})
 })
 
-var _ = Describe("MariaDB PITR with Galera", Ordered, func() {
+var _ = Describe("MariaDB PITR with Galera", Ordered, Label("basic"), func() {
 	var (
 		key = types.NamespacedName{
 			Name:      "mariadb-galera",
@@ -207,7 +207,7 @@ var _ = Describe("MariaDB PITR with Galera", Ordered, func() {
 	})
 })
 
-var _ = Describe("MariaDB PITR standalone", Ordered, func() {
+var _ = Describe("MariaDB PITR standalone", Ordered, Label("basic"), func() {
 	var (
 		key = types.NamespacedName{
 			Name:      "mdb-pitr",
