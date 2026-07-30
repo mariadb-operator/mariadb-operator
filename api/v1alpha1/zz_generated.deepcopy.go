@@ -4046,6 +4046,11 @@ func (in *PointInTimeRecoverySpec) DeepCopyInto(out *PointInTimeRecoverySpec) {
 	*out = *in
 	out.PhysicalBackupRef = in.PhysicalBackupRef
 	in.PointInTimeRecoveryStorage.DeepCopyInto(&out.PointInTimeRecoveryStorage)
+	if in.PodArchiverIndex != nil {
+		in, out := &in.PodArchiverIndex, &out.PodArchiverIndex
+		*out = new(int)
+		**out = **in
+	}
 	if in.ArchiveTimeout != nil {
 		in, out := &in.ArchiveTimeout, &out.ArchiveTimeout
 		*out = new(v1.Duration)

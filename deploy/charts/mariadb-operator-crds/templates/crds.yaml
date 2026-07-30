@@ -13389,6 +13389,15 @@ spec:
                     default: ""
                     type: string
                 type: object
+              podArchiverIndex:
+                description: |-
+                  PodArchiverIndex is the StatefulSet index of the Pod that archives binary logs, and the Pod into which they are replayed during point-in-time recovery.
+                  In the Galera topology all nodes share the same GTIDs but hold different binary log files, so archival must be pinned to a single,
+                  stable Pod to keep a consistent binlog timeline.
+                  It is ignored in the replication topology, where archival follows the current primary.
+                  It defaults to 0.
+                minimum: 0
+                type: integer
               storage:
                 description: PointInTimeRecoveryStorage is the storage where the point
                   in time recovery data will be stored

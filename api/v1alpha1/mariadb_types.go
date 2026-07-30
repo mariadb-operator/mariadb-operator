@@ -1070,14 +1070,6 @@ func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
 	return m.Spec.PointInTimeRecoveryRef != nil
 }
 
-// BinlogArchiverPodIndex is the Pod index that archives binary logs and into which they are replayed during
-// point-in-time recovery. In the Galera topology all nodes share the same GTIDs but hold different binary log
-// files, so archival must be pinned to a single, stable Pod to keep a consistent binlog timeline.
-// TODO: make this user-configurable and immutable via a 'podArchiverIndex' field. Defaults to 0 for now.
-func (m *MariaDB) BinlogArchiverPodIndex() int {
-	return 0
-}
-
 // InternalRootPasswordSecretKey returns the key for the internal root password secret.
 func (m *MariaDB) InternalRootPasswordSecretKey() types.NamespacedName {
 	return types.NamespacedName{

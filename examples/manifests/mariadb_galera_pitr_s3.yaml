@@ -15,7 +15,7 @@ spec:
   # bootstrapFrom:
   #   pointInTimeRecoveryRef:
   #     name: pitr
-  #   targetRecoveryTime: 2026-02-20T18:00:04Z
+  #   targetRecoveryTime: 2026-07-30T06:24:54Z
   #   stagingStorage:
   #     persistentVolumeClaim:
   #       resources:
@@ -61,6 +61,8 @@ metadata:
 spec:
   physicalBackupRef:
     name: physicalbackup-daily
+  # Pod that archives the binary logs. It defaults to 0 and it is immutable.
+  # podArchiverIndex: 0
   storage:
     s3:
       bucket: binlogs

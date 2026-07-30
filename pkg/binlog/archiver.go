@@ -78,7 +78,12 @@ func (a *Archiver) Start(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("error getting MariaDB: %v", err)
 			}
-			shouldArchive, err := a.shouldArchiveBinlogs(mdb)
+			pitr, err := a.getPointInTimeRecovery(ctx, mdb)
+			if err != nil {
+				a.logger.Error(err, "Error getting PointInTimeRecovery")
+				continue
+			}
+			shouldArchive, err := a.shouldArchiveBinlogs(mdb, pitr)
 			if err != nil {
 				a.logger.Error(err, "Error determining whether archival should be performed")
 				continue
@@ -86,7 +91,7 @@ func (a *Archiver) Start(ctx context.Context) error {
 			if !shouldArchive {
 				continue
 			}
-			archiveErr := a.archiveBinaryLogs(ctx, mdb)
+			archiveErr := a.archiveBinaryLogs(ctx, mdb, pitr)
 
 			if err := a.updateStatusWithError(ctx, mdb, archiveErr); err != nil {
 				return fmt.Errorf("error updating status with error: %v", err)
@@ -95,22 +100,47 @@ func (a *Archiver) Start(ctx context.Context) error {
 	}
 }
 
-func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) (bool, error) {
+// isArchiverPod determines whether the current Pod is the one designated to archive binary logs.
+// In the replication topology it is the current primary, whereas in the Galera and standalone topologies it is a pinned Pod.
+func (a *Archiver) isArchiverPod(mdb *mariadbv1alpha1.MariaDB, pitr *mariadbv1alpha1.PointInTimeRecovery) (bool, error) {
 	if mdb.IsReplicationEnabled() {
-		if mdb.Status.CurrentPrimary == nil ||
-			(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
+		if mdb.Status.CurrentPrimary == nil || *mdb.Status.CurrentPrimary != a.env.PodName {
 			a.logger.V(1).Info("Current primary not set or current Pod is a replica, skipping binary log archival...")
 			return false, nil
 		}
-	} else {
-		podIndex, err := statefulset.PodIndex(a.env.PodName)
-		if err != nil {
-			return false, fmt.Errorf("error getting index in Pod %s: %v", a.env.PodName, err)
-		}
-		if *podIndex != mdb.BinlogArchiverPodIndex() {
-			a.logger.V(1).Info("Current Pod has not been designated to perform archival, skipping binary log archival...")
+		return true, nil
+	}
+
+	podIndex, err := statefulset.PodIndex(a.env.PodName)
+	if err != nil {
+		return false, fmt.Errorf("error getting index in Pod %s: %v", a.env.PodName, err)
+	}
+	archiverPodIndex := pitr.PodArchiverIndex()
+
+	if archiverPodIndex >= int(mdb.Spec.Replicas) {
+		// This is to avoid duplicate events, only `-0` reports the out of bounds
+		if *podIndex != 0 {
 			return false, nil
 		}
+		return false, fmt.Errorf(
+			"invalid spec.podArchiverIndex %d in PointInTimeRecovery \"%s\": it must be lower than spec.replicas (%d) in MariaDB",
+			archiverPodIndex, pitr.Name, mdb.Spec.Replicas,
+		)
+	}
+	if *podIndex != archiverPodIndex {
+		a.logger.V(1).Info("Current Pod has not been designated to perform archival, skipping binary log archival...")
+		return false, nil
+	}
+	return true, nil
+}
+
+func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB, pitr *mariadbv1alpha1.PointInTimeRecovery) (bool, error) {
+	isArchiverPod, err := a.isArchiverPod(mdb, pitr)
+	if err != nil {
+		return false, err
+	}
+	if !isArchiverPod {
+		return false, nil
 	}
 	if mdb.IsRestoringBackup() {
 		a.logger.Info("Backup restoration in progress, skipping binary log archival...")
@@ -159,12 +189,9 @@ func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) (bool, err
 	return true, nil
 }
 
-func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	pitr *mariadbv1alpha1.PointInTimeRecovery) error {
 	a.logger.Info("Archiving binary logs")
-	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
-	if err != nil {
-		return err
-	}
 	storageClient, err := a.getStorageClient(&pitr.Spec.PointInTimeRecoveryStorage, a.env)
 	if err != nil {
 		return err

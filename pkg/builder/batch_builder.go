@@ -466,6 +466,7 @@ type RestoreOpts struct {
 	Affinity           *bool
 	NodeSelector       map[string]string
 	LogLevel           string
+	PodArchiverIndex   int
 }
 
 type RestoreOpt func(*RestoreOpts) error
@@ -473,6 +474,13 @@ type RestoreOpt func(*RestoreOpts) error
 func WithStartGtid(gtid *gtid.Gtid) RestoreOpt {
 	return func(opts *RestoreOpts) error {
 		opts.StartGtid = gtid
+		return nil
+	}
+}
+
+func WithPodArchiverIndex(index int) RestoreOpt {
+	return func(opts *RestoreOpts) error {
+		opts.PodArchiverIndex = index
 		return nil
 	}
 }
@@ -730,7 +738,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 	if err != nil {
 		return nil, fmt.Errorf("error getting operator PITR command: %v", err)
 	}
-	mariadbBinlogCmd, err := cmd.MariadbBinlog(mariadb)
+	mariadbBinlogCmd, err := cmd.MariadbBinlog(mariadb, opts.PodArchiverIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-binlog command: %v", err)
 	}

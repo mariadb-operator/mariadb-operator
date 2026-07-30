@@ -513,8 +513,9 @@ func (b *BackupCommand) MariadbOperatorPITR(strictMode bool) (*Command, error) {
 	return NewCommand(nil, args), nil
 }
 
-func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
-	mariadbBinlogArgs, err := b.mariadbBinlogArgs(mariadb)
+// MariadbBinlog returns the command that replays the archived binary logs
+func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB, podArchiverIndex int) (*Command, error) {
+	mariadbBinlogArgs, err := b.mariadbBinlogArgs(mariadb, podArchiverIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-binlog args: %v", err)
 	}
@@ -589,14 +590,14 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.UniqueArgs(ds.Merge(args, dumpOpts)...)
 }
 
-func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB) ([]string, error) {
+func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB, podArchiverIndex int) ([]string, error) {
 	if b.StartGtid == nil {
 		return nil, errors.New("startGtid must be set")
 	}
 	var connectionFlagOpts []ConnectionFlagOpt
 	// In the Galera and standalone topologies the replay must target the exact archiver Pod.
 	if !mariadb.IsReplicationEnabled() {
-		host := statefulset.PodFQDNWithService(mariadb.ObjectMeta, mariadb.BinlogArchiverPodIndex(), mariadb.InternalServiceKey().Name)
+		host := statefulset.PodFQDNWithService(mariadb.ObjectMeta, podArchiverIndex, mariadb.InternalServiceKey().Name)
 		connectionFlagOpts = append(connectionFlagOpts, WithHostConnectionFlag(host))
 	}
 	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb, connectionFlagOpts...)

@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -143,6 +144,13 @@ var _ = Describe("PointInTimeRecovery Webhook", func() {
 				"Unsetting Compression",
 				func(pitr *v1alpha1.PointInTimeRecovery) {
 					pitr.Spec.Compression = ""
+				},
+				true,
+			),
+			Entry(
+				"Setting PodArchiverIndex",
+				func(pitr *v1alpha1.PointInTimeRecovery) {
+					pitr.Spec.PodArchiverIndex = ptr.To(1)
 				},
 				true,
 			),

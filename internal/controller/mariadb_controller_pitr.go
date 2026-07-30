@@ -145,13 +145,38 @@ func (r *MariaDBReconciler) finishBinlogReplay(ctx context.Context, mdb *mariadb
 	return nil
 }
 
+// binlogArchiverPodIndex returns the Pod index that archives binary logs and into which they are replayed. It is resolved from the PointInTimeRecovery
+// referred by the MariaDB itself (spec.pointInTimeRecoveryRef), which is the archive that the binlog timeline continues into, and not from the one being
+// restored from (bootstrapFrom).
+func (r *MariaDBReconciler) binlogArchiverPodIndex(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (int, error) {
+	if !mdb.IsPointInTimeRecoveryEnabled() {
+		return 0, nil
+	}
+	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mdb.Spec.PointInTimeRecoveryRef, mdb.Namespace)
+	if err != nil {
+		return 0, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
+	}
+	podIndex := pitr.PodArchiverIndex()
+
+	if podIndex >= int(mdb.Spec.Replicas) {
+		return 0, fmt.Errorf(
+			"invalid spec.podArchiverIndex %d in PointInTimeRecovery \"%s\": it must be lower than spec.replicas (%d) in MariaDB",
+			podIndex, pitr.Name, mdb.Spec.Replicas,
+		)
+	}
+	return podIndex, nil
+}
+
 func (r *MariaDBReconciler) pauseWsrepGtidMode(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	pitrStatus := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{})
 	if ptr.Deref(pitrStatus.WsrepGtidModePaused, false) {
 		return nil
 	}
 
-	podIndex := mdb.BinlogArchiverPodIndex()
+	podIndex, err := r.binlogArchiverPodIndex(ctx, mdb)
+	if err != nil {
+		return fmt.Errorf("error getting binlog archiver Pod index: %v", err)
+	}
 	sqlClient, err := sql.NewInternalClientWithPodIndex(ctx, mdb, r.RefResolver, podIndex)
 	if err != nil {
 		return fmt.Errorf("error getting SQL client for Pod index %d: %v", podIndex, err)
@@ -184,7 +209,10 @@ func (r *MariaDBReconciler) resumeWsrepGtidMode(ctx context.Context, mdb *mariad
 		return nil
 	}
 
-	podIndex := mdb.BinlogArchiverPodIndex()
+	podIndex, err := r.binlogArchiverPodIndex(ctx, mdb)
+	if err != nil {
+		return fmt.Errorf("error getting binlog archiver Pod index: %v", err)
+	}
 	sqlClient, err := sql.NewInternalClientWithPodIndex(ctx, mdb, r.RefResolver, podIndex)
 	if err != nil {
 		return fmt.Errorf("error getting SQL client for Pod index %d: %v", podIndex, err)
@@ -388,12 +416,17 @@ func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alp
 	if err != nil {
 		return fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
+	podArchiverIndex, err := r.binlogArchiverPodIndex(ctx, mdb)
+	if err != nil {
+		return fmt.Errorf("error getting binlog archiver Pod index: %v", err)
+	}
 	pitrJob, err := r.Builder.BuildPITRJob(
 		mdb.PITRJobKey(),
 		pitr,
 		mdb,
 		builder.WithStartGtid(startGtid),
 		builder.WithBootstrapFrom(mdb.Spec.BootstrapFrom),
+		builder.WithPodArchiverIndex(podArchiverIndex),
 	)
 	if err != nil {
 		return fmt.Errorf("error building PointInTimeRecovery Job: %v", err)

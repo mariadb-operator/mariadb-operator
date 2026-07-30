@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 // PointInTimeRecoverySpec defines the desired state of PointInTimeRecovery. It contains binlog archive and point-in-time restoration settings.
@@ -22,6 +23,15 @@ type PointInTimeRecoverySpec struct {
 	// +kubebuilder:validation:Enum=none;bzip2;gzip
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Compression CompressAlgorithm `json:"compression,omitempty" webhook:"inmutable"`
+	// PodArchiverIndex is the StatefulSet index of the Pod that archives binary logs, and the Pod into which they are replayed during point-in-time recovery.
+	// In the Galera topology all nodes share the same GTIDs but hold different binary log files, so archival must be pinned to a single,
+	// stable Pod to keep a consistent binlog timeline.
+	// It is ignored in the replication topology, where archival follows the current primary.
+	// It defaults to 0.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodArchiverIndex *int `json:"podArchiverIndex,omitempty" webhook:"inmutable"`
 	// ArchiveTimeout defines the maximum duration for the binary log archival.
 	// If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.
 	// It defaults to 1 hour.
@@ -81,6 +91,12 @@ type PointInTimeRecoveryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []PointInTimeRecovery `json:"items"`
+}
+
+// PodArchiverIndex is the Pod index that archives binary logs and into which they are replayed during
+// point-in-time recovery. It defaults to 0 when not set by the user.
+func (b *PointInTimeRecovery) PodArchiverIndex() int {
+	return ptr.Deref(b.Spec.PodArchiverIndex, 0)
 }
 
 func (b *PointInTimeRecovery) Validate() error {
