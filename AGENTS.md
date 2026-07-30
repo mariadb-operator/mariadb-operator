@@ -316,6 +316,12 @@ Implications when writing integration tests: `make net` is a hard prerequisite (
 
 **This operator manages production databases. Bugs can cause data loss, downtime or split-brain.**
 
+### Version control is the human's
+
+**Never run `git add`, `git commit`, `git push`, or any other command that stages, rewrites or publishes history.** Leave your work in the working tree as unstaged changes; a maintainer reviews the diff and decides what gets committed and when. This applies even when the change is finished, verified and obviously correct, and even when you have just been asked to "finish" or "wrap up" a task — completing the work and recording it in history are separate decisions, and only the second one is off limits.
+
+Read-only git commands (`git status`, `git diff`, `git log`, `git show`) are fine and encouraged: use them to report what you changed. If a task seems to require a commit (e.g. a rebase, a bisect, or an operation on a branch), stop and explain what you would run instead of running it.
+
 ### Secrets and credentials
 
 - Never commit passwords, tokens, private keys or certificates. Credentials are always consumed via `SecretKeyRef`-style references; generated passwords come from `pkg/password`.
