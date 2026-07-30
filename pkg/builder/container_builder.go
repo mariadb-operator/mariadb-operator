@@ -422,9 +422,8 @@ func mariadbArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
 		mariadbArgs = append(mariadbArgs, mariadb.Spec.Args...)
 	}
 
-	// @TODO: Figure out a better way to do this?
-	//  The standalone topology does not have binary logs enabled by default.
-	//  Galera and replication enable them via their respective configuration files when needed.
+	// The standalone topology does not have binary logs enabled by default.
+	// Galera and replication enable them via their respective configuration files when needed.
 	if !mariadb.IsHAEnabled() && mariadb.IsPointInTimeRecoveryEnabled() {
 		mariadbArgs = append(mariadbArgs,
 			"--log-bin",
