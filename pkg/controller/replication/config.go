@@ -54,6 +54,12 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 			return fmt.Errorf("error resetting slave: %v", err)
 		}
 	}
+	// A promoted primary retains the gtid_slave_pos from its replica era. If that position exceeds its own
+	// binary log sequence, it poisons gtid_current_pos and every consumer deriving GTIDs from it
+	// (mariadb-backup metadata, CHANGE MASTER with current_pos), silently diverging future replicas.
+	if err := client.AlignGtidStateOnPromotion(ctx); err != nil {
+		return fmt.Errorf("error aligning GTID state on promotion: %v", err)
+	}
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling read_only: %v", err)
 	}
