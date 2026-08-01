@@ -15,7 +15,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	mdbsts "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -119,13 +118,13 @@ func (f *FailoverHandler) promotionCandidateForClient(ctx context.Context, podNa
 		return nil
 	}
 
-	slaveIORunning := ptr.Deref(status.SlaveIORunning, false)
-	if !slaveIORunning {
+	// When the primary is down every replica reports a "Connecting" IO thread,
+	// which must still qualify as a promotion candidate.
+	if !status.IsIOThreadActive() {
 		podLogger.Info("IO thread not running. Skipping...")
 		return nil
 	}
-	slaveSQLRunning := ptr.Deref(status.SlaveSQLRunning, false)
-	if !slaveSQLRunning {
+	if !status.IsSQLThreadRunning() {
 		podLogger.Info("SQL thread not running. Skipping...")
 		return nil
 	}

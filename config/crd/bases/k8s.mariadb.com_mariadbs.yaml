@@ -6275,6 +6275,11 @@ spec:
                           description: SlaveIORunning indicates whether the slave
                             IO thread is running.
                           type: boolean
+                        slaveIOState:
+                          description: |-
+                            SlaveIOState is the raw IO thread state reported by SHOW REPLICA STATUS (e.g. "Yes", "Connecting", "No").
+                            A "Connecting" state means the IO thread exists but is not streaming from the primary.
+                          type: string
                         slaveSQLRunning:
                           description: SlaveSQLRunning indicates whether the slave
                             SQL thread is running.

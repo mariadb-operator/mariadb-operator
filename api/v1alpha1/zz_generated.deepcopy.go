@@ -4147,6 +4147,11 @@ func (in *ReplicaStatusVars) DeepCopyInto(out *ReplicaStatusVars) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.SlaveIOState != nil {
+		in, out := &in.SlaveIOState, &out.SlaveIOState
+		*out = new(string)
+		**out = **in
+	}
 	if in.SlaveSQLRunning != nil {
 		in, out := &in.SlaveSQLRunning, &out.SlaveSQLRunning
 		*out = new(bool)

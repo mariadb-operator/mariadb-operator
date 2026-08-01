@@ -776,6 +776,63 @@ func (c *Client) SetGtidSlavePos(ctx context.Context, gtid string) error {
 	return c.Exec(ctx, fmt.Sprintf("SET @@global.gtid_slave_pos='%s';", gtid))
 }
 
+// BinlogGtidPos translates binary log coordinates into the GTID position at that point in the binary log.
+// It returns an empty string when the coordinates cannot be resolved (e.g. the binary log has been purged).
+func (c *Client) BinlogGtidPos(ctx context.Context, file string, position uint64) (string, error) {
+	row := c.db.QueryRowContext(ctx, "SELECT BINLOG_GTID_POS(?, ?);", file, position)
+
+	var val sql.NullString
+	if err := row.Scan(&val); err != nil {
+		return "", err
+	}
+	if !val.Valid {
+		return "", nil
+	}
+	return val.String, nil
+}
+
+// SetGtidBinlogState seeds gtid_binlog_state. It can only be set while the binary log is empty,
+// i.e. right after RESET MASTER.
+func (c *Client) SetGtidBinlogState(ctx context.Context, state string) error {
+	if state == "" {
+		return errors.New("state must not be empty")
+	}
+	return c.Exec(ctx, fmt.Sprintf("SET @@global.gtid_binlog_state='%s';", state))
+}
+
+// AlignGtidStateOnPromotion keeps the GTID sequence of a promoted primary monotonic.
+// A primary that was previously a replica retains its old gtid_slave_pos. After the RESET MASTER
+// performed during its replica era, newly generated GTIDs restart from sequence 1, so the retained
+// gtid_slave_pos can exceed the binary log sequence forever. That poisons gtid_current_pos and every
+// consumer deriving GTIDs from it: mariadb-backup metadata and CHANGE MASTER with current_pos.
+// While the binary log is still empty, gtid_binlog_state is seeded from gtid_current_pos so that new
+// GTIDs continue the domain sequence. Once the binary log has events, a stale gtid_slave_pos exceeding
+// it is overwritten with gtid_binlog_pos.
+func (c *Client) AlignGtidStateOnPromotion(ctx context.Context) error {
+	binlogPos, err := c.GtidBinlogPos(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting gtid_binlog_pos: %v", err)
+	}
+	if binlogPos == "" {
+		currentPos, err := c.GtidCurrentPos(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting gtid_current_pos: %v", err)
+		}
+		if currentPos == "" {
+			return nil
+		}
+		return c.SetGtidBinlogState(ctx, currentPos)
+	}
+	slavePos, err := c.SystemVariable(ctx, "gtid_slave_pos")
+	if err != nil {
+		return fmt.Errorf("error getting gtid_slave_pos: %v", err)
+	}
+	if slavePos == "" || slavePos == binlogPos {
+		return nil
+	}
+	return c.SetGtidSlavePos(ctx, binlogPos)
+}
+
 func (c *Client) ResetGtidSlavePos(ctx context.Context) error {
 	return c.Exec(ctx, "SET @@global.gtid_slave_pos='';")
 }
@@ -830,6 +887,7 @@ func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadb
 	}
 
 	if slaveIORunning, ok := row["Slave_IO_Running"]; ok {
+		status.SlaveIOState = ptr.To(slaveIORunning)
 		running, err := parseThreadRunning(slaveIORunning)
 		if err != nil {
 			logger.Error(err, "error parsing Slave_IO_Running")
@@ -1093,7 +1151,10 @@ func toString(v interface{}) string {
 func parseThreadRunning(s string) (bool, error) {
 	switch strings.ToLower(s) {
 	case "connecting":
-		return true, nil
+		// The IO thread exists but is not streaming events from the primary: replication is stalled.
+		// Callers that must tolerate a transient "Connecting" state (e.g. failover candidate selection)
+		// should rely on ReplicaStatusVars.IsIOThreadActive, which also inspects SlaveIOState.
+		return false, nil
 	case "preparing":
 		return false, nil
 	default:

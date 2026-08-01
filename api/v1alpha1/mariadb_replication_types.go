@@ -486,6 +486,11 @@ type ReplicaStatusVars struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	SlaveIORunning *bool `json:"slaveIORunning,omitempty"`
+	// SlaveIOState is the raw IO thread state reported by SHOW REPLICA STATUS (e.g. "Yes", "Connecting", "No").
+	// A "Connecting" state means the IO thread exists but is not streaming from the primary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	SlaveIOState *string `json:"slaveIOState,omitempty"`
 	// SlaveSQLRunning indicates whether the slave SQL thread is running.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -504,7 +509,12 @@ type ReplicaStatusVars struct {
 	GtidCurrentPos *string `json:"gtidCurrentPos,omitempty"`
 }
 
-// EqualErrors determines equality of error codes.
+// ReplicaIOStateConnecting is the IO thread state while attempting to connect to the primary.
+// The thread exists but no events are being streamed: replication is effectively stalled.
+const ReplicaIOStateConnecting = "Connecting"
+
+// EqualErrors determines equality of error codes and replication thread states.
+// It is used to detect transitions that should reset LastErrorTransitionTime.
 func (r *ReplicaStatusVars) EqualErrors(o *ReplicaStatusVars) bool {
 	if r == nil && o == nil {
 		return true
@@ -513,7 +523,39 @@ func (r *ReplicaStatusVars) EqualErrors(o *ReplicaStatusVars) bool {
 		return false
 	}
 	return ptr.Equal(r.LastIOErrno, o.LastIOErrno) &&
-		ptr.Equal(r.LastSQLErrno, o.LastSQLErrno)
+		ptr.Equal(r.LastSQLErrno, o.LastSQLErrno) &&
+		ptr.Equal(r.SlaveIORunning, o.SlaveIORunning) &&
+		ptr.Equal(r.SlaveSQLRunning, o.SlaveSQLRunning)
+}
+
+// IsIOThreadRunning determines whether the IO thread is actively streaming from the primary.
+// A "Connecting" state is NOT considered running: no events are received in that state.
+func (r *ReplicaStatusVars) IsIOThreadRunning() bool {
+	if r == nil {
+		return false
+	}
+	return ptr.Deref(r.SlaveIORunning, false)
+}
+
+// IsIOThreadActive determines whether the IO thread exists, either streaming or attempting to connect.
+// Use this instead of IsIOThreadRunning where a transient "Connecting" state must be tolerated,
+// such as failover candidate selection while the primary is down.
+func (r *ReplicaStatusVars) IsIOThreadActive() bool {
+	if r == nil {
+		return false
+	}
+	if ptr.Deref(r.SlaveIORunning, false) {
+		return true
+	}
+	return ptr.Deref(r.SlaveIOState, "") == ReplicaIOStateConnecting
+}
+
+// IsSQLThreadRunning determines whether the SQL thread is running.
+func (r *ReplicaStatusVars) IsSQLThreadRunning() bool {
+	if r == nil {
+		return false
+	}
+	return ptr.Deref(r.SlaveSQLRunning, false)
 }
 
 // ReplicaStatus is the observed replica status.

@@ -3,6 +3,7 @@ package replication
 import (
 	"context"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -23,9 +24,36 @@ type ReplicationProbe struct {
 	responseWriter  *mdbhttp.ResponseWriter
 	livenessLogger  logr.Logger
 	readinessLogger logr.Logger
+
+	mux               sync.Mutex
+	ioConnectingSince *time.Time
 }
 
-var requestTimeout = 3 * time.Second
+var (
+	requestTimeout = 3 * time.Second
+	// ioConnectingGrace bounds how long a "Connecting" IO thread is tolerated by the liveness probe.
+	// Transient reconnections (e.g. primary restarts) must not kill the replica, but an IO thread
+	// stuck in "Connecting" indefinitely means replication is silently stalled and serving stale reads.
+	ioConnectingGrace = 5 * time.Minute
+)
+
+// trackIOConnecting tracks how long the IO thread has been in "Connecting" state across probe calls.
+// It returns true while the state is within the tolerated grace period.
+func (p *ReplicationProbe) trackIOConnecting(now time.Time) bool {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	if p.ioConnectingSince == nil {
+		p.ioConnectingSince = &now
+		return true
+	}
+	return now.Sub(*p.ioConnectingSince) <= ioConnectingGrace
+}
+
+func (p *ReplicationProbe) resetIOConnecting() {
+	p.mux.Lock()
+	defer p.mux.Unlock()
+	p.ioConnectingSince = nil
+}
 
 func NewReplicationProbe(env *environment.PodEnvironment, k8sClient ctrlclient.Client, responseWriter *mdbhttp.ResponseWriter,
 	logger *logr.Logger) router.ProbeHandler {
@@ -70,14 +98,20 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		replicaIORunning := ptr.Deref(status.SlaveIORunning, false)
-		if !replicaIORunning {
+		if !status.IsIOThreadActive() {
+			p.resetIOConnecting()
 			p.livenessLogger.Error(nil, "Replica IO thread not running")
 			p.responseWriter.WriteError(w, "Replica IO thread not running")
 			return
 		}
-		replicaSQLRunning := ptr.Deref(status.SlaveSQLRunning, false)
-		if !replicaSQLRunning {
+		if status.IsIOThreadRunning() {
+			p.resetIOConnecting()
+		} else if !p.trackIOConnecting(time.Now()) {
+			p.livenessLogger.Error(nil, "Replica IO thread stuck in Connecting state", "grace", ioConnectingGrace)
+			p.responseWriter.WriteErrorf(w, "Replica IO thread stuck in Connecting state for over %s", ioConnectingGrace)
+			return
+		}
+		if !status.IsSQLThreadRunning() {
 			p.livenessLogger.Error(nil, "Replica SQL thread not running")
 			p.responseWriter.WriteError(w, "Replica SQL thread not running")
 			return
@@ -85,8 +119,9 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 
 		p.livenessLogger.V(1).Info(
 			"Replica thread running status",
-			"Slave_IO_Running", replicaIORunning,
-			"Slave_SQL_Running", replicaSQLRunning,
+			"Slave_IO_Running", status.IsIOThreadRunning(),
+			"Slave_IO_State", ptr.Deref(status.SlaveIOState, ""),
+			"Slave_SQL_Running", status.IsSQLThreadRunning(),
 		)
 		p.responseWriter.WriteOK(w, nil)
 		return
@@ -135,6 +170,16 @@ func (p *ReplicationProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			p.readinessLogger.Error(err, "error getting replica status")
 			p.responseWriter.WriteErrorf(w, "error getting replica status: %v", err)
+			return
+		}
+		if !status.IsIOThreadRunning() {
+			p.readinessLogger.Error(nil, "Replica IO thread not running", "state", ptr.Deref(status.SlaveIOState, ""))
+			p.responseWriter.WriteErrorf(w, "Replica IO thread not running (state: %s)", ptr.Deref(status.SlaveIOState, ""))
+			return
+		}
+		if !status.IsSQLThreadRunning() {
+			p.readinessLogger.Error(nil, "Replica SQL thread not running")
+			p.responseWriter.WriteError(w, "Replica SQL thread not running")
 			return
 		}
 		if status.SecondsBehindMaster == nil {

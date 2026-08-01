@@ -215,3 +215,54 @@ func TestRequireQuery(t *testing.T) {
 		})
 	}
 }
+
+func TestParseThreadRunning(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		wantRunning bool
+		wantErr     bool
+	}{
+		{
+			name:        "yes",
+			input:       "Yes",
+			wantRunning: true,
+		},
+		{
+			name:  "no",
+			input: "No",
+		},
+		{
+			name:  "connecting is not running",
+			input: "Connecting",
+		},
+		{
+			name:  "preparing",
+			input: "Preparing",
+		},
+		{
+			name:    "unknown value",
+			input:   "Bogus",
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseThreadRunning(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("error expected, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tc.wantRunning {
+				t.Fatalf("running mismatch: want=%v got=%v", tc.wantRunning, got)
+			}
+		})
+	}
+}
