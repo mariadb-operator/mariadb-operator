@@ -18,13 +18,23 @@ func NewReplication(client *mdbhttp.Client) *Replication {
 }
 
 func (r *Replication) GetGtid(ctx context.Context) (string, error) {
-	res, err := r.client.Get(ctx, "/api/replication/gtid", nil, nil)
+	gtidRes, err := r.GetGtidMeta(ctx)
 	if err != nil {
 		return "", err
 	}
+	return gtidRes.Gtid, nil
+}
+
+// GetGtidMeta returns the GTID together with the binary log coordinates it was derived from,
+// enabling the caller to validate the GTID against the primary binary log.
+func (r *Replication) GetGtidMeta(ctx context.Context) (*replication.GtidResponse, error) {
+	res, err := r.client.Get(ctx, "/api/replication/gtid", nil, nil)
+	if err != nil {
+		return nil, err
+	}
 	var gtidRes replication.GtidResponse
 	if err := handleResponse(res, &gtidRes); err != nil {
-		return "", err
+		return nil, err
 	}
-	return gtidRes.Gtid, nil
+	return &gtidRes, nil
 }

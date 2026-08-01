@@ -215,16 +215,44 @@ func ParseGtid(rawGtid string) (*Gtid, error) {
 	}, nil
 }
 
-// ParseGtidInMetadataFile extracts the raw GTID from a mariadb-operator.info file.
+// BackupMeta holds the replication coordinates recorded by mariadb-backup in a mariadb-operator.info file.
+// The binary log coordinates are authoritative: they are captured by the engine at BACKUP STAGE BLOCK_COMMIT.
+// The GTID is derived from gtid_current_pos and can be poisoned by a stale gtid_slave_pos on the backed up
+// server, so consumers should prefer resolving BinlogFile/BinlogPosition through BINLOG_GTID_POS when possible.
+type BackupMeta struct {
+	BinlogFile     string
+	BinlogPosition uint64
+	Gtid           string
+}
+
+// ParseMetaFile extracts the binary log coordinates and raw GTID from a mariadb-operator.info file.
 // Example line: "mariadb-repl-bin.000001 335 0-10-9"
-func ParseRawGtidInMetaFile(fileBytes []byte) (string, error) {
+func ParseMetaFile(fileBytes []byte) (*BackupMeta, error) {
 	trimmed := bytes.TrimSpace(fileBytes)
 	if len(trimmed) == 0 {
-		return "", errors.New("file is empty")
+		return nil, errors.New("file is empty")
 	}
 	parts := strings.Fields(string(trimmed))
 	if len(parts) < 3 {
-		return "", errors.New("unexpected file format, expected at least 3 fields")
+		return nil, errors.New("unexpected file format, expected at least 3 fields")
 	}
-	return parts[2], nil
+	position, err := strconv.ParseUint(parts[1], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid binary log position %q: %v", parts[1], err)
+	}
+	return &BackupMeta{
+		BinlogFile:     parts[0],
+		BinlogPosition: position,
+		Gtid:           parts[2],
+	}, nil
+}
+
+// ParseRawGtidInMetaFile extracts the raw GTID from a mariadb-operator.info file.
+// Example line: "mariadb-repl-bin.000001 335 0-10-9"
+func ParseRawGtidInMetaFile(fileBytes []byte) (string, error) {
+	meta, err := ParseMetaFile(fileBytes)
+	if err != nil {
+		return "", err
+	}
+	return meta.Gtid, nil
 }

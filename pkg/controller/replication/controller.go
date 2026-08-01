@@ -19,6 +19,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -333,7 +334,8 @@ func shouldSkipReplicaConfiguration(ctx context.Context, client replicationPodSt
 	if status == nil {
 		return false, nil
 	}
-	if !ptr.Deref(status.SlaveIORunning, false) || !ptr.Deref(status.SlaveSQLRunning, false) {
+	// A transient "Connecting" IO thread still counts as configured: re-running CHANGE MASTER would not help it.
+	if !status.IsIOThreadActive() || !status.IsSQLThreadRunning() {
 		return false, nil
 	}
 
@@ -384,12 +386,12 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 		if err != nil {
 			return nil, fmt.Errorf("error getting agent client: %v", err)
 		}
-		agentGtid, err := agentClient.Replication.GetGtid(ctx)
+		gtidMeta, err := agentClient.Replication.GetGtidMeta(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error requesting GTID to agent: %v", err)
 		}
 
-		gtid = agentGtid
+		gtid = r.resolveBackupGtid(ctx, req, gtidMeta.Gtid, gtidMeta.BinlogFile, gtidMeta.BinlogPosition, pod, logger)
 		logger.Info("Got replica GTID from agent", "pod", pod, "gtid", gtid)
 	}
 
@@ -408,6 +410,55 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 		replicaOpts = append(replicaOpts, WithResetMaster(false))
 	}
 	return replicaOpts, nil
+}
+
+// resolveBackupGtid validates a GTID recorded in backup metadata against the primary binary log.
+// mariadb-backup records "GTID of the last change" from gtid_current_pos, which is poisoned whenever the
+// backed up server retains a stale gtid_slave_pos exceeding its own binary log sequence (e.g. a promoted
+// primary that used to be a replica). Replicating from a poisoned GTID silently skips every transaction
+// between the backup and the CHANGE MASTER, diverging the replica. The binary log coordinates recorded
+// next to the GTID are captured by the engine at BACKUP STAGE BLOCK_COMMIT and are authoritative, so the
+// GTID is re-derived from them via BINLOG_GTID_POS on the primary whenever possible.
+func (r *ReplicationReconciler) resolveBackupGtid(ctx context.Context, req *ReconcileRequest,
+	recordedGtid, binlogFile string, binlogPosition uint64, pod string, logger logr.Logger) string {
+	if binlogFile == "" || binlogPosition == 0 {
+		return recordedGtid
+	}
+	primaryClient, err := req.replClientSet.currentPrimaryClient(ctx)
+	if err != nil {
+		logger.Error(err, "error getting primary client to validate backup GTID. Using recorded GTID",
+			"pod", pod, "gtid", recordedGtid)
+		return recordedGtid
+	}
+	derivedGtid, err := primaryClient.BinlogGtidPos(ctx, binlogFile, binlogPosition)
+	gtid, mismatch := chooseBackupGtid(recordedGtid, derivedGtid, err)
+	if err != nil || derivedGtid == "" {
+		logger.Info("Unable to derive GTID from binary log coordinates. Using recorded GTID",
+			"pod", pod, "gtid", recordedGtid, "binlog-file", binlogFile, "binlog-position", binlogPosition, "err", err)
+	}
+	if mismatch {
+		logger.Info("Backup GTID is inconsistent with its binary log coordinates. Using derived GTID",
+			"pod", pod, "recorded-gtid", recordedGtid, "derived-gtid", derivedGtid,
+			"binlog-file", binlogFile, "binlog-position", binlogPosition)
+		r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaConn,
+			mariadbv1alpha1.ActionReconciling, "Backup GTID '%s' inconsistent with binary log coordinates, using '%s'",
+			recordedGtid, derivedGtid)
+	}
+	return gtid
+}
+
+// chooseBackupGtid decides which GTID to trust when configuring a replica from a backup.
+// The GTID derived from the binary log coordinates via BINLOG_GTID_POS is authoritative: the recorded
+// GTID comes from gtid_current_pos and can be poisoned by a stale gtid_slave_pos on the backed up server.
+// When derivation is not possible (rotated binary log, SQL error), the recorded GTID is kept as fallback.
+func chooseBackupGtid(recordedGtid, derivedGtid string, deriveErr error) (gtid string, mismatch bool) {
+	if deriveErr != nil || derivedGtid == "" {
+		return recordedGtid, false
+	}
+	if derivedGtid != recordedGtid {
+		return derivedGtid, true
+	}
+	return derivedGtid, false
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

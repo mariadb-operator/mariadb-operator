@@ -262,3 +262,61 @@ func TestGetReplicaOptsResetsMasterWithoutPITR(t *testing.T) {
 		t.Fatal("expected drift repair to reset master when PITR is disabled")
 	}
 }
+
+func TestChooseBackupGtid(t *testing.T) {
+	tests := []struct {
+		name         string
+		recordedGtid string
+		derivedGtid  string
+		deriveErr    error
+		wantGtid     string
+		wantMismatch bool
+	}{
+		{
+			name:         "derivation matches recorded",
+			recordedGtid: "0-11-436570",
+			derivedGtid:  "0-11-436570",
+			wantGtid:     "0-11-436570",
+		},
+		{
+			name:         "poisoned recorded gtid overridden by derived",
+			recordedGtid: "0-10-575055",
+			derivedGtid:  "0-11-435466",
+			wantGtid:     "0-11-435466",
+			wantMismatch: true,
+		},
+		{
+			name:         "derivation empty falls back to recorded",
+			recordedGtid: "0-11-436570",
+			derivedGtid:  "",
+			wantGtid:     "0-11-436570",
+		},
+		{
+			name:         "derivation error falls back to recorded",
+			recordedGtid: "0-11-436570",
+			derivedGtid:  "0-11-1",
+			deriveErr:    errors.New("binlog rotated"),
+			wantGtid:     "0-11-436570",
+		},
+		{
+			name:         "multi domain derived gtid",
+			recordedGtid: "0-99-999999999",
+			derivedGtid:  "0-10-192,1-10-4",
+			wantGtid:     "0-10-192,1-10-4",
+			wantMismatch: true,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			gtid, mismatch := chooseBackupGtid(tc.recordedGtid, tc.derivedGtid, tc.deriveErr)
+			if gtid != tc.wantGtid {
+				t.Errorf("gtid mismatch: want=%q got=%q", tc.wantGtid, gtid)
+			}
+			if mismatch != tc.wantMismatch {
+				t.Errorf("mismatch flag: want=%v got=%v", tc.wantMismatch, mismatch)
+			}
+		})
+	}
+}

@@ -34,6 +34,11 @@ func (h *ReplicationHandler) SetupRoutes(router *chi.Mux) {
 
 type GtidResponse struct {
 	Gtid string `json:"gtid"`
+	// BinlogFile and BinlogPosition are the binary log coordinates recorded alongside the GTID.
+	// They allow the caller to re-derive the GTID via BINLOG_GTID_POS when the recorded GTID
+	// is inconsistent with the primary binary log (e.g. poisoned by a stale gtid_slave_pos).
+	BinlogFile     string `json:"binlogFile,omitempty"`
+	BinlogPosition uint64 `json:"binlogPosition,omitempty"`
 }
 
 func (h *ReplicationHandler) GetGtid(w http.ResponseWriter, r *http.Request) {
@@ -44,13 +49,15 @@ func (h *ReplicationHandler) GetGtid(w http.ResponseWriter, r *http.Request) {
 		h.responseWriter.WriteErrorf(w, "error reading GTID file '%s': %v", replication.MariaDBOperatorFileName, err)
 		return
 	}
-	gtid, err := replication.ParseRawGtidInMetaFile(bytes)
+	meta, err := replication.ParseMetaFile(bytes)
 	if err != nil {
 		h.responseWriter.WriteErrorf(w, "error parsing GTID: %v", err)
 		return
 	}
 
 	h.responseWriter.WriteOK(w, GtidResponse{
-		Gtid: gtid,
+		Gtid:           meta.Gtid,
+		BinlogFile:     meta.BinlogFile,
+		BinlogPosition: meta.BinlogPosition,
 	})
 }
