@@ -2532,3 +2532,128 @@ func TestStoredAvailableReplicaRecoveryNode(t *testing.T) {
 		})
 	}
 }
+
+func TestHasImmediateRecoverableErrorDivergenceSQLCodes(t *testing.T) {
+	tests := []struct {
+		name   string
+		status mariadbv1alpha1.ReplicaStatus
+		want   bool
+	}{
+		{
+			name: "io error 1236",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastIOErrno: ptr.To(1236),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "sql duplicate entry 1062",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastSQLErrno: ptr.To(1062),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "sql missing record 1032",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastSQLErrno: ptr.To(1032),
+				},
+			},
+			want: true,
+		},
+		{
+			name: "unrelated sql error",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastSQLErrno: ptr.To(1146),
+				},
+			},
+			want: false,
+		},
+		{
+			name:   "no errors",
+			status: mariadbv1alpha1.ReplicaStatus{},
+			want:   false,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			got := hasImmediateRecoverableError(tc.status, recoverableIOErrorCodes, logr.Discard())
+			if got != tc.want {
+				t.Errorf("hasImmediateRecoverableError mismatch: want=%v got=%v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestIsRecoverableErrorStalledThreadsWithoutErrno(t *testing.T) {
+	mdb := &mariadbv1alpha1.MariaDB{
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replication: &mariadbv1alpha1.Replication{
+				Enabled: true,
+			},
+		},
+	}
+	connecting := mariadbv1alpha1.ReplicaStatusVars{
+		LastIOErrno:     ptr.To(0),
+		LastSQLErrno:    ptr.To(0),
+		SlaveIORunning:  ptr.To(false),
+		SlaveIOState:    ptr.To(mariadbv1alpha1.ReplicaIOStateConnecting),
+		SlaveSQLRunning: ptr.To(true),
+	}
+	healthy := mariadbv1alpha1.ReplicaStatusVars{
+		LastIOErrno:     ptr.To(0),
+		LastSQLErrno:    ptr.To(0),
+		SlaveIORunning:  ptr.To(true),
+		SlaveIOState:    ptr.To("Yes"),
+		SlaveSQLRunning: ptr.To(true),
+	}
+
+	tests := []struct {
+		name   string
+		status mariadbv1alpha1.ReplicaStatus
+		want   bool
+	}{
+		{
+			name: "connecting past threshold",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars:       connecting,
+				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+			},
+			want: true,
+		},
+		{
+			name: "connecting within threshold",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars:       connecting,
+				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
+			},
+			want: false,
+		},
+		{
+			name: "healthy past threshold",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars:       healthy,
+				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+			},
+			want: false,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			got := isRecoverableError(mdb, tc.status, recoverableIOErrorCodes, logr.Discard())
+			if got != tc.want {
+				t.Errorf("isRecoverableError mismatch: want=%v got=%v", tc.want, got)
+			}
+		})
+	}
+}

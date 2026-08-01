@@ -37,6 +37,16 @@ var recoverableIOErrorCodes = []int{
 	1236,
 }
 
+// These SQL thread errors indicate that the replica dataset diverged from the primary.
+// Divergence cannot be repaired in place: skipping the event would only hide the drift,
+// so the replica is recovered from a fresh physical backup straight away.
+var recoverableSQLErrorCodes = []int{
+	// Error 1062: Duplicate entry for key. The replica holds rows the primary does not expect.
+	1062,
+	// Error 1032: Can't find record. The replica is missing rows the primary expects.
+	1032,
+}
+
 var errReplicaRecoveryArtifactFailed = errors.New("replica recovery artifact failed")
 
 const replicaRecoveryArtifactRetryDelay = 30 * time.Second
@@ -1259,6 +1269,12 @@ func hasImmediateRecoverableError(status mariadbv1alpha1.ReplicaStatus,
 			return true
 		}
 	}
+	for _, code := range recoverableSQLErrorCodes {
+		if status.LastSQLErrno != nil && *status.LastSQLErrno == code {
+			logger.V(1).Info("Recoverable SQL error code detected", "sql-errno", *status.LastSQLErrno)
+			return true
+		}
+	}
 	return false
 }
 
@@ -1269,8 +1285,12 @@ func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.Rep
 	}
 	lastIOErrno := ptr.Deref(status.LastIOErrno, 0)
 	lastSQLErrno := ptr.Deref(status.LastSQLErrno, 0)
+	// Replication can stall without reporting any errno: an IO thread stuck in "Connecting"
+	// (e.g. a zombie binlog dump thread on the primary) freezes the replica GTID while errnos read 0.
+	// LastErrorTransitionTime is reset on thread state transitions, so its age bounds the stall duration.
+	replicationStalled := !status.IsIOThreadRunning() || !status.IsSQLThreadRunning()
 
-	if (lastIOErrno != 0 || lastSQLErrno != 0) && !status.LastErrorTransitionTime.IsZero() {
+	if (lastIOErrno != 0 || lastSQLErrno != 0 || replicationStalled) && !status.LastErrorTransitionTime.IsZero() {
 		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
 		recovery := ptr.Deref(replication.Replica.ReplicaRecovery, mariadbv1alpha1.ReplicaRecovery{})
 		errThreshold := ptr.Deref(recovery.ErrorDurationThreshold, metav1.Duration{Duration: 5 * time.Minute})
