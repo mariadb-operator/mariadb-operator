@@ -33,6 +33,7 @@ type storagePVCState struct {
 type podLifecycleState struct {
 	UID               string
 	CreationTimestamp metav1.Time
+	Running           bool
 }
 
 type pvcChange struct {
@@ -234,6 +235,7 @@ func (r *MariaDBReconciler) getPodLifecycleStates(ctx context.Context,
 		podStates[i] = podLifecycleState{
 			UID:               string(pod.UID),
 			CreationTimestamp: pod.CreationTimestamp,
+			Running:           pod.Status.Phase == corev1.PodRunning,
 		}
 	}
 	return podStates, nil

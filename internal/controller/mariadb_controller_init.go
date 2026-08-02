@@ -424,6 +424,62 @@ func podSchedulingError(pod *corev1.Pod) string {
 	return ""
 }
 
+func (r *MariaDBReconciler) physicalBackupImagePullError(ctx context.Context,
+	physicalBackup *mariadbv1alpha1.PhysicalBackup) (string, error) {
+	var jobList batchv1.JobList
+	if err := r.List(ctx, &jobList, client.InNamespace(physicalBackup.Namespace)); err != nil {
+		return "", fmt.Errorf("error listing PhysicalBackup Jobs: %v", err)
+	}
+	for _, job := range jobList.Items {
+		if !metav1.IsControlledBy(&job, physicalBackup) {
+			continue
+		}
+		pullErr, err := r.jobImagePullError(ctx, types.NamespacedName{Name: job.Name, Namespace: job.Namespace})
+		if err != nil {
+			return "", err
+		}
+		if pullErr != "" {
+			return pullErr, nil
+		}
+	}
+	return "", nil
+}
+
+func (r *MariaDBReconciler) jobImagePullError(ctx context.Context, key types.NamespacedName) (string, error) {
+	pods, err := r.listJobPods(ctx, key)
+	if err != nil {
+		return "", err
+	}
+	for _, pod := range pods {
+		if pullErr := podImagePullError(&pod); pullErr != "" {
+			return pullErr, nil
+		}
+	}
+	return "", nil
+}
+
+func podImagePullError(pod *corev1.Pod) string {
+	if pod == nil {
+		return ""
+	}
+	statuses := make([]corev1.ContainerStatus, 0, len(pod.Status.InitContainerStatuses)+len(pod.Status.ContainerStatuses))
+	statuses = append(statuses, pod.Status.InitContainerStatuses...)
+	statuses = append(statuses, pod.Status.ContainerStatuses...)
+	for _, status := range statuses {
+		waiting := status.State.Waiting
+		if waiting == nil {
+			continue
+		}
+		if waiting.Reason == "ErrImagePull" || waiting.Reason == "ImagePullBackOff" {
+			if waiting.Message != "" {
+				return waiting.Message
+			}
+			return waiting.Reason
+		}
+	}
+	return ""
+}
+
 func (r *MariaDBReconciler) requeueUnschedulableInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName, schedulingErr string, logger logr.Logger) (ctrl.Result, error) {
 	errMsg := fmt.Sprintf("PhysicalBackup init Job '%s' is unschedulable: %s", key.Name, schedulingErr)

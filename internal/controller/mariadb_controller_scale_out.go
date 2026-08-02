@@ -392,6 +392,18 @@ func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, 
 		return ctrl.Result{}, failureErr
 	}
 	if !physicalBackup.IsComplete() {
+		pullErr, err := r.physicalBackupImagePullError(ctx, &physicalBackup)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if pullErr != "" {
+			return ctrl.Result{}, fmt.Errorf(
+				"%w: PhysicalBackup '%s' failed to pull image: %s",
+				errReplicaRecoveryArtifactFailed,
+				physicalBackup.Name,
+				pullErr,
+			)
+		}
 		logger.V(1).Info("Replica PhysicalBackup job not completed. Requeuing")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}

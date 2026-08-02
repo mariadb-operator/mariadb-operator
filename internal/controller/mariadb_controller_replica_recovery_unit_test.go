@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -2616,10 +2617,27 @@ func TestIsRecoverableErrorStalledThreadsWithoutErrno(t *testing.T) {
 		SlaveSQLRunning: ptr.To(true),
 	}
 
+	runningPod := &podLifecycleState{
+		UID:               "pod-uid",
+		CreationTimestamp: metav1.NewTime(time.Now().Add(-24 * time.Hour)),
+		Running:           true,
+	}
+	stoppedPod := &podLifecycleState{
+		UID:               "pod-uid",
+		CreationTimestamp: metav1.NewTime(time.Now().Add(-24 * time.Hour)),
+		Running:           false,
+	}
+	freshPod := &podLifecycleState{
+		UID:               "pod-uid",
+		CreationTimestamp: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
+		Running:           true,
+	}
+
 	tests := []struct {
-		name   string
-		status mariadbv1alpha1.ReplicaStatus
-		want   bool
+		name     string
+		status   mariadbv1alpha1.ReplicaStatus
+		podState *podLifecycleState
+		want     bool
 	}{
 		{
 			name: "connecting past threshold",
@@ -2627,7 +2645,8 @@ func TestIsRecoverableErrorStalledThreadsWithoutErrno(t *testing.T) {
 				ReplicaStatusVars:       connecting,
 				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
 			},
-			want: true,
+			podState: runningPod,
+			want:     true,
 		},
 		{
 			name: "connecting within threshold",
@@ -2635,7 +2654,8 @@ func TestIsRecoverableErrorStalledThreadsWithoutErrno(t *testing.T) {
 				ReplicaStatusVars:       connecting,
 				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
 			},
-			want: false,
+			podState: runningPod,
+			want:     false,
 		},
 		{
 			name: "healthy past threshold",
@@ -2643,17 +2663,269 @@ func TestIsRecoverableErrorStalledThreadsWithoutErrno(t *testing.T) {
 				ReplicaStatusVars:       healthy,
 				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
 			},
-			want: false,
+			podState: runningPod,
+			want:     false,
+		},
+		{
+			name: "connecting past threshold but pod missing",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars:       connecting,
+				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+			},
+			podState: nil,
+			want:     false,
+		},
+		{
+			name: "connecting past threshold but pod not running",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars:       connecting,
+				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+			},
+			podState: stoppedPod,
+			want:     false,
+		},
+		{
+			name: "stale status predating fresh pod",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars:       connecting,
+				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Hour)),
+			},
+			podState: freshPod,
+			want:     false,
 		},
 	}
 
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			got := isRecoverableError(mdb, tc.status, recoverableIOErrorCodes, logr.Discard())
+			got := isRecoverableError(mdb, tc.status, tc.podState, recoverableIOErrorCodes, logr.Discard())
 			if got != tc.want {
 				t.Errorf("isRecoverableError mismatch: want=%v got=%v", tc.want, got)
 			}
 		})
 	}
+}
+
+func TestReconcileReplicaPhysicalBackupSurfacesImagePullError(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+		},
+	}
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb-pb-recovery",
+			Namespace: "test",
+			UID:       "pb-uid",
+		},
+	}
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb-pb-recovery-20260802",
+			Namespace: "test",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "k8s.mariadb.com/v1alpha1",
+					Kind:       "PhysicalBackup",
+					Name:       physicalBackup.Name,
+					UID:        physicalBackup.UID,
+					Controller: ptr.To(true),
+				},
+			},
+		},
+	}
+	jobPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb-pb-recovery-20260802-abcde",
+			Namespace: "test",
+			Labels: map[string]string{
+				"batch.kubernetes.io/job-name": job.Name,
+			},
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodPending,
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					Name: "mariadb-operator",
+					State: corev1.ContainerState{
+						Waiting: &corev1.ContainerStateWaiting{
+							Reason:  "ImagePullBackOff",
+							Message: "Back-off pulling image \"registry.test/mariadb-operator:0.0.0-nonexistent\"",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(mariadb, physicalBackup, job, jobPod).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	key := client.ObjectKeyFromObject(physicalBackup)
+	_, err := reconciler.reconcileReplicaPhysicalBackup(context.Background(), key, mariadb, logr.Discard())
+	if err == nil {
+		t.Fatalf("expected image pull error to surface")
+	}
+	if !errors.Is(err, errReplicaRecoveryArtifactFailed) {
+		t.Fatalf("expected artifact failure error, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "failed to pull image") {
+		t.Fatalf("expected pull failure message, got: %v", err)
+	}
+	if !isReplicaRecoveryArtifactFailureMessage(err.Error()) {
+		t.Fatalf("expected message to match artifact failure detection: %v", err)
+	}
+}
+
+func TestReconcileReplicaPhysicalBackupRequeuesWhileJobPending(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+		},
+	}
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb-pb-recovery",
+			Namespace: "test",
+			UID:       "pb-uid",
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(mariadb, physicalBackup).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	key := client.ObjectKeyFromObject(physicalBackup)
+	result, err := reconciler.reconcileReplicaPhysicalBackup(context.Background(), key, mariadb, logr.Discard())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.RequeueAfter != 1*time.Second {
+		t.Fatalf("expected requeue after 1s, got %v", result.RequeueAfter)
+	}
+}
+
+func TestReconcileReplicaRecoveryErrorResumesWhenArtifactsGone(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+
+	newMariadb := func() *mariadbv1alpha1.MariaDB {
+		return &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mariadb-repl",
+				Namespace: "test",
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Replicas: 3,
+				Replication: &mariadbv1alpha1.Replication{
+					Enabled: true,
+					ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Replica: mariadbv1alpha1.ReplicaReplication{
+							ReplicaBootstrapFrom: &mariadbv1alpha1.ReplicaBootstrapFrom{
+								PhysicalBackupTemplateRef: mariadbv1alpha1.LocalObjectReference{
+									Name: "physicalbackup-tpl",
+								},
+							},
+						},
+					},
+				},
+			},
+			Status: mariadbv1alpha1.MariaDBStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:    mariadbv1alpha1.ConditionTypeReplicaRecovered,
+						Status:  metav1.ConditionFalse,
+						Reason:  mariadbv1alpha1.ConditionReasonReplicaRecoverError,
+						Message: "Replica recovery error: PhysicalBackup 'mariadb-repl-pb-recovery' failed: Failed",
+					},
+				},
+			},
+		}
+	}
+
+	t.Run("physical backup gone resumes recovery", func(t *testing.T) {
+		mariadb := newMariadb()
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+			WithObjects(mariadb).
+			Build()
+		reconciler := &MariaDBReconciler{Client: fakeClient}
+
+		result, err := reconciler.reconcileReplicaRecoveryError(
+			context.Background(), mariadb, []string{"mariadb-repl-1"}, logr.Discard(),
+		)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !result.IsZero() {
+			t.Fatalf("expected recovery to resume with zero result, got %v", result)
+		}
+	})
+
+	t.Run("physical backup present handles artifact failure", func(t *testing.T) {
+		mariadb := newMariadb()
+		physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      mariadb.PhysicalBackupReplicaRecoveryKey().Name,
+				Namespace: mariadb.Namespace,
+			},
+		}
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+			WithObjects(mariadb, physicalBackup).
+			Build()
+		reconciler := &MariaDBReconciler{Client: fakeClient}
+
+		result, err := reconciler.reconcileReplicaRecoveryError(
+			context.Background(), mariadb, []string{"mariadb-repl-1"}, logr.Discard(),
+		)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.RequeueAfter != 30*time.Second {
+			t.Fatalf("expected terminal artifact failure requeue, got %v", result)
+		}
+	})
 }

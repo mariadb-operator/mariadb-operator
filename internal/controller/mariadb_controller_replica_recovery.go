@@ -69,7 +69,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	logger := log.FromContext(ctx).
 		WithName("replica-recovery")
 
-	pvcStates, pvcUIDs, pvcRecoveryReplicas, err := r.getPVCRecoveryReplicas(ctx, mariadb, logger)
+	pvcStates, pvcUIDs, podStates, pvcRecoveryReplicas, err := r.getPVCRecoveryReplicas(ctx, mariadb, logger)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -94,7 +94,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	)
 	if replicaRecoveryEnabled {
 		replicasToRecover = mergeReplicasToRecover(
-			getReplicasToRecover(mariadb, logger),
+			getReplicasToRecover(mariadb, podStates, logger),
 			replicasToRecover,
 		)
 	}
@@ -153,14 +153,14 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 }
 
 func (r *MariaDBReconciler) getPVCRecoveryReplicas(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (map[int]storagePVCState, map[int]string, []string, error) {
+	logger logr.Logger) (map[int]storagePVCState, map[int]string, map[int]podLifecycleState, []string, error) {
 	pvcStates, err := r.getStoragePVCStates(ctx, mariadb)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("error getting storage PVC state: %v", err)
+		return nil, nil, nil, nil, fmt.Errorf("error getting storage PVC state: %v", err)
 	}
 	podStates, err := r.getPodLifecycleStates(ctx, mariadb)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("error getting Pod lifecycle state: %v", err)
+		return nil, nil, nil, nil, fmt.Errorf("error getting Pod lifecycle state: %v", err)
 	}
 
 	pvcUIDs := make(map[int]string, len(pvcStates))
@@ -173,7 +173,7 @@ func (r *MariaDBReconciler) getPVCRecoveryReplicas(ctx context.Context, mariadb 
 		getReplicasWithLostPVC(mariadb, pvcUIDs, logger),
 		getReplicasWithFreshPVCReplicationErrors(mariadb, pvcStates, podStates, logger),
 	)
-	return pvcStates, pvcUIDs, replicas, nil
+	return pvcStates, pvcUIDs, podStates, replicas, nil
 }
 
 func (r *MariaDBReconciler) resetReplicaRecoveryIfNotNeeded(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -313,13 +313,23 @@ func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, m
 			replicasToRecover = mergeReplicasToRecover(replicasToRecover, []string{*replicationStatus.ReplicaToRecover})
 		}
 		if isReplicaRecoveryArtifactFailureMessage(recoveryErr.Error()) && len(replicasToRecover) > 0 {
-			return r.handleReplicaRecoveryArtifactFailure(
-				ctx,
-				mariadb,
-				replicasToRecover,
-				fmt.Errorf("%w: %s", errReplicaRecoveryArtifactFailed, recoveryErr.Error()),
-				logger,
-			)
+			// A stored artifact failure only blocks recovery while the failed PhysicalBackup still
+			// exists. Once artifacts are cleaned up, the flow must fall through and recreate them:
+			// re-setting the error forever would wedge recovery even after the root cause is fixed.
+			var physicalBackup mariadbv1alpha1.PhysicalBackup
+			err := r.Get(ctx, mariadb.PhysicalBackupReplicaRecoveryKey(), &physicalBackup)
+			if err == nil {
+				return r.handleReplicaRecoveryArtifactFailure(
+					ctx,
+					mariadb,
+					replicasToRecover,
+					fmt.Errorf("%w: %s", errReplicaRecoveryArtifactFailed, recoveryErr.Error()),
+					logger,
+				)
+			}
+			if !apierrors.IsNotFound(err) {
+				return ctrl.Result{}, fmt.Errorf("error getting PhysicalBackup: %v", err)
+			}
 		}
 		if !strings.Contains(recoveryErr.Error(), "replica datasource not found") {
 			logger.Info("Resuming replica recovery after error", "err", recoveryErr.Error())
@@ -942,6 +952,14 @@ func (r *MariaDBReconciler) waitForInitJobComplete(ctx context.Context, mariadb 
 			errMsg := fmt.Sprintf("PhysicalBackup init Job '%s' is unschedulable: %s", key.Name, schedulingErr)
 			return r.setReplicaRecoveryError(ctx, mariadb, errMsg, logger)
 		}
+		imagePullErr, err := r.jobImagePullError(ctx, key)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if imagePullErr != "" {
+			errMsg := fmt.Sprintf("PhysicalBackup init Job '%s' cannot pull image: %s", key.Name, imagePullErr)
+			return r.setReplicaRecoveryError(ctx, mariadb, errMsg, logger)
+		}
 		logger.V(1).Info("PhysicalBackup init job not completed. Requeuing...")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
@@ -1031,18 +1049,19 @@ func (r *MariaDBReconciler) ensurePodDeleted(ctx context.Context, key types.Name
 		var pod corev1.Pod
 		if err := r.Get(ctx, key, &pod); err != nil {
 			if apierrors.IsNotFound(err) {
-				logger.Info("Pod deleted")
+				logger.V(1).Info("Pod already deleted")
 				return nil
 			}
 			return err
 		}
 		if err := r.Delete(ctx, &pod); err != nil {
 			if apierrors.IsNotFound(err) {
-				logger.Info("Pod deleted")
+				logger.V(1).Info("Pod already deleted")
 				return nil
 			}
 			return err
 		}
+		logger.Info("Pod deleted")
 		return errors.New("Pod still exists") //nolint:staticcheck
 	})
 }
@@ -1198,13 +1217,20 @@ func (r *MariaDBReconciler) resetReplicaRecovery(ctx context.Context, mariadb *m
 	return nil
 }
 
-func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []string {
+func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, podStates map[int]podLifecycleState, logger logr.Logger) []string {
 	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	var replicas []string
 	for replica, err := range replication.Replicas {
+		var podState *podLifecycleState
+		if podIndex, indexErr := stsobj.PodIndex(replica); indexErr == nil {
+			if state, ok := podStates[*podIndex]; ok {
+				podState = &state
+			}
+		}
 		if isRecoverableError(
 			mdb,
 			err,
+			podState,
 			recoverableIOErrorCodes,
 			logger.WithValues("replica", replica),
 		) {
@@ -1279,9 +1305,17 @@ func hasImmediateRecoverableError(status mariadbv1alpha1.ReplicaStatus,
 }
 
 func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.ReplicaStatus,
-	recoverableIOErrorCodes []int, logger logr.Logger) bool {
+	podState *podLifecycleState, recoverableIOErrorCodes []int, logger logr.Logger) bool {
 	if hasImmediateRecoverableError(status, recoverableIOErrorCodes, logger) {
 		return true
+	}
+	// The threshold path targets a live replica whose replication is stuck: it requires a Running pod
+	// so the recorded status is refreshable. A missing or non-running pod freezes the status snapshot,
+	// and acting on it would re-trigger recovery forever off data the replica can never update.
+	// Dead pods and lost storage are owned by the PVC recovery and immediate errno paths.
+	if podState == nil || !podState.Running {
+		logger.V(1).Info("Skipping error threshold check: replica pod not running")
+		return false
 	}
 	lastIOErrno := ptr.Deref(status.LastIOErrno, 0)
 	lastSQLErrno := ptr.Deref(status.LastSQLErrno, 0)
@@ -1294,7 +1328,14 @@ func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.Rep
 		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
 		recovery := ptr.Deref(replication.Replica.ReplicaRecovery, mariadbv1alpha1.ReplicaRecovery{})
 		errThreshold := ptr.Deref(recovery.ErrorDurationThreshold, metav1.Duration{Duration: 5 * time.Minute})
-		age := time.Since(status.LastErrorTransitionTime.Time)
+		// A status recorded before the current pod started belongs to a previous incarnation:
+		// count the error age from the pod start instead, giving the replica one full threshold
+		// window to boot and refresh its status before recovery may act on it.
+		errorSince := status.LastErrorTransitionTime.Time
+		if podState.CreationTimestamp.After(errorSince) {
+			errorSince = podState.CreationTimestamp.Time
+		}
+		age := time.Since(errorSince)
 
 		logger.V(1).Info(
 			"Current error",
