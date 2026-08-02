@@ -31,7 +31,11 @@ var _ = Describe("isRecoverableError", func() {
 
 	DescribeTable("should evaluate recoverability",
 		func(buildReplicaStatus func() mariadbv1alpha1.ReplicaStatus, mdb *mariadbv1alpha1.MariaDB,
-			podState *podLifecycleState, expected bool) {
+			buildPodState func() *podLifecycleState, expected bool) {
+			var podState *podLifecycleState
+			if buildPodState != nil {
+				podState = buildPodState()
+			}
 			res := isRecoverableError(mdb, buildReplicaStatus(), podState, recoverableIOErrorCodes, logger)
 			Expect(res).To(Equal(expected))
 		},
@@ -60,7 +64,7 @@ var _ = Describe("isRecoverableError", func() {
 				}
 			},
 			&mariadbv1alpha1.MariaDB{},
-			oldRunningPod(),
+			oldRunningPod,
 			false,
 		),
 		Entry("recent error within threshold -> not recoverable",
@@ -74,7 +78,7 @@ var _ = Describe("isRecoverableError", func() {
 				}
 			},
 			&mariadbv1alpha1.MariaDB{},
-			oldRunningPod(),
+			oldRunningPod,
 			false,
 		),
 		Entry("old error older than threshold -> recoverable",
@@ -88,7 +92,7 @@ var _ = Describe("isRecoverableError", func() {
 				}
 			},
 			&mariadbv1alpha1.MariaDB{},
-			oldRunningPod(),
+			oldRunningPod,
 			true,
 		),
 		Entry("old error but pod missing -> not recoverable",
@@ -116,10 +120,12 @@ var _ = Describe("isRecoverableError", func() {
 				}
 			},
 			&mariadbv1alpha1.MariaDB{},
-			&podLifecycleState{
-				UID:               "pod-uid",
-				CreationTimestamp: metav1.NewTime(time.Now().Add(-24 * time.Hour)),
-				Running:           false,
+			func() *podLifecycleState {
+				return &podLifecycleState{
+					UID:               "pod-uid",
+					CreationTimestamp: metav1.NewTime(time.Now().Add(-24 * time.Hour)),
+					Running:           false,
+				}
 			},
 			false,
 		),
@@ -134,10 +140,12 @@ var _ = Describe("isRecoverableError", func() {
 				}
 			},
 			&mariadbv1alpha1.MariaDB{},
-			&podLifecycleState{
-				UID:               "pod-uid",
-				CreationTimestamp: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
-				Running:           true,
+			func() *podLifecycleState {
+				return &podLifecycleState{
+					UID:               "pod-uid",
+					CreationTimestamp: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
+					Running:           true,
+				}
 			},
 			false,
 		),
@@ -152,7 +160,7 @@ var _ = Describe("isRecoverableError", func() {
 				}
 			},
 			&mariadbv1alpha1.MariaDB{},
-			oldRunningPod(),
+			oldRunningPod,
 			true,
 		),
 		Entry("old SQL error older than custom threshold -> recoverable",
@@ -180,7 +188,7 @@ var _ = Describe("isRecoverableError", func() {
 					},
 				},
 			},
-			oldRunningPod(),
+			oldRunningPod,
 			true,
 		),
 	)
