@@ -46,15 +46,14 @@ func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *ma
 	if err := r.cleanupJobs(ctx, backup, jobList, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
 	}
-	if result, err := r.waitForRunningJobs(ctx, backup, jobList, logger); !result.IsZero() || err != nil {
-		return result, err
-	}
-
 	if err := r.reconcileRBAC(ctx, backup, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
 	if err := r.reconcileStorage(ctx, backup); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling storage: %v", err)
+	}
+	if result, err := r.waitForRunningJobs(ctx, backup, jobList, logger); !result.IsZero() || err != nil {
+		return result, err
 	}
 
 	return r.reconcileTemplate(ctx, backup, len(jobList.Items), logger, func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
