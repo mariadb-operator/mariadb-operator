@@ -136,6 +136,9 @@ spec:
 
 The same applies to the Galera and standalone topologies: setting `pointInTimeRecoveryRef` enables binary logging and archival, no additional configuration is needed. See the [Galera PITR example](../examples/manifests/mariadb_galera_pitr_s3.yaml) for a full manifest:
 
+> [!IMPORTANT]
+> When upgrading from a version that only supported PITR with asynchronous replication, existing Galera and standalone resources that already define `pointInTimeRecoveryRef` will start archiving binary logs. For Galera resources, enabling the required GTID and binary log configuration also triggers a rolling restart.
+
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
