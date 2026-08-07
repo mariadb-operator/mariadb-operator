@@ -47,7 +47,7 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 		}
 		if desiredReadOnly {
 			podLogger.Info("Enabling readonly")
-			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMaintenance, mariadbv1alpha1.ActionReconciling,
+			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMaintenance, mariadbv1alpha1.ReasonMaintenance,
 				"Enabling readonly in Pod %s", podName)
 
 			if err := client.EnableReadOnly(ctx); err != nil {
@@ -55,7 +55,7 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 			}
 		} else {
 			podLogger.Info("Disabling readonly")
-			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMaintenance, mariadbv1alpha1.ActionReconciling,
+			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMaintenance, mariadbv1alpha1.ReasonMaintenance,
 				"Disabling readonly in Pod %s", podName)
 
 			if err := client.DisableReadOnly(ctx); err != nil {

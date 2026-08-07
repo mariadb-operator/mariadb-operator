@@ -69,7 +69,7 @@ func (r *PodGaleraController) ReconcilePodReady(ctx context.Context, pod corev1.
 	}
 
 	logger.Info("Switching primary", "from-index", *fromIndex, "to-index", *toIndex)
-	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ActionReconciling,
+	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ReasonPrimarySwitching,
 		"Switching primary from index '%d' to index '%d'", *fromIndex, *toIndex)
 
 	return nil
@@ -107,7 +107,7 @@ func (r *PodGaleraController) ReconcilePodNotReady(ctx context.Context, pod core
 	}
 
 	logger.Info("Switching primary", "from-index", *fromIndex, "to-index", *toIndex)
-	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ActionReconciling,
+	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ReasonPrimarySwitching,
 		"Switching primary from index '%d' to index '%d'", *fromIndex, *toIndex)
 
 	return nil

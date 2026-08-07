@@ -38,7 +38,7 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 			for _, p := range pvcs {
 				if p.Status.Phase != corev1.ClaimBound {
 					r.recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraPVCNotBound,
-						mariadbv1alpha1.ActionReconciling, "Unable to init Galera cluster: PVC \"%s\" in non Bound phase", p.Name)
+						mariadbv1alpha1.ReasonGaleraPVCNotBound, "Unable to init Galera cluster: PVC \"%s\" in non Bound phase", p.Name)
 
 					log.FromContext(ctx).Info("Unable to init Galera cluster: PVC in non Bound phase. Requeuing...",
 						"pvc", p.Name, "phase", p.Status.Phase)
