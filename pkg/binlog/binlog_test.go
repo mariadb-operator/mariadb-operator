@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
-	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 )
@@ -18,7 +18,7 @@ func TestBuildTimeline(t *testing.T) {
 	tests := []struct {
 		name       string
 		indexFile  *BinlogIndex
-		startGtid  *mariadbrepl.Gtid
+		startGtid  *gtid.Gtid
 		targetTime time.Time
 		strictMode bool
 		wantPath   []string
@@ -248,7 +248,7 @@ func TestErrNoBinlogs(t *testing.T) {
 		APIVersion: BinlogIndexV1,
 		Binlogs:    make(map[string][]BinlogMetadata),
 	}
-	startGtid := &mariadbrepl.Gtid{
+	startGtid := &gtid.Gtid{
 		DomainID:   1,
 		ServerID:   1,
 		SequenceID: 1,
@@ -276,9 +276,9 @@ func mustParseTestFile(t *testing.T, file string) *BinlogIndex {
 	return &bi
 }
 
-func mustParseGtid(t *testing.T, s string) *mariadbrepl.Gtid {
+func mustParseGtid(t *testing.T, s string) *gtid.Gtid {
 	t.Helper()
-	g, err := mariadbrepl.ParseGtid(s)
+	g, err := gtid.ParseGtid(s)
 	if err != nil {
 		t.Fatalf("failed to parse gtid %s: %v", s, err)
 	}

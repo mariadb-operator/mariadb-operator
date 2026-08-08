@@ -82,6 +82,7 @@ Agent is a sidecar agent that co-operates with mariadb-operator.
 _Appears in:_
 - [Galera](#galera)
 - [GaleraSpec](#galeraspec)
+- [MariaDBSpec](#mariadbspec)
 - [Replication](#replication)
 - [ReplicationSpec](#replicationspec)
 
@@ -1477,6 +1478,7 @@ _Appears in:_
 | `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with MariaDB. |  |  |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA. |  |  |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |  |  |
+| `agent` _[Agent](#agent)_ | Agent configures the data-plane sidecar agent in the standalone topology. It defaults automatically when neither Galera nor replication are enabled.<br />In the Galera and replication topologies, the agent is configured via 'galera.agent' and 'replication.agent' respectively.<br />@TODO: This should be used for ALL topologies now that the agent is available, but I will leave this for later |  |  |
 | `multiCluster` _[MultiCluster](#multicluster)_ | MultiCluster configures the multi-cluster topology. |  |  |
 | `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this reference implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
 | `pointInTimeRecoveryRef` _[LocalObjectReference](#localobjectreference)_ | PointInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.<br />Providing this reference implies configuring binary logs in the MariaDB instance and binary log archival in the sidecar agent. |  |  |
@@ -2480,6 +2482,7 @@ _Appears in:_
 | `physicalBackupRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupRef is a reference to a PhysicalBackup object that will be used as base backup. |  | Required: \{\} <br /> |
 | `storage` _[PointInTimeRecoveryStorage](#pointintimerecoverystorage)_ | PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs.<br />This field is immutable, it cannot be updated after creation. |  | Enum: [none bzip2 gzip] <br /> |
+| `podArchiverIndex` _integer_ | PodArchiverIndex is the StatefulSet index of the Pod that archives binary logs, and the Pod into which they are replayed during point-in-time recovery.<br />In the Galera topology all nodes share the same GTIDs but hold different binary log files, so archival must be pinned to a single,<br />stable Pod to keep a consistent binlog timeline.<br />It is ignored in the replication topology, where archival follows the current primary.<br />It defaults to 0. |  | Minimum: 0 <br /> |
 | `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival.<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
 | `strictMode` _boolean_ | StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:<br />When enabled: Returns an error and avoids replaying binary logs if target time is not reached.<br />When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached. |  |  |
 

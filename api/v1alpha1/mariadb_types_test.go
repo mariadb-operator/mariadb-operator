@@ -43,6 +43,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -99,6 +107,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -142,6 +158,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -180,6 +204,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -236,6 +268,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -305,6 +345,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -362,6 +410,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -424,6 +480,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -478,6 +542,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -544,6 +616,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -631,6 +711,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -718,6 +806,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -789,6 +885,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -846,6 +950,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -890,6 +1002,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -934,6 +1054,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
@@ -1097,6 +1225,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						Image:             "mariadb:lts",
 						RootEmptyPassword: ptr.To(false),
 						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
@@ -1229,6 +1365,14 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
+						Agent: &Agent{
+							Port:      5555,
+							ProbePort: 5566,
+							KubernetesAuth: &KubernetesAuth{
+								Enabled: true,
+							},
+							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+						},
 						Replication:       &Replication{},
 						Image:             env.RelatedMariadbImage,
 						RootEmptyPassword: ptr.To(false),

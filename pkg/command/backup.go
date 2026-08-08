@@ -11,8 +11,8 @@ import (
 	backuppkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -29,7 +29,7 @@ type BackupOpts struct {
 	OmitCredentials      bool
 	CleanupTargetFile    bool
 	MaxRetentionDuration time.Duration
-	StartGtid            *replication.Gtid
+	StartGtid            *gtid.Gtid
 	TargetTime           time.Time
 	Compression          mariadbv1alpha1.CompressAlgorithm
 	LogLevel             string
@@ -92,7 +92,7 @@ func WithMaxRetention(d time.Duration) BackupOpt {
 	}
 }
 
-func WithStartGtid(gtid *replication.Gtid) BackupOpt {
+func WithStartGtid(gtid *gtid.Gtid) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.StartGtid = gtid
 	}
@@ -513,8 +513,9 @@ func (b *BackupCommand) MariadbOperatorPITR(strictMode bool) (*Command, error) {
 	return NewCommand(nil, args), nil
 }
 
-func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
-	mariadbBinlogArgs, err := b.mariadbBinlogArgs(mariadb)
+// MariadbBinlog returns the command that replays the archived binary logs
+func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB, podArchiverIndex int) (*Command, error) {
+	mariadbBinlogArgs, err := b.mariadbBinlogArgs(mariadb, podArchiverIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-binlog args: %v", err)
 	}
@@ -589,11 +590,17 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.UniqueArgs(ds.Merge(args, dumpOpts)...)
 }
 
-func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB) ([]string, error) {
+func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB, podArchiverIndex int) ([]string, error) {
 	if b.StartGtid == nil {
 		return nil, errors.New("startGtid must be set")
 	}
-	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
+	var connectionFlagOpts []ConnectionFlagOpt
+	// In the Galera and standalone topologies the replay must target the exact archiver Pod.
+	if !mariadb.IsReplicationEnabled() {
+		host := statefulset.PodFQDNWithService(mariadb.ObjectMeta, podArchiverIndex, mariadb.InternalServiceKey().Name)
+		connectionFlagOpts = append(connectionFlagOpts, WithHostConnectionFlag(host))
+	}
+	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb, connectionFlagOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
@@ -783,7 +790,7 @@ func copyBinlogMetaCmds(sourceDir string, destDir string) []string {
 	// This ensures that we have access to the coordinate after restoring the backup.
 	copyBinlogMetaCmd := func(binlogFileName string) string {
 		sourcePath := filepath.Join(sourceDir, binlogFileName)
-		destPath := filepath.Join(destDir, replication.MariaDBOperatorFileName)
+		destPath := filepath.Join(destDir, gtid.MariaDBOperatorFileName)
 		return fmt.Sprintf(`if [ -f %[1]s ]; then 
 	echo "💾 Copying binlog position file '%[1]s' to '%[2]s'";
 	cp %[1]s %[2]s
@@ -793,7 +800,7 @@ fi`,
 		)
 	}
 	return []string{
-		copyBinlogMetaCmd(replication.BinlogFileName),
-		copyBinlogMetaCmd(replication.LegacyBinlogFileName),
+		copyBinlogMetaCmd(gtid.BinlogFileName),
+		copyBinlogMetaCmd(gtid.LegacyBinlogFileName),
 	}
 }

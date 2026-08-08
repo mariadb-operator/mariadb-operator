@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	mdbsts "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -62,7 +62,7 @@ func (f *FailoverHandler) FurthestAdvancedReplica(ctx context.Context) (string, 
 
 type promotionCandidate struct {
 	name           string
-	gtidCurrentPos *replication.Gtid
+	gtidCurrentPos *gtid.Gtid
 }
 
 func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod) []promotionCandidate {
@@ -124,7 +124,7 @@ func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod)
 			podLogger.Info("GTID current position not set. Skipping...")
 			continue
 		}
-		gtidCurrentPos, err := replication.ParseGtidWithDomainId(*status.GtidCurrentPos, *gtidDomainId, f.logger)
+		gtidCurrentPos, err := gtid.ParseGtidWithDomainId(*status.GtidCurrentPos, *gtidDomainId, f.logger)
 		if err != nil {
 			podLogger.Info("Error parsing GTID current position. Skipping...", "err", err)
 			continue

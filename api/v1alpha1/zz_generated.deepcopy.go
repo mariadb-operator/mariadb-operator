@@ -31,7 +31,7 @@ package v1alpha1
 import (
 	metav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/recovery"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -2222,7 +2222,12 @@ func (in *MariaDBPointInTimeRecoveryStatus) DeepCopyInto(out *MariaDBPointInTime
 	in.LastArchivedTime.DeepCopyInto(&out.LastArchivedTime)
 	if in.LastArchivedGtid != nil {
 		in, out := &in.LastArchivedGtid, &out.LastArchivedGtid
-		*out = new(replication.Gtid)
+		*out = new(gtid.Gtid)
+		**out = **in
+	}
+	if in.WsrepGtidModePaused != nil {
+		in, out := &in.WsrepGtidModePaused, &out.WsrepGtidModePaused
+		*out = new(bool)
 		**out = **in
 	}
 	if in.StorageReadyForArchival != nil {
@@ -2344,6 +2349,11 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 	if in.Galera != nil {
 		in, out := &in.Galera, &out.Galera
 		*out = new(Galera)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.Agent != nil {
+		in, out := &in.Agent, &out.Agent
+		*out = new(Agent)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.MultiCluster != nil {
@@ -4036,6 +4046,11 @@ func (in *PointInTimeRecoverySpec) DeepCopyInto(out *PointInTimeRecoverySpec) {
 	*out = *in
 	out.PhysicalBackupRef = in.PhysicalBackupRef
 	in.PointInTimeRecoveryStorage.DeepCopyInto(&out.PointInTimeRecoveryStorage)
+	if in.PodArchiverIndex != nil {
+		in, out := &in.PodArchiverIndex, &out.PodArchiverIndex
+		*out = new(int)
+		**out = **in
+	}
 	if in.ArchiveTimeout != nil {
 		in, out := &in.ArchiveTimeout, &out.ArchiveTimeout
 		*out = new(v1.Duration)

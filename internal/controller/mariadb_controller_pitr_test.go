@@ -5,13 +5,16 @@ import (
 	"math/rand/v2"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
+var _ = Describe("MariaDB PITR with Replication", Ordered, Label("basic"), func() {
 	var (
 		// Used for MariaDB, PITR, PhysicalBackup
 		key = types.NamespacedName{
@@ -51,6 +54,7 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 				deleteMariadb(key, false)
 				deletePhysicalBackup(key, false)
 				deletePitr(key)
+				expectMariadbDeleted(key)
 			})
 		})
 
@@ -93,6 +97,207 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 				deleteMariadb(key, false)
 				deletePhysicalBackup(key, false)
 				deletePitr(key)
+				expectMariadbDeleted(key)
+			})
+		})
+
+		It("should reconcile MariaDB", func() {
+			By("Expecting MariaDB to be ready eventually")
+			expectMariadbReady(testCtx, k8sClient, key)
+
+			By("Expecting PhysicalBackup to be ready")
+			expectPhysicalBackupReady(physicalBackup)
+		})
+	})
+})
+
+var _ = Describe("MariaDB PITR with Galera", Ordered, Label("basic"), func() {
+	var (
+		key = types.NamespacedName{
+			Name:      "mariadb-galera",
+			Namespace: testNamespace,
+		}
+		mdb *mariadbv1alpha1.MariaDB
+	)
+
+	Context("With S3 Storage", func() {
+		var (
+			bucket               = "test-pitr"
+			physicalBackupPrefix = "mariadb-galera"
+			pitrPrefix           = fmt.Sprintf("mariadb-galera-%d", rand.Int())
+
+			pitr           = buildTestPitr(key, key, withTestPitrS3Storage(bucket, pitrPrefix))
+			physicalBackup = buildPhysicalBackupWithS3Storage(key, bucket, physicalBackupPrefix)(key)
+		)
+
+		BeforeAll(func() {
+			mdb = buildTestMariaDBWithGalera(key)
+			applyMariadbTestConfig(mdb)
+			mdb.Spec.PointInTimeRecoveryRef = &mariadbv1alpha1.LocalObjectReference{
+				Name: pitr.Name,
+			}
+
+			By("Creating MariaDB with Galera")
+			Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+
+			By("Creating Physical Backup")
+			Expect(k8sClient.Create(testCtx, physicalBackup)).To(Succeed())
+
+			By("Creating PointInTimeRecovery")
+			Expect(k8sClient.Create(testCtx, pitr)).To(Succeed())
+
+			DeferCleanup(func() {
+				deleteMariadb(key, false)
+				deletePhysicalBackup(key, true)
+				deletePitr(key)
+				expectMariadbDeleted(key)
+			})
+		})
+
+		It("should reconcile MariaDB", func() {
+			By("Expecting MariaDB to be ready eventually")
+			expectMariadbReady(testCtx, k8sClient, key)
+
+			By("Expecting PhysicalBackup to be ready")
+			expectPhysicalBackupReady(physicalBackup)
+		})
+	})
+
+	Context("With ABS Storage", func() {
+		var (
+			bucket               = "test-pitr"
+			physicalBackupPrefix = "mariadb-galera"
+			pitrPrefix           = fmt.Sprintf("mariadb-galera-%d", rand.Int())
+
+			pitr           = buildTestPitr(key, key, withTestPitrABSStorage(bucket, pitrPrefix))
+			physicalBackup = buildPhysicalBackupWithABSStorage(key, bucket, physicalBackupPrefix)(key)
+		)
+
+		BeforeAll(func() {
+			mdb = buildTestMariaDBWithGalera(key)
+			applyMariadbTestConfig(mdb)
+			mdb.Spec.PointInTimeRecoveryRef = &mariadbv1alpha1.LocalObjectReference{
+				Name: pitr.Name,
+			}
+
+			By("Creating MariaDB with Galera")
+			Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+
+			By("Creating Physical Backup")
+			Expect(k8sClient.Create(testCtx, physicalBackup)).To(Succeed())
+
+			By("Creating PointInTimeRecovery")
+			Expect(k8sClient.Create(testCtx, pitr)).To(Succeed())
+
+			DeferCleanup(func() {
+				deleteMariadb(key, false)
+				deletePhysicalBackup(key, true)
+				deletePitr(key)
+				expectMariadbDeleted(key)
+			})
+		})
+
+		It("should reconcile MariaDB", func() {
+			By("Expecting MariaDB to be ready eventually")
+			expectMariadbReady(testCtx, k8sClient, key)
+
+			By("Expecting PhysicalBackup to be ready")
+			expectPhysicalBackupReady(physicalBackup)
+		})
+	})
+})
+
+var _ = Describe("MariaDB PITR standalone", Ordered, Label("basic"), func() {
+	var (
+		key = types.NamespacedName{
+			Name:      "mdb-pitr",
+			Namespace: testNamespace,
+		}
+		mdb *mariadbv1alpha1.MariaDB
+	)
+
+	Context("With S3 Storage", func() {
+		var (
+			bucket               = "test-pitr"
+			physicalBackupPrefix = "mdb-pitr"
+			pitrPrefix           = fmt.Sprintf("mdb-pitr-%d", rand.Int())
+
+			pitr           = buildTestPitr(key, key, withTestPitrS3Storage(bucket, pitrPrefix))
+			physicalBackup = buildPhysicalBackupWithS3Storage(key, bucket, physicalBackupPrefix)(key)
+		)
+
+		BeforeAll(func() {
+			mdb = buildTestMariaDBStandalone(key)
+			applyMariadbTestConfig(mdb)
+			mdb.Spec.PointInTimeRecoveryRef = &mariadbv1alpha1.LocalObjectReference{
+				Name: pitr.Name,
+			}
+
+			By("Creating standalone MariaDB")
+			Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+
+			By("Creating Physical Backup")
+			Expect(k8sClient.Create(testCtx, physicalBackup)).To(Succeed())
+
+			By("Creating PointInTimeRecovery")
+			Expect(k8sClient.Create(testCtx, pitr)).To(Succeed())
+
+			DeferCleanup(func() {
+				deleteMariadb(key, false)
+				deletePhysicalBackup(key, true)
+				deletePitr(key)
+				expectMariadbDeleted(key)
+			})
+		})
+
+		It("should reconcile MariaDB", func() {
+			By("Expecting MariaDB to be ready eventually")
+			expectMariadbReady(testCtx, k8sClient, key)
+
+			By("Expecting the data-plane agent to be provisioned")
+			var sts appsv1.StatefulSet
+			Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
+			Expect(sts.Spec.Template.Spec.Containers).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"Name": Equal(builder.AgentContainerName),
+				})))
+
+			By("Expecting PhysicalBackup to be ready")
+			expectPhysicalBackupReady(physicalBackup)
+		})
+	})
+
+	Context("With ABS Storage", func() {
+		var (
+			bucket               = "test-pitr"
+			physicalBackupPrefix = "mdb-pitr"
+			pitrPrefix           = fmt.Sprintf("mdb-pitr-%d", rand.Int())
+
+			pitr           = buildTestPitr(key, key, withTestPitrABSStorage(bucket, pitrPrefix))
+			physicalBackup = buildPhysicalBackupWithABSStorage(key, bucket, physicalBackupPrefix)(key)
+		)
+
+		BeforeAll(func() {
+			mdb = buildTestMariaDBStandalone(key)
+			applyMariadbTestConfig(mdb)
+			mdb.Spec.PointInTimeRecoveryRef = &mariadbv1alpha1.LocalObjectReference{
+				Name: pitr.Name,
+			}
+
+			By("Creating standalone MariaDB")
+			Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+
+			By("Creating Physical Backup")
+			Expect(k8sClient.Create(testCtx, physicalBackup)).To(Succeed())
+
+			By("Creating PointInTimeRecovery")
+			Expect(k8sClient.Create(testCtx, pitr)).To(Succeed())
+
+			DeferCleanup(func() {
+				deleteMariadb(key, false)
+				deletePhysicalBackup(key, true)
+				deletePitr(key)
+				expectMariadbDeleted(key)
 			})
 		})
 

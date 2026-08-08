@@ -1286,6 +1286,43 @@ func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
+// expectMariadbDeleted waits until a MariaDB and the child resources it owns are actually gone. Specs reusing a
+// MariaDB name across Ordered Containers must call this before the name is provisioned again: deleteMariadb only
+// waits for the MariaDB object itself, while its StatefulSet, Pods and PVCs are garbage collected asynchronously.
+func expectMariadbDeleted(key types.NamespacedName) {
+	mdb := mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+	}
+	listOpts := &client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(&mdb).
+				Build(),
+		),
+		Namespace: key.Namespace,
+	}
+
+	By("Expecting MariaDB and its child resources to be deleted eventually")
+	Eventually(func(g Gomega) bool {
+		var currentMdb mariadbv1alpha1.MariaDB
+		g.Expect(apierrors.IsNotFound(k8sClient.Get(testCtx, key, &currentMdb))).To(BeTrue())
+
+		var sts appsv1.StatefulSet
+		g.Expect(apierrors.IsNotFound(k8sClient.Get(testCtx, key, &sts))).To(BeTrue())
+
+		var podList corev1.PodList
+		g.Expect(k8sClient.List(testCtx, &podList, listOpts)).To(Succeed())
+
+		var pvcList corev1.PersistentVolumeClaimList
+		g.Expect(k8sClient.List(testCtx, &pvcList, listOpts)).To(Succeed())
+
+		return len(podList.Items) == 0 && len(pvcList.Items) == 0
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
 func deleteExternalMariadb(key types.NamespacedName) {
 	By("Deleting ExternalMariaDB")
 	emdb := mariadbv1alpha1.ExternalMariaDB{
@@ -1433,6 +1470,138 @@ func removeFinalizerAndDelete(obj client.Object) error {
 		return err
 	}
 	return k8sClient.Delete(testCtx, obj)
+}
+
+// buildTestMariaDBStandalone builds a single instance MariaDB, with neither Galera nor replication. The Service IPs
+// and the 'mdb-pitr' name are the ones provisioned by 'make net'
+// (see hack/manifests/metallb/mdb-pitr-service.yaml), so specs using this builder must reuse the 'mdb-pitr' key.
+func buildTestMariaDBStandalone(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
+	return &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Username: &testUser,
+			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			Database: &testDatabase,
+			MyCnf: ptr.To(`[mariadb]
+				bind-address=*
+				default_storage_engine=InnoDB
+				binlog_format=row
+				innodb_autoinc_lock_mode=2
+				max_allowed_packet=256M`,
+			),
+			Replicas: 1,
+			Storage: mariadbv1alpha1.Storage{
+				Size:             ptr.To(resource.MustParse("300Mi")),
+				StorageClassName: "csi-hostpath-sc",
+			},
+			Service: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.56",
+					},
+				},
+			},
+		},
+	}
+}
+
+// buildTestMariaDBWithGalera builds a Galera MariaDB. The Service IPs and the 'mariadb-galera' name are the ones
+// provisioned by 'make net' (see hack/manifests/metallb/mariadb-galera-service.yaml), so specs using this builder
+// must reuse the 'mariadb-galera' key and cannot run in parallel with each other.
+func buildTestMariaDBWithGalera(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
+	return &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Username: &testUser,
+			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			Database: &testDatabase,
+			MyCnf: ptr.To(`[mariadb]
+				bind-address=*
+				default_storage_engine=InnoDB
+				binlog_format=row
+				innodb_autoinc_lock_mode=2
+				max_allowed_packet=256M`,
+			),
+			Galera: &mariadbv1alpha1.Galera{
+				Enabled: true,
+				GaleraSpec: mariadbv1alpha1.GaleraSpec{
+					Primary: mariadbv1alpha1.PrimaryGalera{
+						PodIndex:     ptr.To(0),
+						AutoFailover: ptr.To(true),
+					},
+				},
+			},
+			Replicas: 3,
+			Storage: mariadbv1alpha1.Storage{
+				Size:             ptr.To(resource.MustParse("1Gi")),
+				StorageClassName: "csi-hostpath-sc",
+			},
+			Service: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.150",
+					},
+				},
+			},
+			PrimaryService: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.160",
+					},
+				},
+			},
+			SecondaryService: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.161",
+					},
+				},
+			},
+			UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+				Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
+			},
+		},
+	}
 }
 
 // @TODO: We have a lot of builder logic, we can split it up and allow for extension, like we do with PhysicalBackups

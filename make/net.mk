@@ -20,6 +20,11 @@ host-mdb-test: ## Add MariaDB test hosts to /etc/hosts.
 	@./hack/add_host.sh 0 45 mdb-test-0.mdb-test-internal.default.svc.cluster.local
 	@./hack/add_host.sh 0 46 mdb-test.default.svc.cluster.local
 
+.PHONY: host-mdb-pitr
+host-mdb-pitr: ## Add standalone PITR test hosts to /etc/hosts.
+	@./hack/add_host.sh 0 55 mdb-pitr-0.mdb-pitr-internal.default.svc.cluster.local
+	@./hack/add_host.sh 0 56 mdb-pitr.default.svc.cluster.local
+
 .PHONY: host-mdb-emulated-external-test
 host-mdb-emulated-external-test: ## Add MariaDB test hosts to /etc/hosts.
 	@./hack/add_host.sh 0 47 mdb-emulate-external-test.default.svc.cluster.local
@@ -33,6 +38,7 @@ host-mxs-test: ## Add MaxScale test hosts to /etc/hosts.
 .PHONY: host-azurite
 host-azurite: ## Add Azurite test hosts to /etc/hosts.
 	@./hack/add_host.sh 0 60 azurite.default.svc.cluster.local
+
 
 .PHONY: host-mariadb-repl
 host-mariadb-repl: ## Add mariadb repl hosts to /etc/hosts.
@@ -71,6 +77,7 @@ host-monitoring: ## Add monitoring hosts to /etc/hosts.
 .PHONY: host-minio
 host-minio: ## Add minio hosts to /etc/hosts.
 	@./hack/add_host.sh 0 200 minio
+	@./hack/add_host.sh 0 200 minio.minio.svc.cluster.local
 	@./hack/add_host.sh 0 201 minio-console
 
 .PHONY: host-maxscale-repl
@@ -129,7 +136,7 @@ host-multi-cluster-mxs: ## Add multi-cluster maxscale hosts to /etc/hosts.
 	@./hack/add_host.sh 1 27 maxscale-eu-central-1.maxscale-eu-central-internal.default.svc.cluster.local
 
 .PHONY: host
-host: host-mariadb host-mdb-test host-mdb-emulated-external-test host-mxs-test host-mariadb-repl host-mariadb-galera host-mariadb-galera-test host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui host-multi-cluster host-multi-cluster-mxs host-azurite ## Configure hosts for local development.
+host: host-mariadb host-mdb-test host-mdb-pitr host-mdb-emulated-external-test host-mxs-test host-mariadb-repl host-mariadb-galera host-mariadb-galera-test host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui host-multi-cluster host-multi-cluster-mxs host-azurite ## Configure hosts for local development.
 
 .PHONY: net
 net: install-metallb host ## Configure networking for local development.

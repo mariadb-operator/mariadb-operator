@@ -16,12 +16,12 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	replicationctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -79,14 +79,8 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		}
 	}
 
-	sqlClient, err := sql.NewClientWithMariaDB(ctx, mdb, r.RefResolver)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting SQL client: %v", err)
-	}
-	defer sqlClient.Close()
-
-	if err := replicationctrl.PauseGtidStrictMode(ctx, mdb, sqlClient, r.Client, logger); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error pausing gtid_strict_mode: %v", err)
+	if err := r.prepareBinlogReplay(ctx, mdb, logger); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error preparing binlog replay: %v", err)
 	}
 
 	if err := r.reconcilePITRStagingPVC(ctx, mdb); err != nil {
@@ -96,8 +90,8 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		return result, err
 	}
 
-	if err := replicationctrl.ResumeGtidStrictMode(ctx, mdb, sqlClient, r.Client, logger); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error resuming gtid_strict_mode: %v", err)
+	if err := r.finishBinlogReplay(ctx, mdb, logger); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error finishing binlog replay: %v", err)
 	}
 
 	logger.Info("Binlogs replayed")
@@ -116,8 +110,129 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 	return ctrl.Result{}, nil
 }
 
+// prepareBinlogReplay temporarily relaxes server settings for binlog replay:
+// - Galera: disables wsrep_gtid_mode on the archiver Pod so server_id can be overridden. wsrep_on remains enabled, so replayed transactions replicate normally.
+// - Replication: disables gtid_strict_mode on the primary.
+// - Standalone: no changes required.
+func (r *MariaDBReconciler) prepareBinlogReplay(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+	if mdb.IsGaleraEnabled() {
+		return r.pauseWsrepGtidMode(ctx, mdb, logger)
+	}
+	if mdb.IsReplicationEnabled() {
+		sqlClient, err := sql.NewClientWithMariaDB(ctx, mdb, r.RefResolver)
+		if err != nil {
+			return fmt.Errorf("error getting SQL client: %v", err)
+		}
+		defer sqlClient.Close()
+		return replicationctrl.PauseGtidStrictMode(ctx, mdb, sqlClient, r.Client, logger)
+	}
+	return nil
+}
+
+// finishBinlogReplay reverts the changes made by prepareBinlogReplay once the replay Job has completed.
+func (r *MariaDBReconciler) finishBinlogReplay(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+	if mdb.IsGaleraEnabled() {
+		return r.resumeWsrepGtidMode(ctx, mdb, logger)
+	}
+	if mdb.IsReplicationEnabled() {
+		sqlClient, err := sql.NewClientWithMariaDB(ctx, mdb, r.RefResolver)
+		if err != nil {
+			return fmt.Errorf("error getting SQL client: %v", err)
+		}
+		defer sqlClient.Close()
+		return replicationctrl.ResumeGtidStrictMode(ctx, mdb, sqlClient, r.Client, logger)
+	}
+	return nil
+}
+
+// binlogArchiverPodIndex returns the Pod index that archives binary logs and into which they are replayed. It is resolved from the PointInTimeRecovery
+// referred by the MariaDB itself (spec.pointInTimeRecoveryRef), which is the archive that the binlog timeline continues into, and not from the one being
+// restored from (bootstrapFrom).
+func (r *MariaDBReconciler) binlogArchiverPodIndex(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (int, error) {
+	if !mdb.IsPointInTimeRecoveryEnabled() {
+		return 0, nil
+	}
+	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mdb.Spec.PointInTimeRecoveryRef, mdb.Namespace)
+	if err != nil {
+		return 0, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
+	}
+	podIndex := pitr.PodArchiverIndex()
+
+	if podIndex >= int(mdb.Spec.Replicas) {
+		return 0, fmt.Errorf(
+			"invalid spec.podArchiverIndex %d in PointInTimeRecovery \"%s\": it must be lower than spec.replicas (%d) in MariaDB",
+			podIndex, pitr.Name, mdb.Spec.Replicas,
+		)
+	}
+	return podIndex, nil
+}
+
+func (r *MariaDBReconciler) pauseWsrepGtidMode(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+	pitrStatus := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{})
+	if ptr.Deref(pitrStatus.WsrepGtidModePaused, false) {
+		return nil
+	}
+
+	podIndex, err := r.binlogArchiverPodIndex(ctx, mdb)
+	if err != nil {
+		return fmt.Errorf("error getting binlog archiver Pod index: %v", err)
+	}
+	sqlClient, err := sql.NewInternalClientWithPodIndex(ctx, mdb, r.RefResolver, podIndex)
+	if err != nil {
+		return fmt.Errorf("error getting SQL client for Pod index %d: %v", podIndex, err)
+	}
+	defer sqlClient.Close()
+
+	wsrepGtidMode, err := sqlClient.WsrepGtidMode(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting wsrep_gtid_mode: %v", err)
+	}
+	if wsrepGtidMode {
+		logger.Info("Temporarily disabling wsrep_gtid_mode to replay binlogs", "pod-index", podIndex)
+		if err := sqlClient.DisableWsrepGtidMode(ctx); err != nil {
+			return fmt.Errorf("error disabling wsrep_gtid_mode: %v", err)
+		}
+	}
+	return r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		if status.PointInTimeRecovery == nil {
+			status.PointInTimeRecovery = &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{}
+		}
+		status.PointInTimeRecovery.WsrepGtidModePaused = ptr.To(true)
+		return nil
+	})
+}
+
+// resumeWsrepGtidMode re-enables wsrep_gtid_mode on the archiver Pod once the replay has finished.
+func (r *MariaDBReconciler) resumeWsrepGtidMode(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+	pitrStatus := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{})
+	if !ptr.Deref(pitrStatus.WsrepGtidModePaused, false) {
+		return nil
+	}
+
+	podIndex, err := r.binlogArchiverPodIndex(ctx, mdb)
+	if err != nil {
+		return fmt.Errorf("error getting binlog archiver Pod index: %v", err)
+	}
+	sqlClient, err := sql.NewInternalClientWithPodIndex(ctx, mdb, r.RefResolver, podIndex)
+	if err != nil {
+		return fmt.Errorf("error getting SQL client for Pod index %d: %v", podIndex, err)
+	}
+	defer sqlClient.Close()
+
+	logger.Info("Enabling back wsrep_gtid_mode after binlog replay", "pod-index", podIndex)
+	if err := sqlClient.EnableWsrepGtidMode(ctx); err != nil {
+		return fmt.Errorf("error enabling wsrep_gtid_mode: %v", err)
+	}
+	return r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		if status.PointInTimeRecovery != nil {
+			status.PointInTimeRecovery.WsrepGtidModePaused = nil
+		}
+		return nil
+	})
+}
+
 func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (*replication.Gtid, error) {
+	logger logr.Logger) (*gtid.Gtid, error) {
 	var rawGtid string
 
 	if mdb.Spec.BootstrapFrom != nil && mdb.Spec.BootstrapFrom.VolumeSnapshotRef != nil {
@@ -145,8 +260,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 			return nil, fmt.Errorf("error getting agent client: %v", err)
 		}
 
-		// TODO: handle galera, as the agent will not have this endpoint available
-		agentGtid, err := agentClient.Replication.GetGtid(ctx)
+		agentGtid, err := agentClient.Gtid.GetGtid(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error getting GTID from agent: %v", err)
 		}
@@ -167,7 +281,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 	if err != nil {
 		return nil, fmt.Errorf("error getting gtid_domain_id: %v", err)
 	}
-	gtid, err := replication.ParseGtidWithDomainId(rawGtid, *domainId, logger.WithName("gtid"))
+	gtid, err := gtid.ParseGtidWithDomainId(rawGtid, *domainId, logger.WithName("gtid"))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
 	}
@@ -217,7 +331,7 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) validateBinlogTimeline(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
+func (r *MariaDBReconciler) validateBinlogTimeline(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *gtid.Gtid,
 	strictMode bool, storageClient interfaces.BlobStorage, logger logr.Logger) error {
 	indexReader, err := storageClient.GetObjectWithOptions(ctx, binlog.BinlogIndexName)
 	if err != nil {
@@ -297,10 +411,14 @@ func (r *MariaDBReconciler) reconcileAndWaitForPITRJob(ctx context.Context, mdb 
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid) error {
+func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *gtid.Gtid) error {
 	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef, mdb.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting PointInTimeRecovery: %v", err)
+	}
+	podArchiverIndex, err := r.binlogArchiverPodIndex(ctx, mdb)
+	if err != nil {
+		return fmt.Errorf("error getting binlog archiver Pod index: %v", err)
 	}
 	pitrJob, err := r.Builder.BuildPITRJob(
 		mdb.PITRJobKey(),
@@ -308,6 +426,7 @@ func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alp
 		mdb,
 		builder.WithStartGtid(startGtid),
 		builder.WithBootstrapFrom(mdb.Spec.BootstrapFrom),
+		builder.WithPodArchiverIndex(podArchiverIndex),
 	)
 	if err != nil {
 		return fmt.Errorf("error building PointInTimeRecovery Job: %v", err)

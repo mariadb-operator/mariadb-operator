@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler"
-	galerahandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/galera"
 	gtidhandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/gtid"
+	standalonehandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/standalone"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/server"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/binlog"
@@ -22,19 +22,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var galeraCommand = &cobra.Command{
-	Use:   "galera",
-	Short: "Galera.",
-	Long:  "Galera agent.",
+var standaloneCommand = &cobra.Command{
+	Use:   "standalone",
+	Short: "Standalone.",
+	Long:  "Standalone agent.",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := log.SetupLoggerWithCommand(cmd); err != nil {
 			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("Galera agent starting")
+		logger.Info("Standalone agent starting")
 
-		//@WARN: The `PodEnvironment` should always be passed as a reference. See: `pkg/agent/handler/environment.go`
 		env, err := environment.GetPodEnv(context.Background())
 		if err != nil {
 			logger.Error(err, "Error getting environment variables")
@@ -64,11 +63,6 @@ var galeraCommand = &cobra.Command{
 		apiLogger := logger.WithName("api")
 		responseWriter := mdbhttp.NewResponseWriter(&apiLogger)
 		apiHandlers := []router.RouteHandler{
-			galerahandler.NewGaleraHandler(
-				fileManager,
-				responseWriter,
-				&apiLogger,
-			),
 			handler.NewEnvironmentHandler(
 				env,
 				responseWriter,
@@ -91,7 +85,7 @@ var galeraCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		probeServer, err := getGaleraProbeServer(env, k8sClient, logger.WithName("probe"))
+		probeServer, err := getStandaloneProbeServer(env, logger.WithName("probe"))
 		if err != nil {
 			logger.Error(err, "Error creating probe server")
 			os.Exit(1)
@@ -144,17 +138,16 @@ var galeraCommand = &cobra.Command{
 		}()
 
 		if err, ok := <-errChan; ok {
-			logger.Error(err, "Server error")
+			logger.Error(err, "Agent error")
 			os.Exit(1)
 		}
-		logger.Info("Galera agent stopped")
+		logger.Info("Standalone agent stopped")
 	},
 }
 
-func getGaleraProbeServer(env *environment.PodEnvironment, k8sClient client.Client, logger logr.Logger) (*server.Server, error) {
-	handler := galerahandler.NewGaleraProbe(
+func getStandaloneProbeServer(env *environment.PodEnvironment, logger logr.Logger) (*server.Server, error) {
+	handler := standalonehandler.NewStandaloneProbe(
 		env,
-		k8sClient,
 		mdbhttp.NewResponseWriter(&logger),
 		&logger,
 	)

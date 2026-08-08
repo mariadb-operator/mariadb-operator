@@ -7,7 +7,7 @@ import (
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
-	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -306,6 +306,8 @@ func (b *BootstrapFrom) validateMutuallyExclusive() error {
 			return errors.New("'s3', 'volume' and 'restoreJob' may not be set when 'volumeSnapshotRef' is set")
 		}
 	}
+	// NOTE: 's3' and 'azureBlob' must remain allowed alongside 'pointInTimeRecoveryRef'.
+	// See: `SetDefaultsWithPhysicalBackup`
 	if b.PointInTimeRecoveryRef != nil {
 		if b.BackupRef != nil || b.VolumeSnapshotRef != nil {
 			return errors.New("'backupRef' and 'volumeSnapshotRef' may not be set when 'pointInTimeRecoveryRef' is set")
@@ -725,6 +727,12 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
+	// Agent configures the data-plane sidecar agent in the standalone topology. It defaults automatically when neither Galera nor replication are enabled.
+	// In the Galera and replication topologies, the agent is configured via 'galera.agent' and 'replication.agent' respectively.
+	// @TODO: This should be used for ALL topologies now that the agent is available, but I will leave this for later
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Agent *Agent `json:"agent,omitempty"`
 	// MultiCluster configures the multi-cluster topology.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -841,7 +849,11 @@ type MariaDBPointInTimeRecoveryStatus struct {
 	// LastArchivedGtid is the last archived GTID.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	LastArchivedGtid *mariadbrepl.Gtid `json:"lastArchivedGtid,omitempty"`
+	LastArchivedGtid *gtid.Gtid `json:"lastArchivedGtid,omitempty"`
+	// WsrepGtidModePaused indicates that Galera cluster-wide GTID management (wsrep_gtid_mode) has been temporarily disabled on the archiver Pod to replay binary logs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	WsrepGtidModePaused *bool `json:"wsrepGtidModePaused,omitempty"`
 	// StorageReadyForArchival indicates that the storage is ready for archival, meaning that the sidecar agent can start archiving the binary logs.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -1004,6 +1016,15 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 			return fmt.Errorf("error setting replication defaults: %v", err)
 		}
 	}
+	// @TODO: This should be FOR ALL topologies
+	if !m.IsHAEnabled() {
+		if m.Spec.Agent == nil {
+			m.Spec.Agent = &Agent{}
+		}
+		if err := m.Spec.Agent.SetDefaults(m, env); err != nil {
+			return fmt.Errorf("error setting agent defaults: %v", err)
+		}
+	}
 	if m.Spec.BootstrapFrom != nil {
 		m.Spec.BootstrapFrom.SetDefaults(m)
 	}
@@ -1046,9 +1067,6 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 
 // IsPointInTimeRecoveryEnabled indicates whether binary log archival is activated to enable point-in-time recovery.
 func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
-	if !m.IsReplicationEnabled() {
-		return false
-	}
 	return m.Spec.PointInTimeRecoveryRef != nil
 }
 
@@ -1360,6 +1378,7 @@ type Topology string
 var (
 	TopologyGalera      Topology = "galera"
 	TopologyReplication Topology = "replication"
+	TopologyStandalone  Topology = "standalone"
 )
 
 // Get MariaDB data-plane init container
@@ -1380,9 +1399,6 @@ func (m *MariaDB) GetDataPlaneInitContainer() (*Topology, *InitContainer, error)
 
 // Get MariaDB data-plane agent
 func (m *MariaDB) GetDataPlaneAgent() (*Topology, *Agent, error) {
-	if !m.IsHAEnabled() {
-		return nil, nil, errors.New("high availability must be enabled")
-	}
 	galera := ptr.Deref(m.Spec.Galera, Galera{})
 	if galera.Enabled {
 		return &TopologyGalera, &galera.Agent, nil
@@ -1391,7 +1407,8 @@ func (m *MariaDB) GetDataPlaneAgent() (*Topology, *Agent, error) {
 	if replication.Enabled {
 		return &TopologyReplication, &replication.Agent, nil
 	}
-	return nil, nil, errors.New("agent could not be found")
+	agent := ptr.Deref(m.Spec.Agent, Agent{})
+	return &TopologyStandalone, &agent, nil
 }
 
 // OrderedPodIndexes returns the MariaDB Pod indexes in order,

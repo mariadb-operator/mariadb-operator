@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler"
+	gtidhandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/gtid"
 	replicationhandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/server"
@@ -70,6 +71,11 @@ var replicationCommand = &cobra.Command{
 			handler.NewEnvironmentHandler(
 				env,
 				responseWriter,
+				&apiLogger,
+			),
+			gtidhandler.NewGtidHandler(
+				fileManager,
+				mdbhttp.NewResponseWriter(&apiLogger),
 				&apiLogger,
 			),
 		}

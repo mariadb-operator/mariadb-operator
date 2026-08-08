@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -1255,11 +1255,12 @@ func TestMariadbBinlogArgs(t *testing.T) {
 	tlsFlags := "--ssl --ssl-ca /etc/pki/ca.crt --ssl-cert /etc/pki/client.crt --ssl-key /etc/pki/client.key --ssl-verify-server-cert"
 
 	tests := []struct {
-		name     string
-		opts     []BackupOpt
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantArgs []string
-		wantErr  bool
+		name             string
+		opts             []BackupOpt
+		mariadb          *mariadbv1alpha1.MariaDB
+		podArchiverIndex int
+		wantArgs         []string
+		wantErr          bool
 	}{
 		{
 			name: "error when StartGtid is nil",
@@ -1377,6 +1378,99 @@ func TestMariadbBinlogArgs(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "galera replays into the default archiver Pod",
+			opts: []BackupOpt{
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
+				WithStartGtid(startGtid),
+				WithTargetTime(targetTime),
+				WithUserEnv("test"),
+				WithPasswordEnv("test"),
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+					Port: 3306,
+				},
+			},
+			podArchiverIndex: 0,
+			wantArgs: []string{
+				"set -euo pipefail",
+				"echo 💾 Restoring binlogs",
+				fmt.Sprintf(
+					"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" $(cat '/binlogs/file') | mariadb %s",
+					startGtid.String(),
+					targetTime.UTC().Format(time.DateTime),
+					"--user=${test} --password=${test} --host=test-0.test-internal.test.svc.cluster.local --port=3306",
+				),
+			},
+			wantErr: false,
+		},
+		{
+			name: "galera replays into a non default archiver Pod",
+			opts: []BackupOpt{
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
+				WithStartGtid(startGtid),
+				WithTargetTime(targetTime),
+				WithUserEnv("test"),
+				WithPasswordEnv("test"),
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+					Port: 3306,
+				},
+			},
+			podArchiverIndex: 2,
+			wantArgs: []string{
+				"set -euo pipefail",
+				"echo 💾 Restoring binlogs",
+				fmt.Sprintf(
+					"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" $(cat '/binlogs/file') | mariadb %s",
+					startGtid.String(),
+					targetTime.UTC().Format(time.DateTime),
+					"--user=${test} --password=${test} --host=test-2.test-internal.test.svc.cluster.local --port=3306",
+				),
+			},
+			wantErr: false,
+		},
+		{
+			name: "replication ignores the archiver Pod index",
+			opts: []BackupOpt{
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
+				WithStartGtid(startGtid),
+				WithTargetTime(targetTime),
+				WithUserEnv("test"),
+				WithPasswordEnv("test"),
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+					Port: 3306,
+				},
+			},
+			podArchiverIndex: 2,
+			wantArgs: []string{
+				"set -euo pipefail",
+				"echo 💾 Restoring binlogs",
+				fmt.Sprintf(
+					"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" $(cat '/binlogs/file') | mariadb %s",
+					startGtid.String(),
+					targetTime.UTC().Format(time.DateTime),
+					mdbFlags,
+				),
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1386,7 +1480,7 @@ func TestMariadbBinlogArgs(t *testing.T) {
 				t.Fatalf("NewBackupCommand() error = %v", err)
 			}
 
-			args, err := b.mariadbBinlogArgs(tt.mariadb)
+			args, err := b.mariadbBinlogArgs(tt.mariadb, tt.podArchiverIndex)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -1479,10 +1573,10 @@ func TestPhysicalBackupArgs(t *testing.T) {
 	}
 }
 
-func mustParseGtid(t *testing.T, rawGtid string) *replication.Gtid {
-	gtid, err := replication.ParseGtid(rawGtid)
+func mustParseGtid(t *testing.T, rawGtid string) *gtid.Gtid {
+	g, err := gtid.ParseGtid(rawGtid)
 	if err != nil {
 		t.Fatalf("unexpected error parsing GTID: %v", err)
 	}
-	return gtid
+	return g
 }

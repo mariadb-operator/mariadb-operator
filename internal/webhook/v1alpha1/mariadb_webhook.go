@@ -42,6 +42,7 @@ func (v *MariaDBCustomValidator) ValidateCreate(ctx context.Context, mariadb *v1
 		validateHA,
 		validateGalera,
 		validateReplication,
+		validateAgent,
 		validateBootstrapFrom,
 		validatePodDisruptionBudget,
 		validateStorage,
@@ -69,6 +70,7 @@ func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldMariadb,
 		validateHA,
 		validateGalera,
 		validateReplication,
+		validateAgent,
 		validateBootstrapFrom,
 		validatePodDisruptionBudget,
 		validateStorage,
@@ -88,6 +90,28 @@ func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldMariadb,
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type MariaDB.
 func (v *MariaDBCustomValidator) ValidateDelete(ctx context.Context, mariadb *v1alpha1.MariaDB) (admission.Warnings, error) {
 	return nil, nil
+}
+
+// @TODO: Potentially remove this
+func validateAgent(mariadb *v1alpha1.MariaDB) error {
+	if mariadb.Spec.Agent == nil {
+		return nil
+	}
+	if mariadb.IsHAEnabled() {
+		return field.Invalid(
+			field.NewPath("spec").Child("agent"),
+			mariadb.Spec.Agent,
+			"'spec.agent' may only be set in the standalone topology. Use 'spec.galera.agent' or 'spec.replication.agent' instead",
+		)
+	}
+	if err := mariadb.Spec.Agent.Validate(); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("agent"),
+			mariadb.Spec.Agent,
+			err.Error(),
+		)
+	}
+	return nil
 }
 
 func validateHA(mariadb *v1alpha1.MariaDB) error {

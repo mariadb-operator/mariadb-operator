@@ -368,7 +368,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 		})
 	}
 
-	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlane {
+	if mariadbOpts.includeDataPlane {
 		_, agent, err := mariadb.GetDataPlaneAgent()
 		if err != nil {
 			return nil, fmt.Errorf("error getting data-plane agent: %v", err)
