@@ -10,4 +10,4 @@ This list is sorted in chronological order, based on the submission date.
 
 Feel free open a PR and add your company or project to the list!
 
-You can also see the project's wide adoption through [k8s.mariadb.com references on GitHub](https://github.com/search?q=k8s.mariadb.com&type=code).
+You can also see the project's wide adoption through [`k8s.mariadb.com` references on GitHub](https://github.com/search?q=k8s.mariadb.com&type=code).
