@@ -9,3 +9,5 @@ This list is sorted in chronological order, based on the submission date.
 | [Solanica](https://solanica.io) | @spron-in | 2026-08-05 | Solanica backs [OpenEverest](https://openeverest.io), a CNCF open-source cloud-native database platform with a MariaDB provider built on mariadb-operator. |
 
 Feel free open a PR and add your company or project to the list!
+
+You can also see the project's wide adoption through [k8s.mariadb.com references on GitHub](https://github.com/search?q=k8s.mariadb.com&type=code).
