@@ -837,7 +837,7 @@ func (b *Builder) BuildGaleraInitJob(key types.NamespacedName, mariadb *mariadbv
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: mariadb.InitKey().Name,
 						},
-						DefaultMode: ptr.To(int32(0777)),
+						DefaultMode: ptr.To(int32(0555)),
 					},
 				},
 			},

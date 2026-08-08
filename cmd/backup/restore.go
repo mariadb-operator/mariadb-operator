@@ -130,7 +130,7 @@ func getTargetTime() (time.Time, error) {
 }
 
 func writeTargetFile(backupTargetFile string) error {
-	return os.WriteFile(targetFilePath, []byte(backupTargetFile), 0777)
+	return os.WriteFile(targetFilePath, []byte(backupTargetFile), 0600)
 }
 
 func getBackupCompressorWithFile(fileName string, processor backup.BackupProcessor) (mdbcompression.BackupCompressor, error) {
