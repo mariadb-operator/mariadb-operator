@@ -1,83 +1,59 @@
 package discovery
 
 import (
-	"testing"
-
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestDiscoveryServiceMonitors(t *testing.T) {
-	testDiscoveryResource(t,
-		"ServiceMonitors",
-		"monitoring.coreos.com/v1",
-		"servicemonitors",
-		func(d *Discovery) (bool, error) {
-			return d.ServiceMonitorExist()
-		})
-}
+var _ = Describe("Discovery", func() {
+	DescribeTable("discovering resources",
+		func(group, kind string, discoveryFn func(d *Discovery) (bool, error)) {
+			resource := &metav1.APIResourceList{
+				GroupVersion: group,
+				APIResources: []metav1.APIResource{
+					{
+						Name: kind,
+					},
+				},
+			}
+			discovery, err := NewFakeDiscovery(resource)
+			Expect(err).NotTo(HaveOccurred())
 
-func TestDiscoveryCertificates(t *testing.T) {
-	testDiscoveryResource(t,
-		"Certificates",
-		"cert-manager.io/v1",
-		"certificates",
-		func(d *Discovery) (bool, error) {
-			return d.CertificateExist()
-		})
-}
+			exists, err := discoveryFn(discovery)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(BeTrue())
 
-func TestDiscoveryVolumeSnapshots(t *testing.T) {
-	testDiscoveryResource(t,
-		"VolumeSnapshots",
-		"snapshot.storage.k8s.io/v1",
-		"volumesnapshots",
-		func(d *Discovery) (bool, error) {
-			return d.VolumeSnapshotExist()
-		})
-}
+			discovery, err = NewFakeDiscovery()
+			Expect(err).NotTo(HaveOccurred())
 
-func TestDiscoverySecurityContextConstraints(t *testing.T) {
-	testDiscoveryResource(t,
-		"SecurityContextConstraints",
-		"security.openshift.io/v1",
-		"securitycontextconstraints",
-		func(d *Discovery) (bool, error) {
-			return d.SecurityContextConstraintsExist()
-		})
-}
-
-func testDiscoveryResource(t *testing.T, name, group, kind string, discoveryFn func(d *Discovery) (bool, error)) {
-	resource := &metav1.APIResourceList{
-		GroupVersion: group,
-		APIResources: []metav1.APIResource{
-			{
-				Name: kind,
-			},
+			exists, err = discoveryFn(discovery)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(BeFalse())
 		},
-	}
-	discovery, err := NewFakeDiscovery(resource)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	exists, err := discoveryFn(discovery)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !exists {
-		t.Errorf("expected to have discovered '%s'", name)
-	}
-
-	discovery, err = NewFakeDiscovery()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	exists, err = discoveryFn(discovery)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if exists {
-		t.Errorf("expected to not have discovered '%s'", name)
-	}
-}
+		Entry("ServiceMonitors",
+			"monitoring.coreos.com/v1",
+			"servicemonitors",
+			func(d *Discovery) (bool, error) {
+				return d.ServiceMonitorExist()
+			}),
+		Entry("Certificates",
+			"cert-manager.io/v1",
+			"certificates",
+			func(d *Discovery) (bool, error) {
+				return d.CertificateExist()
+			}),
+		Entry("VolumeSnapshots",
+			"snapshot.storage.k8s.io/v1",
+			"volumesnapshots",
+			func(d *Discovery) (bool, error) {
+				return d.VolumeSnapshotExist()
+			}),
+		Entry("SecurityContextConstraints",
+			"security.openshift.io/v1",
+			"securitycontextconstraints",
+			func(d *Discovery) (bool, error) {
+				return d.SecurityContextConstraintsExist()
+			}),
+	)
+})
