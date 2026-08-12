@@ -34,14 +34,20 @@ func NewFileSystemBackupStorage(basePath string, processor BackupProcessor, logg
 }
 
 func (f *FileSystemBackupStorage) List(ctx context.Context) ([]string, error) {
+	f.logger.Info("List files in file system storage", "path", f.basePath)
 	entries, err := os.ReadDir(f.basePath)
+
 	if err != nil {
 		return nil, err
 	}
+	f.logger.Info("List files in file system storage", "files", entries)
+
 	var fileNames []string
 	for _, e := range entries {
 		fileName := e.Name()
+		f.logger.Info("List files in file system storage", "filename", fileName)
 		if f.shouldProcessBackupFile(fileName, f.logger) {
+			f.logger.Info("List files in file system storage", "append", fileName)
 			fileNames = append(fileNames, fileName)
 		}
 	}
@@ -61,11 +67,11 @@ func (f *FileSystemBackupStorage) Delete(ctx context.Context, fileName string) e
 }
 
 func (f *FileSystemBackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
-	logger.V(1).Info("processing backup file", "file", fileName)
-	if f.processor.IsValidBackupFile(fileName) {
+	logger.Info("processing backup file", "file", fileName)
+	if f.processor.IsValidBackupFile(fileName, logger) {
 		return true
 	}
-	logger.V(1).Info("ignoring file", "file", fileName)
+	logger.Info("ignoring file", "file", fileName)
 	return false
 }
 
@@ -118,7 +124,7 @@ func (s *BlobBackupStorage) Pull(ctx context.Context, fileName string) error {
 
 func (s *BlobBackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
 	logger.V(1).Info("processing backup file", "file", fileName)
-	if s.processor.IsValidBackupFile(s.client.UnprefixedFilename(fileName)) {
+	if s.processor.IsValidBackupFile(s.client.UnprefixedFilename(fileName), logger) {
 		return true
 	}
 	logger.V(1).Info("ignoring file", "file", fileName)

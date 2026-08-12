@@ -8,6 +8,7 @@ import (
 
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/hash"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -120,6 +121,13 @@ type ReplicaBootstrapFrom struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PhysicalBackupTemplateRef LocalObjectReference `json:"physicalBackupTemplateRef"`
+	// LogicalBackupTemplateRef is a reference to a Backup object that will be used as template to create the logical Backup
+	// taken from the external MariaDB during external replication initialization and recovery. The template's Spec is copied
+	// over (resources, pod template, etc.) and the controller overrides the fields that are managed automatically
+	// (MariaDBRef, Storage, Args, Tables, Compression, MaxRetention).
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	LogicalBackupTemplateRef *LocalObjectReference `json:"logicalBackupTemplateRef,omitempty"`
 	// RestoreJob defines additional properties for the Job used to perform the restoration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -171,6 +179,21 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	MaxLagSeconds *int `json:"maxLagSeconds,omitempty"`
+	// IgnoreMaxLagSeconds is to ignore the lag behind primary checks.
+	// It's useful on situations when is preferred to keep sending read queries on a delayed (or with connection issues)
+	// replica than stopping sending traffic. It could be useful when replicating from a external MariaDB when
+	// connection issues with primary could happen.
+	// If not provided, it defaults to false.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	IgnoreMaxLagSeconds *bool `json:"ignoreMaxLagSeconds,omitempty"`
+	// IgnoreReplicationLivenessProbes is to ignore liveness replication checks.
+	// It's useful on situations when is preferred to keep sending read queries on a broken replicas
+	// replica than stopping sending traffic.
+	// If not provided, it defaults to false.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	IgnoreReplicationLivenessProbes *bool `json:"ignoreReplicationLivenessProbes,omitempty"`
 	// SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.
 	// During switchover, all replicas must be synced with the current primary before promoting the new primary.
 	// During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.
@@ -192,6 +215,49 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaRecovery *ReplicaRecovery `json:"recovery,omitempty"`
+}
+
+// ReplicaFromExternal is the replication configuration from external servers.
+type ReplicaFromExternal struct {
+
+	// MariaDBRef is a reference to a MariaDB object.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
+	// See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
+	// +optional
+	// +kubebuilder:validation:Enum=CurrentPos;SlavePos
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Gtid *Gtid `json:"gtid,omitempty"`
+	// ConnectionTimeout to be used when the replica connects to the primary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
+	// ConnectionRetries to be used when the replica connects to the primary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	ConnectionRetries *int `json:"connectionRetries,omitempty"`
+	// HealthCheckInterval to be used when the replica connects to the primary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	HealthCheckInterval *metav1.Duration `json:"healthCheckInterval,omitempty"`
+	// ServerIdOffset to be used on the replicas.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServerIdOffset *int `json:"serverIdOffset,omitempty"`
+	// FilteredReplicaTables is an optional list of tables in "database.table" format to replicate.
+	// When set, the logical backup will only include these tables and the replication will be
+	// configured with replicate_do_table for each entry. GTID strict mode is automatically
+	// disabled when this field is set, as partial replication is incompatible with it.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	FilteredReplicaTables []string `json:"filteredReplicaTables,omitempty"`
+}
+
+// HasFilteredTables returns true when at least one filtered table is defined.
+func (r *ReplicaFromExternal) HasFilteredTables() bool {
+	return len(r.FilteredReplicaTables) > 0
 }
 
 // SetDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
@@ -275,6 +341,10 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SemiSyncAckTimeout *metav1.Duration `json:"semiSyncAckTimeout,omitempty"`
+	// ReplicaFromExternal specifies whether the replica should be created from an external MariaDB instance.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ReplicaFromExternal *ReplicaFromExternal `json:"replicaFromExternal,omitempty"`
 	// SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)
 	// or after having committed to the storage engine (AfterCommit, the default).
 	// It requires semi-synchronous replication to be enabled.
@@ -301,6 +371,10 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	StandaloneProbes *bool `json:"standaloneProbes,omitempty"`
+	// MultiCluster Connection name
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MultiClusterReplicaConnectionName *string `json:"multiClusterReplicaConnectionName,omitempty"`
 }
 
 // IsGtidStrictModeEnabled determines whether GTID strict mode is enabled.
@@ -312,6 +386,58 @@ func (r *Replication) IsGtidStrictModeEnabled() bool {
 func (r *Replication) IsSemiSyncEnabled() bool {
 	return ptr.Deref(r.SemiSyncEnabled, true)
 }
+
+// FillWithDefaults fills the current ReplicationSpec object with DefaultReplicationSpec.
+// This enables having minimal ReplicationSpec objects and provides sensible defaults.
+func (r *ReplicationSpec) FillWithDefaults() {
+	if r.ReplicaFromExternal != nil {
+		r.ReplicaFromExternal.FillWithDefaults()
+	}
+}
+
+// FillWithDefaults fills the current ReplicationSpec object with DefaultReplicationSpec.
+// This enables having minimal ReplicationSpec objects and provides sensible defaults.
+func (r *ReplicaFromExternal) FillWithDefaults() {
+	if r.HealthCheckInterval == nil {
+		r.HealthCheckInterval = &metav1.Duration{
+			Duration: 15 * time.Second,
+		}
+	}
+	if r.ServerIdOffset == nil {
+		r.ServerIdOffset = ptr.To(0)
+	}
+}
+
+// IsExternalReplication returns true is external replication is defined
+func (r *ReplicationSpec) IsExternalReplication() bool {
+	return r.ReplicaFromExternal != nil
+}
+
+// Return the MariaDB ref to the external primary MariaDB
+func (r *ReplicationSpec) GetExternalReplicationRef() ObjectReference {
+	if r.IsExternalReplication() {
+		return r.ReplicaFromExternal.MariaDBRef.ObjectReference
+	}
+	return ObjectReference{}
+}
+
+var (
+	tenSeconds = metav1.Duration{Duration: 10 * time.Second}
+
+	// DefaultReplicationSpec provides sensible defaults for the ReplicationSpec.
+	DefaultReplicationSpec = ReplicationSpec{
+		Primary: PrimaryReplication{
+			PodIndex:          ptr.To(0),
+			AutoFailover:      ptr.To(true),
+			AutoFailoverDelay: ptr.To(metav1.Duration{}),
+		},
+		Replica: ReplicaReplication{
+			Gtid:        ptr.To(GtidCurrentPos),
+			SyncTimeout: ptr.To(tenSeconds),
+		},
+		SyncBinlog: ptr.To(1),
+	}
+)
 
 // Validate determines whether replication config is valid.
 func (r *Replication) Validate() error {
@@ -330,8 +456,21 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 	r.Primary.SetDefaults()
 	r.Replica.SetDefaults(mdb)
 
+	// Enable ReplicaRecovery by default if it is on external replication
+	if r.IsExternalReplication() && r.Replica.ReplicaRecovery == nil {
+		recovery := ReplicaRecovery{
+			Enabled: true,
+		}
+		r.Replica.ReplicaRecovery = &recovery
+	}
+
 	if r.GtidStrictMode == nil {
-		r.GtidStrictMode = ptr.To(true)
+		// Filtered replica is incompatible with GTID strict mode; disable it automatically.
+		if r.IsExternalReplication() && r.ReplicaFromExternal.HasFilteredTables() {
+			r.GtidStrictMode = ptr.To(false)
+		} else {
+			r.GtidStrictMode = ptr.To(true)
+		}
 	}
 	if r.SemiSyncEnabled == nil {
 		r.SemiSyncEnabled = ptr.To(true)
@@ -414,6 +553,32 @@ func (m *MariaDB) IsRecoveringReplicas() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicaRecovered)
 }
 
+// IsExternalReplInitialized indicates that the external replication init Job has successfully completed.
+func (m *MariaDB) IsExternalReplInitialized() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeExternalReplInitialized)
+}
+
+// IsExternalReplInitialing indicates that the external replication initialization is in progress.
+func (m *MariaDB) IsExternalReplInitialing() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeExternalReplInitialized)
+}
+
+// ExternalReplLogicalBackupName returns the name of the logical Backup object used during external replication init.
+func (m *MariaDB) ExternalReplLogicalBackupName() string {
+	ext := m.Replication().ReplicaFromExternal
+	emdbName := ext.MariaDBRef.Name
+	if !ext.HasFilteredTables() {
+		return emdbName
+	}
+
+	suffix := hash.Hash(m.Name)[:8]
+	prefix := emdbName + "-"
+	if len(prefix)+len(suffix) > 253 {
+		prefix = prefix[:253-len(suffix)]
+	}
+	return prefix + suffix
+}
+
 // ReplicaRecoveryError indicates that the MariaDB instance has a replica recovery error.
 func (m *MariaDB) ReplicaRecoveryError() error {
 	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeReplicaRecovered)
@@ -421,6 +586,18 @@ func (m *MariaDB) ReplicaRecoveryError() error {
 		return nil
 	}
 	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonReplicaRecoverError {
+		return errors.New(c.Message)
+	}
+	return nil
+}
+
+// ExternalReplInitError indicates that the MariaDB instance has an external replication initialization error.
+func (m *MariaDB) ExternalReplInitError() error {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeExternalReplInitialized)
+	if c == nil {
+		return nil
+	}
+	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonExternalReplInitError {
 		return errors.New(c.Message)
 	}
 	return nil

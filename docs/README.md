@@ -34,6 +34,7 @@
 - [Metrics](./metrics.md)
 - [SQL resources](./sql_resources.md)
 - [External MariaDB](./external_mariadb.md)
+- [External replication](./external_replication.md)
 - [Metadata](./metadata.md)
 - [Suspend reconciliation](./suspend.md)
 - [Maintenance](./maintenance.md)

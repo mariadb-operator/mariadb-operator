@@ -185,7 +185,14 @@ func (m *MariaDB) BootstrapFromStagingPVCKey() types.NamespacedName {
 // PITRJobKey defines the key for the PITR job used to replay the binary logs.
 func (m *MariaDB) PITRJobKey() types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-pitr", m.Name),
+		Name: fmt.Sprintf("%s-pitr", m.Name),
+	}
+}
+
+// RestoreKey defines the key for the Restore resource used to bootstrap.
+func (m *MariaDB) RestoreKeyInPod(podIndex int) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-restore-%d", m.Name, podIndex),
 		Namespace: m.Namespace,
 	}
 }

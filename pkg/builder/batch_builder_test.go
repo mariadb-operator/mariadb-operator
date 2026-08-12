@@ -3404,7 +3404,7 @@ func TestBuildPITRJob(t *testing.T) {
 		name         string
 		pitr         *mariadbv1alpha1.PointInTimeRecovery
 		mariadb      *mariadbv1alpha1.MariaDB
-		restoreOpts  []RestoreOpt
+		restoreOpts  []PhysicalBackupRestoreOpt
 		wantErr      bool
 		wantJob      bool
 		wantJobMeta  *mariadbv1alpha1.Metadata
@@ -3415,7 +3415,7 @@ func TestBuildPITRJob(t *testing.T) {
 			name:    "PITR job missing startGtid",
 			pitr:    pitr,
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
+			restoreOpts: []PhysicalBackupRestoreOpt{
 				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
 					TargetRecoveryTime: targetRecoveryTime,
 					Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -3430,7 +3430,7 @@ func TestBuildPITRJob(t *testing.T) {
 			name:    "PITR job missing targetRecoveryTime",
 			pitr:    pitr,
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
+			restoreOpts: []PhysicalBackupRestoreOpt{
 				WithStartGtid(mustParseGtid(t, "0-10-1")),
 			},
 			wantErr: true,
@@ -3440,7 +3440,7 @@ func TestBuildPITRJob(t *testing.T) {
 			name:    "PITR job missing volume",
 			pitr:    pitr,
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
+			restoreOpts: []PhysicalBackupRestoreOpt{
 				WithStartGtid(mustParseGtid(t, "0-10-1")),
 				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
 					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
@@ -3453,7 +3453,7 @@ func TestBuildPITRJob(t *testing.T) {
 			name:    "PITR job missing volume",
 			pitr:    pitr,
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
+			restoreOpts: []PhysicalBackupRestoreOpt{
 				WithStartGtid(mustParseGtid(t, "0-10-1")),
 				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
 					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
@@ -3466,7 +3466,7 @@ func TestBuildPITRJob(t *testing.T) {
 			name:    "Valid PITR job ",
 			pitr:    pitr,
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
+			restoreOpts: []PhysicalBackupRestoreOpt{
 				WithStartGtid(startGtid),
 				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
 					TargetRecoveryTime: targetRecoveryTime,
@@ -3497,7 +3497,7 @@ func TestBuildPITRJob(t *testing.T) {
 					},
 				},
 			},
-			restoreOpts: []RestoreOpt{
+			restoreOpts: []PhysicalBackupRestoreOpt{
 				WithStartGtid(startGtid),
 				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
 					TargetRecoveryTime: targetRecoveryTime,
@@ -3532,7 +3532,7 @@ func TestBuildPITRJob(t *testing.T) {
 			name:    "Valid PITR job with affinity",
 			pitr:    pitr,
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
+			restoreOpts: []PhysicalBackupRestoreOpt{
 				WithStartGtid(startGtid),
 				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
 					TargetRecoveryTime: targetRecoveryTime,

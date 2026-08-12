@@ -93,6 +93,18 @@ func (t *TopologyManager) TopologyForMariaDB(mariadb *mariadbv1alpha1.MariaDB, l
 		)
 	}
 
+	replication := mariadb.Replication()
+	if replication.Enabled && replication.IsExternalReplication() {
+		externalReplicationLogger := logger.WithName("external-replication")
+		externalReplicationLogger.V(1).Info("Configuring external replication topology")
+		return newExternalReplicationTopology(
+			mariadb,
+			t.Client,
+			t.refResolver,
+			externalReplicationLogger,
+		)
+	}
+
 	singleClusterLogger := logger.WithName("single-cluster")
 	singleClusterLogger.V(1).Info("Configuring single-cluster topology")
 
@@ -437,6 +449,106 @@ func (m *multiClusterTopology) configureSecondaryReplica(ctx context.Context, cl
 	}
 	if err := client.StartSlave(ctx); err != nil {
 		return fmt.Errorf("error starting local replica: %v", err)
+	}
+	return nil
+}
+
+type externalReplicationTopology struct {
+	client.Client
+	mariadb     *mariadbv1alpha1.MariaDB
+	refResolver *refresolver.RefResolver
+	logger      logr.Logger
+}
+
+func newExternalReplicationTopology(mariadb *mariadbv1alpha1.MariaDB, client client.Client,
+	refResolver *refresolver.RefResolver, logger logr.Logger) *externalReplicationTopology {
+	return &externalReplicationTopology{
+		Client:      client,
+		mariadb:     mariadb,
+		refResolver: refResolver,
+		logger:      logger,
+	}
+}
+
+func (r *externalReplicationTopology) ConfigureReplica(ctx context.Context, client *sql.Client,
+	primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error {
+
+	opts := ConfigureReplicaOpts{}
+	for _, setOpt := range replicaOpts {
+		setOpt(&opts)
+	}
+
+	if err := client.ResetMaster(ctx); err != nil {
+		return fmt.Errorf("error resetting master: %v", err)
+	}
+	if err := client.StopAllSlaves(ctx); err != nil {
+		return fmt.Errorf("error stopping slaves: %v", err)
+	}
+	if opts.GtidSlavePos != nil {
+		if err := client.SetGtidSlavePos(ctx, *opts.GtidSlavePos); err != nil {
+			return fmt.Errorf("error setting slave position \"%s\": %v", *opts.GtidSlavePos, err)
+		}
+	} else if opts.ResetGtidSlavePos {
+		if err := client.ResetGtidSlavePos(ctx); err != nil {
+			return fmt.Errorf("error resetting slave position: %v", err)
+		}
+	}
+	if err := client.EnableReadOnly(ctx); err != nil {
+		return fmt.Errorf("error enabling read_only: %v", err)
+	}
+
+	if err := r.changeMaster(ctx, client, primaryPodIndex, opts.ChangeMasterOpts...); err != nil {
+		return fmt.Errorf("error changing master: %v", err)
+	}
+	if err := client.StartSlave(ctx); err != nil {
+		return fmt.Errorf("error starting slave: %v", err)
+	}
+	return nil
+}
+
+func (r *externalReplicationTopology) ConfigurePrimary(ctx context.Context, client *sql.Client) error {
+	// noop: in external replication topology, the operator does not manage the primary, so no configuration is needed
+	return nil
+}
+
+func (r *externalReplicationTopology) changeMaster(ctx context.Context, client *sql.Client,
+	primaryPodIndex int, opts ...sql.ChangeMasterOpt) error {
+	replication := ptr.Deref(r.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+
+	if replication.Replica.ReplPasswordSecretKeyRef == nil {
+		return errors.New("'spec.replication.replica.replPasswordSecretKeyRef` must not be nil'")
+	}
+
+	var changeMasterOpts []sql.ChangeMasterOpt
+	var emdb *mariadbv1alpha1.ExternalMariaDB
+
+	replPasswordRef, err := externalReplPasswordRef(r.mariadb, r.refResolver, ctx)
+	if err != nil {
+		return fmt.Errorf("error getting ExternalMariaDB password Ref: %v", err)
+	}
+	password, err := r.refResolver.SecretKeyRef(ctx, replPasswordRef, r.mariadb.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting ExternalMariaDB password replication secret: %v", err)
+	}
+	emdbRef := replication.GetExternalReplicationRef()
+	emdb, err = r.refResolver.ExternalMariaDB(ctx, &emdbRef, r.mariadb.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting ExternalMariaDB: %v", err)
+	}
+	changeMasterOpts = []sql.ChangeMasterOpt{
+		sql.WithChangeMasterHost(
+			emdb.GetHost(),
+		),
+		sql.WithChangeMasterCredentials(emdb.GetSUName(), password),
+	}
+	if emdb.GetBinlogProxyPort() != nil {
+		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterPort(*emdb.GetBinlogProxyPort()))
+	} else {
+		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterPort(emdb.GetPort()))
+	}
+
+	if err := client.ChangeMaster(ctx, changeMasterOpts...); err != nil {
+		return fmt.Errorf("error changing master: %v", err)
 	}
 	return nil
 }

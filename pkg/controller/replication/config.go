@@ -2,16 +2,43 @@ package replication
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+
+	// "html/template"
 	"strconv"
 	"text/template"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/secret"
 	env "github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type ReplicationConfigClient struct {
+	client.Client
+	builder          *builder.Builder
+	refResolver      *refresolver.RefResolver
+	secretReconciler *secret.SecretReconciler
+}
+
+func NewReplicationConfigClient(client client.Client, builder *builder.Builder,
+	secretReconciler *secret.SecretReconciler) *ReplicationConfigClient {
+	return &ReplicationConfigClient{
+		Client:           client,
+		builder:          builder,
+		refResolver:      refresolver.New(client),
+		secretReconciler: secretReconciler,
+	}
+}
+
 func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
+	var sId int
+
 	replEnabled, err := env.IsReplEnabled()
 	if err != nil {
 		return nil, fmt.Errorf("error checking if replication is enabled: %v", err)
@@ -35,18 +62,38 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting semi-sync master timeout: %v", err)
 	}
-	serverIDStartIndex, err := serverIDStartIndex(env.MariaDBReplServerIDStartIndex)
+	externalReplEnabled, err := env.IsExternalReplEnabled()
 	if err != nil {
-		return nil, fmt.Errorf("error getting server ID start index: %v", err)
+		return nil, fmt.Errorf("error checking if external replication is enabled: %v", err)
 	}
-	serverID, err := serverId(env.PodName, serverIDStartIndex)
+
+	externalReplServerIdOffset, err := env.ExternalReplServerIdOffset()
 	if err != nil {
-		return nil, fmt.Errorf("error getting server ID: %v", err)
+		return nil, fmt.Errorf("error get serverId offset for external replication: %v", err)
 	}
+
+	if externalReplEnabled && externalReplServerIdOffset != nil {
+		sId, err = offsetServerId(env.PodName, *externalReplServerIdOffset)
+		if err != nil {
+			return nil, fmt.Errorf("error getting server_id with offset server ID: %v", err)
+		}
+	} else {
+		serverIDStartIndex, err := serverIDStartIndex(env.MariaDBReplServerIDStartIndex)
+		if err != nil {
+			return nil, fmt.Errorf("error getting server ID start index: %v", err)
+		}
+		sId, err = serverId(env.PodName, serverIDStartIndex)
+		if err != nil {
+			return nil, fmt.Errorf("error getting server ID: %v", err)
+		}
+	}
+
 	syncBinlog, err := env.ReplSyncBinlog()
 	if err != nil {
 		return nil, fmt.Errorf("error getting master sync binlog: %v", err)
 	}
+
+	filteredTables := env.ExternalReplFilteredTables()
 
 	// To facilitate switchover/failover and avoid clashing with MaxScale, this configuration allows any Pod to act either as a primary or a replica.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#enabling-semisynchronous-replication
@@ -73,6 +120,9 @@ server_id={{ .ServerID }}
 {{- with .SyncBinlog }}
 sync_binlog={{ . }}
 {{- end }}
+{{- range .ReplicateDoTables }}
+replicate_do_table={{ . }}
+{{- end }}
 `)
 	buf := new(bytes.Buffer)
 	err = tpl.Execute(buf, struct {
@@ -84,6 +134,7 @@ sync_binlog={{ . }}
 		SemiSyncMasterWaitPoint string
 		SyncBinlog              *int
 		ServerID                int
+		ReplicateDoTables       []string
 	}{
 		LogName:                 env.MariadbName,
 		GtidStrictMode:          gtidStrictMode,
@@ -91,8 +142,9 @@ sync_binlog={{ . }}
 		SemiSyncEnabled:         semiSyncEnabled,
 		SemiSyncMasterTimeout:   semiSyncMasterTimeout,
 		SemiSyncMasterWaitPoint: env.MariaDBReplSemiSyncMasterWaitPoint,
-		ServerID:                serverID,
+		ServerID:                sId,
 		SyncBinlog:              syncBinlog,
+		ReplicateDoTables:       filteredTables,
 	})
 	if err != nil {
 		return nil, err
@@ -128,6 +180,35 @@ func serverId(podName string, startIndex int) (int, error) {
 		return 0, fmt.Errorf("error getting Pod index: %v", err)
 	}
 	return startIndex + *podIndex, nil
+}
+
+func externalReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB, r *refresolver.RefResolver,
+	ctx context.Context) (mariadbv1alpha1.SecretKeySelector, error) {
+	replication := mariadb.Replication()
+	// if mariadb.Replication().Enabled && mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
+	// 	return mariadb.Replication().Replica.ReplPasswordSecretKeyRef.SecretKeySelector, nil
+	// }
+	if replication.IsExternalReplication() {
+		emdbRef := replication.GetExternalReplicationRef()
+		emdb, err := r.ExternalMariaDB(ctx, &emdbRef, mariadb.Namespace)
+		if err == nil {
+			return *emdb.GetSUCredential(), nil
+		}
+	}
+	return mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: "",
+		},
+		Key: "",
+	}, fmt.Errorf("not able to get PasswordRef for external replication")
+}
+
+func offsetServerId(podName string, offset int) (int, error) {
+	podIndex, err := statefulset.PodIndex(podName)
+	if err != nil {
+		return 0, fmt.Errorf("error getting Pod index: %v", err)
+	}
+	return *podIndex + offset, nil
 }
 
 func formatAccountName(username, host string) string {

@@ -23,7 +23,7 @@ var _ = Describe("isRecoverableError", func() {
 
 	DescribeTable("should evaluate recoverability",
 		func(buildReplicaStatus func() mariadbv1alpha1.ReplicaStatus, mdb *mariadbv1alpha1.MariaDB, expected bool) {
-			res := isRecoverableError(mdb, buildReplicaStatus(), recoverableIOErrorCodes, logger)
+			res := isRecoverableError(mdb, buildReplicaStatus(), recoverableIOErrorCodes, recoverableSQLErrorCodes, logger)
 			Expect(res).To(Equal(expected))
 		},
 		Entry("recoverable IO code matches",

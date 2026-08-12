@@ -90,6 +90,10 @@ type RestoreSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// PodIndex is the StatefulSet index of pod to restore. Used to bootstrap nodes on external replication.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PodIndex *int `json:"podIndex" webhook:"inmutable"`
 	// Database defines the logical database to be restored. If not provided, all databases available in the backup are restored.
 	// IMPORTANT: The database must previously exist.
 	// +optional

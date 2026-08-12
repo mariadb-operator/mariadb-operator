@@ -34,8 +34,19 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
 		}
-		if len(pvcs) > 0 {
-			for _, p := range pvcs {
+		// Ignore PVCs that are being deleted. A terminating PVC (e.g. left over from a previous MariaDB with the
+		// same name that is still being cleaned up) remains in the Bound phase until its finalizers are released,
+		// but it does not mean the cluster has already been initialized. Treating it as such skips the init Job and
+		// sends a fresh cluster straight into recovery over empty data directories, which can never produce a
+		// bootstrap source and deadlocks.
+		storagePVCs := make([]corev1.PersistentVolumeClaim, 0, len(pvcs))
+		for _, p := range pvcs {
+			if p.DeletionTimestamp == nil {
+				storagePVCs = append(storagePVCs, p)
+			}
+		}
+		if len(storagePVCs) > 0 {
+			for _, p := range storagePVCs {
 				if p.Status.Phase != corev1.ClaimBound {
 					r.recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraPVCNotBound,
 						mariadbv1alpha1.ReasonGaleraPVCNotBound, "Unable to init Galera cluster: PVC \"%s\" in non Bound phase", p.Name)

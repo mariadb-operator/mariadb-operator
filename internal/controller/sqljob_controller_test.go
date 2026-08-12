@@ -465,6 +465,12 @@ var _ = Describe("SqlJob on External MariaDB", func() {
 		})
 
 		By("Expecting SqlJob to report unready status")
+		Eventually(func(g Gomega) bool {
+			var updatedSqlJob mariadbv1alpha1.SqlJob
+			g.Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sqlJob), &updatedSqlJob)).To(Succeed())
+			return !updatedSqlJob.IsComplete()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
 		Consistently(func() bool {
 			var updatedSqlJob mariadbv1alpha1.SqlJob
 			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sqlJob), &updatedSqlJob); err != nil {

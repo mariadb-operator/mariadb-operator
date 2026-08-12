@@ -331,11 +331,13 @@ func (r *PhysicalBackupReconciler) reconcileStorage(ctx context.Context, backup 
 
 func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB,
 	now time.Time, schedule cron.Schedule, logger logr.Logger) (ctrl.Result, error) {
+
 	podIndex, err := r.physicalBackupTarget(ctx, backup, mariadb, logger)
+
 	if err != nil {
 		if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
 			logger.Info("No target Pods available. Requeuing...", "target", backup.Spec.Target)
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 		return ctrl.Result{}, fmt.Errorf("error getting target Pod index: %v", err)
 	}

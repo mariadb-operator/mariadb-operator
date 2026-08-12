@@ -16,6 +16,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -72,6 +73,22 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	if err := r.reconcileServiceAccount(ctx, &backup); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling ServiceAccount: %v", err)
+	}
+
+	// Mirror the PhysicalBackup reconciler: when the schedule is suspended the Backup acts as a template
+	// (e.g. for ReplicaBootstrapFrom.LogicalBackupTemplateRef) and no Job/CronJob should be reconciled.
+	if backup.Spec.Schedule != nil && backup.Spec.Schedule.Suspend {
+		if err := r.patchStatus(ctx, &backup, func(c condition.Conditioner) {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeComplete,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonJobSuspended,
+				Message: "Suspended",
+			})
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching Backup status: %v", err)
+		}
+		return ctrl.Result{}, nil
 	}
 
 	var batchErr *multierror.Error

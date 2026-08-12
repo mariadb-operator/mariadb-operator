@@ -38,6 +38,7 @@ import (
 )
 
 var errPhysicalBackupNoTargetPodsAvailable = errors.New("no target Pods available")
+var errPhysicalBackupJobLaunchTimeout = errors.New("BackupJobLaunchTimeout")
 
 // PhysicalBackupReconciler reconciles a PhysicalBackup object
 type PhysicalBackupReconciler struct {
@@ -437,6 +438,11 @@ func physicalBackupTargetWithFuncs(ctx context.Context, backup *mariadbv1alpha1.
 		if err != nil && !errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
 			return nil, fmt.Errorf("error getting replica target: %v", err)
 		}
+		replication := mariadb.Replication()
+		if replication.IsExternalReplication() && errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
+			return nil, err
+		}
+
 		if podIndex != nil {
 			return podIndex, nil
 		}

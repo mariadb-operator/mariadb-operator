@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	agentresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/resources"
@@ -511,9 +512,9 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 	}
 
 	if mariadb.IsReplicationEnabled() {
-		replEnv, err := mariadbReplEnv(mariadb)
+		replEnv, err := replicationEnv(mariadb)
 		if err != nil {
-			return nil, fmt.Errorf("error getting MariaDB replication environment: %v", err)
+			return nil, err
 		}
 		env = append(env, replEnv...)
 	}
@@ -553,6 +554,31 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		}
 	}
 
+	return env, nil
+}
+
+// replicationEnv builds the replication-related environment variables for a MariaDB
+// with replication enabled.
+func replicationEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
+	replEnv, err := mariadbReplEnv(mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting MariaDB replication environment: %v", err)
+	}
+
+	var env []corev1.EnvVar
+	if mariadb.Replication().ReplicaFromExternal != nil {
+		env = append(env, externalReplEnvVars(mariadb.Replication().ReplicaFromExternal)...)
+	}
+
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+
+	if replication.SyncBinlog != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_REPL_SYNC_BINLOG",
+			Value: fmt.Sprintf("%d", *replication.SyncBinlog),
+		})
+	}
+	env = append(env, replEnv...)
 	return env, nil
 }
 
@@ -615,6 +641,20 @@ func mariadbReplEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		})
 	}
 	return env, nil
+}
+
+func externalReplEnvVars(ext *mariadbv1alpha1.ReplicaFromExternal) []corev1.EnvVar {
+	env := []corev1.EnvVar{
+		{Name: "MARIADB_EXTERNAL_REPL_ENABLED", Value: fmt.Sprint(true)},
+		{Name: "MARIADB_EXTERNAL_REPL_SERVER_ID_OFFSET", Value: fmt.Sprint(*ext.ServerIdOffset)},
+	}
+	if ext.HasFilteredTables() {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_EXTERNAL_REPL_FILTERED_TABLES",
+			Value: strings.Join(ext.FilteredReplicaTables, ","),
+		})
+	}
+	return env
 }
 
 func s3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {

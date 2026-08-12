@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"strings"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/metadata"
@@ -10,13 +11,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) (*mariadbv1alpha1.Restore, error) {
+type LogicalRestoreOpts struct {
+	PodIndex *int
+}
+
+// type CertOpt func(*CertOpts)
+
+func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
+	opts LogicalRestoreOpts) (*mariadbv1alpha1.Restore, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	bootstrapFrom := ptr.Deref(mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
 	restoreJob := ptr.Deref(bootstrapFrom.RestoreJob, mariadbv1alpha1.Job{})
+
+	// External replication doesn't use mariadb.Spec.BootstrapFrom; the restore Job template lives under
+	// replication.replica.bootstrapFrom.restoreJob instead. Pull from there so resources/tolerations/etc.
+	// get applied to the per-replica restore Pods.
+	if mariadb.Replication().ReplicaFromExternal != nil {
+		if rbf := mariadb.Replication().Replica.ReplicaBootstrapFrom; rbf != nil && rbf.RestoreJob != nil {
+			restoreJob = *rbf.RestoreJob
+		}
+	}
 
 	podTpl := mariadbv1alpha1.JobPodTemplate{}
 	podTpl.FromPodTemplate(mariadb.Spec.MariaDBPodTemplate.DeepCopy())
@@ -40,9 +57,20 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	containerTpl.Resources = restoreJob.Resources
 	containerTpl.Args = restoreJob.Args
 
-	restoreSource, err := bootstrapFrom.RestoreSource()
-	if err != nil {
-		return nil, fmt.Errorf("error getting restore source: %v", err)
+	var restoreSource *mariadbv1alpha1.RestoreSource
+	var err error
+	if mariadb.Replication().ReplicaFromExternal == nil {
+		restoreSource, err = bootstrapFrom.RestoreSource()
+
+		if err != nil {
+			return nil, fmt.Errorf("error getting restore source: %v", err)
+		}
+	} else {
+		restoreSource = &mariadbv1alpha1.RestoreSource{
+			BackupRef: &mariadbv1alpha1.LocalObjectReference{
+				Name: mariadb.ExternalReplLogicalBackupName(),
+			},
+		}
 	}
 
 	restore := &mariadbv1alpha1.Restore{
@@ -59,8 +87,28 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 			},
 		},
 	}
+
+	ext := mariadb.Replication().ReplicaFromExternal
+	if ext != nil && len(ext.FilteredReplicaTables) > 0 {
+		// Only set a default database when all filtered tables share a single schema.
+		// Multi-schema dumps include per-schema USE statements, so no default is needed.
+		schemas := make(map[string]struct{})
+		for _, t := range ext.FilteredReplicaTables {
+			if s, _, found := strings.Cut(t, "."); found {
+				schemas[s] = struct{}{}
+			}
+		}
+		if len(schemas) == 1 {
+			if db, _, found := strings.Cut(ext.FilteredReplicaTables[0], "."); found {
+				restore.Spec.Database = db
+			}
+		}
+	}
 	if restoreJob.Metadata != nil {
 		restore.Spec.InheritMetadata = restoreJob.Metadata
+	}
+	if opts.PodIndex != nil {
+		restore.Spec.PodIndex = opts.PodIndex
 	}
 
 	if err := controllerutil.SetControllerReference(mariadb, restore, b.scheme); err != nil {

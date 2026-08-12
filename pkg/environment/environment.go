@@ -69,6 +69,9 @@ type PodEnvironment struct {
 	MariadbPort         string `env:"MYSQL_TCP_PORT,required"`
 
 	MariaDBReplEnabled                 string `env:"MARIADB_REPL_ENABLED"`
+	MariaDBExternalReplEnabled         string `env:"MARIADB_EXTERNAL_REPL_ENABLED"`
+	MariaDBExternalReplServerIdOffset  string `env:"MARIADB_EXTERNAL_REPL_SERVER_ID_OFFSET"`
+	MariaDBExternalReplFilteredTables  string `env:"MARIADB_EXTERNAL_REPL_FILTERED_TABLES"`
 	MariaDBReplGtidStrictMode          string `env:"MARIADB_REPL_GTID_STRICT_MODE"`
 	MariaDBReplGtidDomainID            string `env:"MARIADB_REPL_GTID_DOMAIN_ID"`
 	MariaDBReplServerIDStartIndex      string `env:"MARIADB_REPL_SERVER_ID_START_INDEX"`
@@ -163,6 +166,41 @@ func (e *PodEnvironment) ReplSyncBinlog() (*int, error) {
 		return nil, fmt.Errorf("invalid replication master sync binlog: %w", err)
 	}
 	return &timeout, nil
+}
+
+func (e *PodEnvironment) IsExternalReplEnabled() (bool, error) {
+	replEnabled, err := e.IsReplEnabled()
+	if err != nil {
+		return false, err
+	}
+	if !replEnabled {
+		return false, errors.New("replication must be enabled")
+	}
+	if e.MariaDBExternalReplEnabled == "" {
+		return false, nil
+	}
+	return strconv.ParseBool(e.MariaDBExternalReplEnabled)
+}
+
+func (e *PodEnvironment) ExternalReplServerIdOffset() (*int, error) {
+	extReplEnabled, err := e.IsExternalReplEnabled()
+	if err != nil {
+		return nil, err
+	}
+	if !extReplEnabled {
+		return nil, nil
+	}
+	offset, err := strconv.Atoi(e.MariaDBExternalReplServerIdOffset)
+	return &offset, err
+}
+
+// ExternalReplFilteredTables returns the list of "database.table" entries to replicate,
+// or nil when filtered replication is not configured.
+func (e *PodEnvironment) ExternalReplFilteredTables() []string {
+	if e.MariaDBExternalReplFilteredTables == "" {
+		return nil
+	}
+	return strings.Split(e.MariaDBExternalReplFilteredTables, ",")
 }
 
 func GetPodEnv(ctx context.Context) (*PodEnvironment, error) {

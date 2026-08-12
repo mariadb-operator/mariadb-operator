@@ -83,7 +83,7 @@ func (p *Complete) PatcherFailed(msg string) Patcher {
 func (p *Complete) PatcherWithCronJob(ctx context.Context, err error, key types.NamespacedName) (Patcher, error) {
 	if err != nil {
 		return func(c Conditioner) {
-			SetCompleteFailedWithMessage(c, "Error creating CronJob")
+			SetCompleteFailedWithMessage(c, fmt.Sprintf("Error creating CronJob %v", err))
 		}, nil
 	}
 

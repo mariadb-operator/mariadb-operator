@@ -353,6 +353,52 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--add-drop-table",
 			},
 		},
+		{
+			name:      "single-schema tables",
+			backupCmd: &BackupCommand{},
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Tables: []string{
+						"mydb.tbl1",
+						"mydb.tbl2",
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--databases",
+				"mydb",
+				"--tables",
+				"tbl1",
+				"tbl2",
+			},
+		},
+		{
+			name:      "multi-schema tables",
+			backupCmd: &BackupCommand{},
+			backup: &mariadbv1alpha1.Backup{
+				Spec: mariadbv1alpha1.BackupSpec{
+					Tables: []string{
+						"schema1.tbl1",
+						"schema1.tbl2",
+						"schema2.tbl3",
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			// --tables is omitted; --ignore-table flags are built at runtime.
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--databases",
+				"schema1",
+				"schema2",
+			},
+		},
 	}
 
 	for _, tt := range tests {
