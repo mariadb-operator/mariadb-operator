@@ -80,7 +80,7 @@ const (
 	ConditionReasonSnapshotNotComplete string = "SnapshotNotComplete"
 
 	ConditionReasonCronJobScheduled string = "CronJobScheduled"
-	ConditionReasonCronJobFailed    string = "CronJobScheduled"
+	ConditionReasonCronJobFailed    string = "CronJobFailed"
 	ConditionReasonCronJobRunning   string = "CronJobRunning"
 	ConditionReasonCronJobSuccess   string = "CronJobSuccess"
 
