@@ -1,7 +1,8 @@
 package builder
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
@@ -10,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestEndpointsMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("EndpointsMeta", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name: "endpoints",
 	}
@@ -19,25 +20,28 @@ func TestEndpointsMeta(t *testing.T) {
 	endpoints := []discoveryv1.Endpoint{}
 	ports := []discoveryv1.EndpointPort{}
 	serviceName := "test"
-	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name:    "no meta",
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantMeta: &mariadbv1alpha1.Metadata{
+
+	DescribeTable(
+		"should build the expected Endpoints meta",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantMeta *mariadbv1alpha1.Metadata) {
+			endpoints, err := builder.BuildEndpointSlice(key, mariadb, addressType, endpoints, ports, serviceName)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&endpoints.ObjectMeta, wantMeta.Labels, wantMeta.Annotations)
+		},
+		Entry(
+			"no meta",
+			&mariadbv1alpha1.MariaDB{},
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					metadata.KubernetesEndpointSliceManagedByLabel: metadata.KubernetesEndpointSliceManagedByValue,
 					metadata.KubernetesServiceLabel:                serviceName,
 				},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry(
+			"meta",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
@@ -49,7 +53,7 @@ func TestEndpointsMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					metadata.KubernetesEndpointSliceManagedByLabel: metadata.KubernetesEndpointSliceManagedByValue,
 					metadata.KubernetesServiceLabel:                serviceName,
@@ -59,16 +63,6 @@ func TestEndpointsMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			endpoints, err := builder.BuildEndpointSlice(key, tt.mariadb, addressType, endpoints, ports, serviceName)
-			if err != nil {
-				t.Fatalf("unexpected error building Endpoints: %v", err)
-			}
-			assertObjectMeta(t, &endpoints.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
-		})
-	}
-}
+		),
+	)
+})

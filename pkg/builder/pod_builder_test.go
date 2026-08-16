@@ -2,9 +2,10 @@ package builder
 
 import (
 	"reflect"
-	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
@@ -15,34 +16,32 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func TestMariadbPodMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("MariadbPodMeta", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
-	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		opts     []mariadbPodOpt
-		wantMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "empty",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("mariadbPodTemplate meta",
+		func(mariadb *mariadbv1alpha1.MariaDB, opts []mariadbPodOpt, wantMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
+			podTpl, err := builder.mariadbPodTemplate(mariadb, opts...)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&podTpl.ObjectMeta, wantMeta.Labels, wantMeta.Annotations)
+		},
+		Entry("empty",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 			},
-			opts: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
 				},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("inherit meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -55,8 +54,8 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -66,10 +65,9 @@ func TestMariadbPodMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "HA",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("HA",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -77,8 +75,8 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -88,10 +86,9 @@ func TestMariadbPodMeta(t *testing.T) {
 					"k8s.mariadb.com/galera":  "",
 				},
 			},
-		},
-		{
-			name: "Pod meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("Pod meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -106,8 +103,8 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -117,13 +114,12 @@ func TestMariadbPodMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "extra meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("extra meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withMeta(&mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"sidecar.istio.io/inject": "false",
@@ -133,7 +129,7 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				}),
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -143,10 +139,9 @@ func TestMariadbPodMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "inherit and Pod meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("inherit and Pod meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -163,8 +158,8 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -174,10 +169,9 @@ func TestMariadbPodMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "extra override Pod meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("extra override Pod meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -189,14 +183,14 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withMeta(&mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"sidecar.istio.io/inject": "true",
 					},
 				}),
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -204,10 +198,9 @@ func TestMariadbPodMeta(t *testing.T) {
 				},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "Pod override inherit meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("Pod override inherit meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -227,8 +220,8 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -238,10 +231,9 @@ func TestMariadbPodMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "without selector labels",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("without selector labels",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -253,19 +245,18 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withMariadbSelectorLabels(false),
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "without HA annotations",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("without HA annotations",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -283,10 +274,10 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withHAAnnotations(false),
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -296,10 +287,9 @@ func TestMariadbPodMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 			},
-		},
-		{
-			name: "all",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("all",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -319,14 +309,14 @@ func TestMariadbPodMeta(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withMeta(&mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
 						"sidecar.istio.io/inject": "false",
 					},
 				}),
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -339,48 +329,36 @@ func TestMariadbPodMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
-			if err != nil {
-				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-			}
-			assertObjectMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
-		})
-	}
-}
-
-func TestMaxScalePodMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("MaxScalePodMeta", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "maxscale-obj",
 	}
-	tests := []struct {
-		name        string
-		maxscale    *mariadbv1alpha1.MaxScale
-		annotations map[string]string
-		wantMeta    *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "empty",
-			maxscale: &mariadbv1alpha1.MaxScale{
+	DescribeTable("maxscalePodTemplate meta",
+		func(maxscale *mariadbv1alpha1.MaxScale, annotations map[string]string, wantMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
+			podTpl, err := builder.maxscalePodTemplate(maxscale, annotations)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&podTpl.ObjectMeta, wantMeta.Labels, wantMeta.Annotations)
+		},
+		Entry("empty",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 			},
-			annotations: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "maxscale",
 					"app.kubernetes.io/instance": "maxscale-obj",
 				},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("inherit meta",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -393,8 +371,8 @@ func TestMaxScalePodMeta(t *testing.T) {
 					},
 				},
 			},
-			annotations: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "maxscale",
 					"app.kubernetes.io/instance": "maxscale-obj",
@@ -404,10 +382,9 @@ func TestMaxScalePodMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "Pod meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("Pod meta",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
@@ -422,8 +399,8 @@ func TestMaxScalePodMeta(t *testing.T) {
 					},
 				},
 			},
-			annotations: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "maxscale",
 					"app.kubernetes.io/instance": "maxscale-obj",
@@ -433,16 +410,15 @@ func TestMaxScalePodMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "annotations",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("annotations",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 			},
-			annotations: map[string]string{
+			map[string]string{
 				metadata.TLSServerCertAnnotation: "cert",
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "maxscale",
 					"app.kubernetes.io/instance": "maxscale-obj",
@@ -451,10 +427,9 @@ func TestMaxScalePodMeta(t *testing.T) {
 					metadata.TLSServerCertAnnotation: "cert",
 				},
 			},
-		},
-		{
-			name: "inherit and Pod meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("inherit and Pod meta",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -471,8 +446,8 @@ func TestMaxScalePodMeta(t *testing.T) {
 					},
 				},
 			},
-			annotations: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "maxscale",
 					"app.kubernetes.io/instance": "maxscale-obj",
@@ -482,10 +457,9 @@ func TestMaxScalePodMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "Pod override inherit meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("Pod override inherit meta",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -505,8 +479,8 @@ func TestMaxScalePodMeta(t *testing.T) {
 					},
 				},
 			},
-			annotations: nil,
-			wantMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "maxscale",
 					"app.kubernetes.io/instance": "maxscale-obj",
@@ -516,10 +490,9 @@ func TestMaxScalePodMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "all",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("all",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -542,10 +515,10 @@ func TestMaxScalePodMeta(t *testing.T) {
 					},
 				},
 			},
-			annotations: map[string]string{
+			map[string]string{
 				metadata.TLSServerCertAnnotation: "cert",
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "maxscale",
 					"app.kubernetes.io/instance": "maxscale-obj",
@@ -558,90 +531,69 @@ func TestMaxScalePodMeta(t *testing.T) {
 					metadata.TLSServerCertAnnotation: "cert",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.maxscalePodTemplate(tt.maxscale, tt.annotations)
-			if err != nil {
-				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
-			}
-
-			assertObjectMeta(t, &podTpl.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
-		})
-	}
-}
-
-func TestMariadbPodBuilder(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	mariadb := &mariadbv1alpha1.MariaDB{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-mariadb-builder",
-		},
-		Spec: mariadbv1alpha1.MariaDBSpec{
-			Storage: mariadbv1alpha1.Storage{
-				Size: ptr.To(resource.MustParse("300Mi")),
+var _ = Describe("MariadbPodBuilder", func() {
+	It("should build the MariaDB Pod template", func() {
+		builder := newDefaultTestBuilder()
+		mariadb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-mariadb-builder",
 			},
-		},
-	}
-	opts := []mariadbPodOpt{
-		withResources(&corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				"cpu": resource.MustParse("100m"),
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
 			},
-		}),
-	}
+		}
+		opts := []mariadbPodOpt{
+			withResources(&corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"cpu": resource.MustParse("100m"),
+				},
+			}),
+		}
 
-	podTpl, err := builder.mariadbPodTemplate(mariadb, opts...)
-	if err != nil {
-		t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-	}
+		podTpl, err := builder.mariadbPodTemplate(mariadb, opts...)
+		Expect(err).NotTo(HaveOccurred())
 
-	if reflect.ValueOf(podTpl.Spec.Containers[0].Resources).IsZero() {
-		t.Error("expected resources to have been set")
-	}
+		Expect(reflect.ValueOf(podTpl.Spec.Containers[0].Resources).IsZero()).To(BeFalse())
 
-	if podTpl.Spec.SecurityContext == nil {
-		t.Error("expected podSecurityContext to have been set")
-	}
-	sc := ptr.Deref(podTpl.Spec.SecurityContext, corev1.PodSecurityContext{})
-	runAsUser := ptr.Deref(sc.RunAsUser, 0)
-	if runAsUser != mysqlUser {
-		t.Errorf("expected to run as mysql user, got user: %d", runAsUser)
-	}
-	runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
-	if runAsGroup != mysqlGroup {
-		t.Errorf("expected to run as mysql group, got group: %d", runAsGroup)
-	}
-	fsGroup := ptr.Deref(sc.FSGroup, 0)
-	if fsGroup != mysqlGroup {
-		t.Errorf("expected to run as mysql fsGroup, got fsGroup: %d", fsGroup)
-	}
-}
+		Expect(podTpl.Spec.SecurityContext).NotTo(BeNil())
+		sc := ptr.Deref(podTpl.Spec.SecurityContext, corev1.PodSecurityContext{})
+		runAsUser := ptr.Deref(sc.RunAsUser, 0)
+		Expect(runAsUser).To(Equal(mysqlUser))
+		runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
+		Expect(runAsGroup).To(Equal(mysqlGroup))
+		fsGroup := ptr.Deref(sc.FSGroup, 0)
+		Expect(fsGroup).To(Equal(mysqlGroup))
+	})
+})
 
-func TestMariadbPodBuilderResources(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("MariadbPodBuilderResources", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "test-mariadb-builder-resources",
 	}
-	tests := []struct {
-		name          string
-		mariadb       *mariadbv1alpha1.MariaDB
-		opts          []mariadbPodOpt
-		wantResources corev1.ResourceRequirements
-	}{
-		{
-			name: "no resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("mariadbPodTemplate resources",
+		func(mariadb *mariadbv1alpha1.MariaDB, opts []mariadbPodOpt, wantResources corev1.ResourceRequirements) {
+			builder := newDefaultTestBuilder()
+			podTpl, err := builder.mariadbPodTemplate(mariadb, opts...)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(podTpl.Spec.Containers).To(HaveLen(1))
+			resources := podTpl.Spec.Containers[0].Resources
+			Expect(resources).To(Equal(wantResources))
+		},
+		Entry("no resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 			},
-			opts:          nil,
-			wantResources: corev1.ResourceRequirements{},
-		},
-		{
-			name: "mariadb resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+			corev1.ResourceRequirements{},
+		),
+		Entry("mariadb resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -653,19 +605,18 @@ func TestMariadbPodBuilderResources(t *testing.T) {
 					},
 				},
 			},
-			opts: nil,
-			wantResources: corev1.ResourceRequirements{
+			nil,
+			corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					"cpu": resource.MustParse("300m"),
 				},
 			},
-		},
-		{
-			name: "opt resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("opt resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withResources(&corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						"cpu": resource.MustParse("100m"),
@@ -673,15 +624,14 @@ func TestMariadbPodBuilderResources(t *testing.T) {
 				}),
 				withMariadbResources(false),
 			},
-			wantResources: corev1.ResourceRequirements{
+			corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					"cpu": resource.MustParse("100m"),
 				},
 			},
-		},
-		{
-			name: "mariadb and opt resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("mariadb and opt resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -693,7 +643,7 @@ func TestMariadbPodBuilderResources(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withResources(&corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						"cpu": resource.MustParse("100m"),
@@ -701,81 +651,25 @@ func TestMariadbPodBuilderResources(t *testing.T) {
 				}),
 				withMariadbResources(true),
 			},
-			wantResources: corev1.ResourceRequirements{
+			corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					"cpu": resource.MustParse("100m"),
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
-			if err != nil {
-				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-			}
-			if len(podTpl.Spec.Containers) != 1 {
-				t.Error("expecting to have one container")
-			}
-			resources := podTpl.Spec.Containers[0].Resources
-			if !reflect.DeepEqual(resources, tt.wantResources) {
-				t.Errorf("unexpected resources, got: %v, expected: %v", resources, tt.wantResources)
-			}
-		})
-	}
-}
-
-func TestMariadbPodBuilderServiceAccount(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("MariadbPodBuilderServiceAccount", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "test-mariadb-builder-serviceaccount",
 	}
-	tests := []struct {
-		name               string
-		mariadb            *mariadbv1alpha1.MariaDB
-		opts               []mariadbPodOpt
-		wantServiceAccount bool
-	}{
-		{
-			name: "serviceaccount",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-					},
-				},
-			},
-			opts:               nil,
-			wantServiceAccount: true,
-		},
-		{
-			name: "no serviceaccount",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-					},
-				},
-			},
-			opts: []mariadbPodOpt{
-				withServiceAccount(false),
-			},
-			wantServiceAccount: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
-			if err != nil {
-				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-			}
-			if len(podTpl.Spec.Containers) == 0 {
-				t.Error("expecting to have containers")
-			}
+	DescribeTable("mariadbPodTemplate serviceAccount",
+		func(mariadb *mariadbv1alpha1.MariaDB, opts []mariadbPodOpt, wantServiceAccount bool) {
+			builder := newDefaultTestBuilder()
+			podTpl, err := builder.mariadbPodTemplate(mariadb, opts...)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(podTpl.Spec.Containers).NotTo(BeEmpty())
 
 			container := podTpl.Spec.Containers[0]
 			scName := podTpl.Spec.ServiceAccountName
@@ -786,47 +680,77 @@ func TestMariadbPodBuilderServiceAccount(t *testing.T) {
 				return volMount.Name == ServiceAccountVolume
 			})
 
-			if tt.wantServiceAccount {
-				if scName != objMeta.Name {
-					t.Error("expecting to have ServiceAccount")
-				}
-				if scVol == nil {
-					t.Error("expecting to have ServiceAccount Volume")
-				}
-				if scVolMount == nil {
-					t.Error("expecting to have ServiceAccount VolumeMount")
-				}
+			if wantServiceAccount {
+				Expect(scName).To(Equal(objMeta.Name))
+				Expect(scVol).NotTo(BeNil())
+				Expect(scVolMount).NotTo(BeNil())
 			} else {
-				if scName != "" {
-					t.Error("expecting to NOT have ServiceAccount")
-				}
-				if scVol != nil {
-					t.Error("expecting to NOT have ServiceAccount Volume")
-				}
-				if scVolMount != nil {
-					t.Error("expecting to NOT have ServiceAccount VolumeMount")
-				}
+				Expect(scName).To(Equal(""))
+				Expect(scVol).To(BeNil())
+				Expect(scVolMount).To(BeNil())
 			}
-		})
-	}
-}
+		},
+		Entry("serviceaccount",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			nil,
+			true,
+		),
+		Entry("no serviceaccount",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			[]mariadbPodOpt{
+				withServiceAccount(false),
+			},
+			false,
+		),
+	)
+})
 
-func TestMariadbPodBuilderAffinity(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("MariadbPodBuilderAffinity", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "test-mariadb-builder-affinity",
 	}
-	tests := []struct {
-		name                          string
-		mariadb                       *mariadbv1alpha1.MariaDB
-		opts                          []mariadbPodOpt
-		wantAffinity                  bool
-		wantTopologySpreadConstraints bool
-		wantNodeAffinity              bool
-	}{
-		{
-			name: "no affinity",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("mariadbPodTemplate affinity",
+		func(mariadb *mariadbv1alpha1.MariaDB, opts []mariadbPodOpt,
+			wantAffinity, wantTopologySpreadConstraints, wantNodeAffinity bool) {
+			builder := newDefaultTestBuilder()
+			podTpl, err := builder.mariadbPodTemplate(mariadb, opts...)
+			Expect(err).NotTo(HaveOccurred())
+
+			if wantAffinity {
+				Expect(podTpl.Spec.Affinity).NotTo(BeNil())
+			} else {
+				Expect(podTpl.Spec.Affinity).To(BeNil())
+			}
+
+			if wantTopologySpreadConstraints {
+				Expect(podTpl.Spec.TopologySpreadConstraints).NotTo(BeNil())
+			} else {
+				Expect(podTpl.Spec.TopologySpreadConstraints).To(BeNil())
+			}
+
+			if wantNodeAffinity {
+				Expect(podTpl.Spec.Affinity.NodeAffinity).NotTo(BeNil())
+			}
+			if !wantNodeAffinity && podTpl.Spec.Affinity != nil {
+				Expect(podTpl.Spec.Affinity.NodeAffinity).To(BeNil())
+			}
+		},
+		Entry("no affinity",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Storage: mariadbv1alpha1.Storage{
@@ -834,14 +758,13 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts:                          nil,
-			wantAffinity:                  false,
-			wantTopologySpreadConstraints: false,
-			wantNodeAffinity:              false,
-		},
-		{
-			name: "mariadb affinity",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+			false,
+			false,
+			false,
+		),
+		Entry("mariadb affinity",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -854,14 +777,13 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts:                          nil,
-			wantAffinity:                  true,
-			wantTopologySpreadConstraints: false,
-			wantNodeAffinity:              false,
-		},
-		{
-			name: "mariadb topologyspreadconstraints",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+			true,
+			false,
+			false,
+		),
+		Entry("mariadb topologyspreadconstraints",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -877,14 +799,13 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts:                          nil,
-			wantAffinity:                  false,
-			wantTopologySpreadConstraints: true,
-			wantNodeAffinity:              false,
-		},
-		{
-			name: "opt affinity",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+			false,
+			true,
+			false,
+		),
+		Entry("opt affinity",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Storage: mariadbv1alpha1.Storage{
@@ -892,17 +813,16 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withAffinity(&corev1.Affinity{}),
 				withAffinityEnabled(true),
 			},
-			wantAffinity:                  true,
-			wantTopologySpreadConstraints: false,
-			wantNodeAffinity:              false,
-		},
-		{
-			name: "mariadb and opt affinity",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			true,
+			false,
+			false,
+		),
+		Entry("mariadb and opt affinity",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -921,17 +841,16 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withAffinity(&corev1.Affinity{}),
 				withAffinityEnabled(true),
 			},
-			wantAffinity:                  true,
-			wantTopologySpreadConstraints: true,
-			wantNodeAffinity:              false,
-		},
-		{
-			name: "disable affinity",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			true,
+			true,
+			false,
+		),
+		Entry("disable affinity",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -950,17 +869,16 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withAffinity(&corev1.Affinity{}),
 				withAffinityEnabled(false),
 			},
-			wantAffinity:                  false,
-			wantTopologySpreadConstraints: false,
-			wantNodeAffinity:              false,
-		},
-		{
-			name: "mariadb with node affinity",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+			false,
+			false,
+		),
+		Entry("mariadb with node affinity",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -990,139 +908,107 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts:                          nil,
-			wantAffinity:                  true,
-			wantTopologySpreadConstraints: false,
-			wantNodeAffinity:              true,
-		},
-	}
+			nil,
+			true,
+			false,
+			true,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
-			if err != nil {
-				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-			}
-			if tt.wantAffinity && podTpl.Spec.Affinity == nil {
-				t.Error("expected affinity to have been set")
-			}
-			if !tt.wantAffinity && podTpl.Spec.Affinity != nil {
-				t.Error("expected affinity to not have been set")
-			}
+var _ = Describe("MariadbPodLifecycleOnlyFirst", func() {
+	It("should only set lifecycle on the first container", func() {
+		builder := newDefaultTestBuilder()
 
-			if tt.wantTopologySpreadConstraints && podTpl.Spec.TopologySpreadConstraints == nil {
-				t.Error("expected topologySpreadConstraints to have been set")
-			}
-			if !tt.wantTopologySpreadConstraints && podTpl.Spec.TopologySpreadConstraints != nil {
-				t.Error("expected topologySpreadConstraints to not have been set")
-			}
-
-			if tt.wantNodeAffinity && podTpl.Spec.Affinity.NodeAffinity == nil {
-				t.Error("expected node affinity to have been set")
-			}
-			if !tt.wantNodeAffinity && podTpl.Spec.Affinity != nil && podTpl.Spec.Affinity.NodeAffinity != nil {
-				t.Error("expected node affinity to not have been set")
-			}
-		})
-	}
-}
-
-func TestMariadbPodLifecycleOnlyFirst(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-
-	mariadb := &mariadbv1alpha1.MariaDB{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-mariadb-lifecycle",
-		},
-		Spec: mariadbv1alpha1.MariaDBSpec{
-			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-				Lifecycle: &mariadbv1alpha1.Lifecycle{
-					PostStart: &mariadbv1alpha1.LifecycleHandler{
-						Exec: &mariadbv1alpha1.ExecAction{
-							Command: []string{"echo", "hello"},
+		mariadb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-mariadb-lifecycle",
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+					Lifecycle: &mariadbv1alpha1.Lifecycle{
+						PostStart: &mariadbv1alpha1.LifecycleHandler{
+							Exec: &mariadbv1alpha1.ExecAction{
+								Command: []string{"echo", "hello"},
+							},
+						},
+					},
+				},
+				MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+					SidecarContainers: []mariadbv1alpha1.Container{
+						{
+							Image: "busybox",
+							Command: []string{
+								"sh",
+								"-c",
+								"sleep 1",
+							},
 						},
 					},
 				},
 			},
-			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-				SidecarContainers: []mariadbv1alpha1.Container{
-					{
-						Image: "busybox",
-						Command: []string{
-							"sh",
-							"-c",
-							"sleep 1",
+		}
+
+		podTpl, err := builder.mariadbPodTemplate(mariadb)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(len(podTpl.Spec.Containers)).To(BeNumerically(">=", 2))
+
+		Expect(podTpl.Spec.Containers[0].Lifecycle).NotTo(BeNil())
+		Expect(podTpl.Spec.Containers[1].Lifecycle).To(BeNil())
+	})
+})
+
+var _ = Describe("MaxScalePodLifecycleSingle", func() {
+	It("should set lifecycle on the maxscale container", func() {
+		builder := newDefaultTestBuilder()
+
+		mxs := &mariadbv1alpha1.MaxScale{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-maxscale-lifecycle",
+			},
+			Spec: mariadbv1alpha1.MaxScaleSpec{
+				ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+					Lifecycle: &mariadbv1alpha1.Lifecycle{
+						PostStart: &mariadbv1alpha1.LifecycleHandler{
+							Exec: &mariadbv1alpha1.ExecAction{
+								Command: []string{"echo", "hello"},
+							},
 						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	podTpl, err := builder.mariadbPodTemplate(mariadb)
-	if err != nil {
-		t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-	}
+		podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+		Expect(err).NotTo(HaveOccurred())
 
-	if len(podTpl.Spec.Containers) < 2 {
-		t.Fatalf("expected at least two containers, got %d", len(podTpl.Spec.Containers))
-	}
+		Expect(podTpl.Spec.Containers).To(HaveLen(1))
 
-	if podTpl.Spec.Containers[0].Lifecycle == nil {
-		t.Error("expected lifecycle on first container")
-	}
-	if podTpl.Spec.Containers[1].Lifecycle != nil {
-		t.Error("did not expect lifecycle on second (sidecar) container")
-	}
-}
+		Expect(podTpl.Spec.Containers[0].Lifecycle).NotTo(BeNil())
+	})
+})
 
-func TestMaxScalePodLifecycleSingle(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-
-	mxs := &mariadbv1alpha1.MaxScale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-maxscale-lifecycle",
-		},
-		Spec: mariadbv1alpha1.MaxScaleSpec{
-			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-				Lifecycle: &mariadbv1alpha1.Lifecycle{
-					PostStart: &mariadbv1alpha1.LifecycleHandler{
-						Exec: &mariadbv1alpha1.ExecAction{
-							Command: []string{"echo", "hello"},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	podTpl, err := builder.maxscalePodTemplate(mxs, nil)
-	if err != nil {
-		t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
-	}
-
-	if len(podTpl.Spec.Containers) != 1 {
-		t.Fatalf("expected one container, got %d", len(podTpl.Spec.Containers))
-	}
-
-	if podTpl.Spec.Containers[0].Lifecycle == nil {
-		t.Error("expected lifecycle on maxscale container")
-	}
-}
-
-func TestMariadbPodBuilderInitContainers(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("MariadbPodBuilderInitContainers", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "test-mariadb-builder-initcontainers",
 	}
-	tests := []struct {
-		name               string
-		mariadb            *mariadbv1alpha1.MariaDB
-		wantInitContainers int
-	}{
-		{
-			name: "no init containers",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("mariadbPodTemplate initContainers",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantInitContainers int) {
+			builder := newDefaultTestBuilder()
+			podTpl, err := builder.mariadbPodTemplate(mariadb)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(podTpl.Spec.InitContainers).To(HaveLen(wantInitContainers))
+
+			for _, container := range podTpl.Spec.InitContainers {
+				Expect(container.Image).NotTo(Equal(""))
+				Expect(container.Env).NotTo(BeNil())
+				Expect(container.VolumeMounts).NotTo(BeNil())
+			}
+		},
+		Entry("no init containers",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
@@ -1131,11 +1017,10 @@ func TestMariadbPodBuilderInitContainers(t *testing.T) {
 					},
 				},
 			},
-			wantInitContainers: 0,
-		},
-		{
-			name: "init containers",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			0,
+		),
+		Entry("init containers",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
@@ -1151,49 +1036,31 @@ func TestMariadbPodBuilderInitContainers(t *testing.T) {
 					},
 				},
 			},
-			wantInitContainers: 2,
-		},
-	}
+			2,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.mariadbPodTemplate(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-			}
-
-			if len(podTpl.Spec.InitContainers) != tt.wantInitContainers {
-				t.Errorf("unexpected number of init containers, got: %v, want: %v", len(podTpl.Spec.InitContainers), tt.wantInitContainers)
-			}
-
-			for _, container := range podTpl.Spec.InitContainers {
-				if container.Image == "" {
-					t.Error("expected container image to be set")
-				}
-				if container.Env == nil {
-					t.Error("expected container env to be set")
-				}
-				if container.VolumeMounts == nil {
-					t.Error("expected container VolumeMounts to be set")
-				}
-			}
-		})
-	}
-}
-
-func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("MariadbPodBuilderSidecarContainers", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "test-mariadb-builder-sidecarcontainers",
 	}
-	tests := []struct {
-		name           string
-		mariadb        *mariadbv1alpha1.MariaDB
-		wantContainers int
-	}{
-		{
-			name: "no sidecar containers",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("mariadbPodTemplate sidecarContainers",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantContainers int) {
+			builder := newDefaultTestBuilder()
+			podTpl, err := builder.mariadbPodTemplate(mariadb)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(podTpl.Spec.Containers).To(HaveLen(wantContainers))
+
+			for _, container := range podTpl.Spec.Containers {
+				Expect(container.Image).NotTo(Equal(""))
+				Expect(container.Env).NotTo(BeNil())
+				Expect(container.VolumeMounts).NotTo(BeNil())
+			}
+		},
+		Entry("no sidecar containers",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
@@ -1202,11 +1069,10 @@ func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
 					},
 				},
 			},
-			wantContainers: 1,
-		},
-		{
-			name: "sidecar containers",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			1,
+		),
+		Entry("sidecar containers",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
@@ -1222,149 +1088,87 @@ func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
 					},
 				},
 			},
-			wantContainers: 3,
-		},
-	}
+			3,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.mariadbPodTemplate(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-			}
-
-			if len(podTpl.Spec.Containers) != tt.wantContainers {
-				t.Errorf("unexpected number of containers, got: %v, want: %v", len(podTpl.Spec.Containers), tt.wantContainers)
-			}
-
-			for _, container := range podTpl.Spec.Containers {
-				if container.Image == "" {
-					t.Error("expected container image to be set")
-				}
-				if container.Env == nil {
-					t.Error("expected container env to be set")
-				}
-				if container.VolumeMounts == nil {
-					t.Error("expected container VolumeMounts to be set")
-				}
-			}
-		})
-	}
-}
-
-func TestMaxscalePodBuilder(t *testing.T) {
-	d, err := discovery.NewFakeDiscovery()
-	if err != nil {
-		t.Fatalf("unexpected error getting discovery: %v", err)
-	}
-	builder := newTestBuilder(d)
-	mxs := &mariadbv1alpha1.MaxScale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-maxscale-builder",
-		},
-	}
-
-	podTpl, err := builder.maxscalePodTemplate(mxs, nil)
-	if err != nil {
-		t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
-	}
-
-	if podTpl.Spec.SecurityContext == nil {
-		t.Error("expected podSecurityContext to have been set")
-	}
-	sc := ptr.Deref(podTpl.Spec.SecurityContext, corev1.PodSecurityContext{})
-	runAsUser := ptr.Deref(sc.RunAsUser, 0)
-	runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
-	fsGroup := ptr.Deref(sc.FSGroup, 0)
-
-	if runAsUser != maxscaleUser {
-		t.Errorf("expected to run as maxscale user, got user: %d", runAsUser)
-	}
-	if runAsGroup != maxscaleGroup {
-		t.Errorf("expected to run as maxscale group, got group: %d", runAsGroup)
-	}
-	if fsGroup != maxscaleGroup {
-		t.Errorf("expected to run as maxscale fsGroup, got fsGroup: %d", fsGroup)
-	}
-}
-
-func TestMariadbConfigVolume(t *testing.T) {
-	mariadb := &mariadbv1alpha1.MariaDB{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-mariadb-builder",
-		},
-		Spec: mariadbv1alpha1.MariaDBSpec{
-			Storage: mariadbv1alpha1.Storage{
-				Size: ptr.To(resource.MustParse("300Mi")),
+var _ = Describe("MaxscalePodBuilder", func() {
+	It("should build the MaxScale Pod template", func() {
+		d, err := discovery.NewFakeDiscovery()
+		Expect(err).NotTo(HaveOccurred())
+		builder := newTestBuilder(d)
+		mxs := &mariadbv1alpha1.MaxScale{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-maxscale-builder",
 			},
-		},
-	}
+		}
 
-	volume := mariadbConfigVolume(mariadb)
-	if volume.Projected == nil {
-		t.Fatal("expected volume to be projected")
-	}
-	expectedSources := 1
-	if len(volume.Projected.Sources) != expectedSources {
-		t.Fatalf("expecting to have %d sources, got: %d", expectedSources, len(volume.Projected.Sources))
-	}
-	expectedKey := "0-default.cnf"
-	if volume.Projected.Sources[0].ConfigMap.Items[0].Key != expectedKey {
-		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
-	}
+		podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+		Expect(err).NotTo(HaveOccurred())
 
-	mariadb.Spec.MyCnfConfigMapKeyRef = &mariadbv1alpha1.ConfigMapKeySelector{
-		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: "test",
-		},
-		Key: "my.cnf",
-	}
+		Expect(podTpl.Spec.SecurityContext).NotTo(BeNil())
+		sc := ptr.Deref(podTpl.Spec.SecurityContext, corev1.PodSecurityContext{})
+		runAsUser := ptr.Deref(sc.RunAsUser, 0)
+		runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
+		fsGroup := ptr.Deref(sc.FSGroup, 0)
 
-	volume = mariadbConfigVolume(mariadb)
-	if volume.Projected == nil {
-		t.Fatal("expected volume to be projected")
-	}
-	expectedSources = 2
-	if len(volume.Projected.Sources) != expectedSources {
-		t.Fatalf("expecting to have %d sources, got: %d", expectedSources, len(volume.Projected.Sources))
-	}
-	expectedKey = "0-default.cnf"
-	if volume.Projected.Sources[0].ConfigMap.Items[0].Key != expectedKey {
-		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
-	}
-	expectedKey = "my.cnf"
-	if volume.Projected.Sources[1].ConfigMap.Items[0].Key != expectedKey {
-		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
-	}
-}
+		Expect(runAsUser).To(Equal(maxscaleUser))
+		Expect(runAsGroup).To(Equal(maxscaleGroup))
+		Expect(fsGroup).To(Equal(maxscaleGroup))
+	})
+})
 
-func TestMariadbTerminationGracePeriodSeconds(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("MariadbConfigVolume", func() {
+	It("should build the MariaDB config volume", func() {
+		mariadb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-mariadb-builder",
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+			},
+		}
+
+		volume := mariadbConfigVolume(mariadb)
+		Expect(volume.Projected).NotTo(BeNil())
+		expectedSources := 1
+		Expect(volume.Projected.Sources).To(HaveLen(expectedSources))
+		expectedKey := "0-default.cnf"
+		Expect(volume.Projected.Sources[0].ConfigMap.Items[0].Key).To(Equal(expectedKey))
+
+		mariadb.Spec.MyCnfConfigMapKeyRef = &mariadbv1alpha1.ConfigMapKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: "test",
+			},
+			Key: "my.cnf",
+		}
+
+		volume = mariadbConfigVolume(mariadb)
+		Expect(volume.Projected).NotTo(BeNil())
+		expectedSources = 2
+		Expect(volume.Projected.Sources).To(HaveLen(expectedSources))
+		expectedKey = "0-default.cnf"
+		Expect(volume.Projected.Sources[0].ConfigMap.Items[0].Key).To(Equal(expectedKey))
+		expectedKey = "my.cnf"
+		Expect(volume.Projected.Sources[1].ConfigMap.Items[0].Key).To(Equal(expectedKey))
+	})
+})
+
+var _ = Describe("MariadbTerminationGracePeriodSeconds", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "test-mariadb-termination-grace",
 	}
-
-	tests := []struct {
-		name string
-		tgs  *int64
-	}{
-		{
-			name: "unset",
-			tgs:  nil,
-		},
-		{
-			name: "set",
-			tgs:  ptr.To(int64(5)),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	DescribeTable("mariadbPodTemplate terminationGracePeriodSeconds",
+		func(tgs *int64) {
+			builder := newDefaultTestBuilder()
 			mariadb := &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-						TerminationGracePeriodSeconds: tt.tgs,
+						TerminationGracePeriodSeconds: tgs,
 					},
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("300Mi")),
@@ -1373,12 +1177,10 @@ func TestMariadbTerminationGracePeriodSeconds(t *testing.T) {
 			}
 
 			podTpl, err := builder.mariadbPodTemplate(mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
-			}
-			if diff := cmp.Diff(podTpl.Spec.TerminationGracePeriodSeconds, tt.tgs); diff != "" {
-				t.Errorf("unexpected TerminationGracePeriodSeconds(-want +got):\n%s", diff)
-			}
-		})
-	}
-}
+			Expect(err).NotTo(HaveOccurred())
+			Expect(podTpl.Spec.TerminationGracePeriodSeconds).To(Equal(tgs))
+		},
+		Entry("unset", nil),
+		Entry("set", ptr.To(int64(5))),
+	)
+})

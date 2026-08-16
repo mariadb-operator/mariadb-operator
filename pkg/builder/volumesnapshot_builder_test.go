@@ -1,28 +1,31 @@
 package builder
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
-	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestInvalidVolumeSnapshot(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("InvalidVolumeSnapshot", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{Name: "test-snapshot", Namespace: "test-ns"}
 	pvcKey := types.NamespacedName{Name: "test-pvc"}
 
-	tests := []struct {
-		name    string
-		backup  *mariadbv1alpha1.PhysicalBackup
-		wantErr bool
-	}{
-		{
-			name: "VolumeSnapshot is nil returns error",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+	DescribeTable("BuildVolumeSnapshot",
+		func(backup *mariadbv1alpha1.PhysicalBackup, wantErr bool) {
+			_, err := builder.BuildVolumeSnapshot(key, backup, pvcKey, nil)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("VolumeSnapshot is nil returns error",
+			&mariadbv1alpha1.PhysicalBackup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "backup-obj",
 					Namespace: "test-ns",
@@ -34,11 +37,10 @@ func TestInvalidVolumeSnapshot(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
-		},
-		{
-			name: "VolumeSnapshot no error",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+			true,
+		),
+		Entry("VolumeSnapshot no error",
+			&mariadbv1alpha1.PhysicalBackup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "backup-obj",
 					Namespace: "test-ns",
@@ -52,24 +54,13 @@ func TestInvalidVolumeSnapshot(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
-		},
-	}
+			false,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := builder.BuildVolumeSnapshot(key, tt.backup, pvcKey, nil)
-			if tt.wantErr {
-				assert.Error(t, err, "expected error")
-			} else {
-				assert.NoError(t, err, "unexpected error")
-			}
-		})
-	}
-}
-
-func TestVolumeSnapshotMetadata(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("VolumeSnapshotMetadata", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name:      "test-snapshot",
 		Namespace: "test",
@@ -82,16 +73,27 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 		Namespace: "test",
 	}
 
-	tests := []struct {
-		name            string
-		backup          *mariadbv1alpha1.PhysicalBackup
-		metadata        *mariadbv1alpha1.Metadata
-		wantLabels      map[string]string
-		wantAnnotations map[string]string
-	}{
-		{
-			name: "No metadata",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+	DescribeTable("BuildVolumeSnapshot",
+		func(backup *mariadbv1alpha1.PhysicalBackup, meta *mariadbv1alpha1.Metadata,
+			wantLabels, wantAnnotations map[string]string) {
+			snapshot, err := builder.BuildVolumeSnapshot(key, backup, pvcKey, meta)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(snapshot).NotTo(BeNil())
+			Expect(snapshot.Name).To(Equal(key.Name))
+			Expect(snapshot.Namespace).To(Equal(key.Namespace))
+			Expect(*snapshot.Spec.VolumeSnapshotClassName).To(Equal("test-class"))
+			Expect(snapshot.Spec.Source.PersistentVolumeClaimName).NotTo(BeNil())
+			Expect(*snapshot.Spec.Source.PersistentVolumeClaimName).To(Equal(pvcKey.Name))
+
+			for k, v := range wantLabels {
+				Expect(snapshot.Labels[k]).To(Equal(v))
+			}
+			for k, v := range wantAnnotations {
+				Expect(snapshot.Annotations[k]).To(Equal(v))
+			}
+		},
+		Entry("No metadata",
+			&mariadbv1alpha1.PhysicalBackup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "backup-obj",
 					Namespace: "test-ns",
@@ -107,15 +109,14 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 					},
 				},
 			},
-			metadata: nil,
-			wantLabels: map[string]string{
+			nil,
+			map[string]string{
 				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
-			wantAnnotations: map[string]string{},
-		},
-		{
-			name: "Only snapshot metadata",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+			map[string]string{},
+		),
+		Entry("Only snapshot metadata",
+			&mariadbv1alpha1.PhysicalBackup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "backup-obj",
 					Namespace: "test-ns",
@@ -138,18 +139,17 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 					},
 				},
 			},
-			metadata: nil,
-			wantLabels: map[string]string{
+			nil,
+			map[string]string{
 				"snapshot-label":                 "snapshot-value",
 				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
-			wantAnnotations: map[string]string{
+			map[string]string{
 				"snapshot-annotation": "snapshot-annotation-value",
 			},
-		},
-		{
-			name: "Only inherit metadata",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+		),
+		Entry("Only inherit metadata",
+			&mariadbv1alpha1.PhysicalBackup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "backup-obj",
 					Namespace: "test-ns",
@@ -172,18 +172,17 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 					},
 				},
 			},
-			metadata: nil,
-			wantLabels: map[string]string{
+			nil,
+			map[string]string{
 				"custom-label":                   "custom-value",
 				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
-			wantAnnotations: map[string]string{
+			map[string]string{
 				"custom-annotation": "custom-annotation-value",
 			},
-		},
-		{
-			name: "Inherit and snapshot metadata merged",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+		),
+		Entry("Inherit and snapshot metadata merged",
+			&mariadbv1alpha1.PhysicalBackup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -209,20 +208,19 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 					},
 				},
 			},
-			metadata: nil,
-			wantLabels: map[string]string{
+			nil,
+			map[string]string{
 				"custom-label":                   "custom-value",
 				"snapshot-label":                 "snapshot-value",
 				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
-			wantAnnotations: map[string]string{
+			map[string]string{
 				"custom-annotation":   "custom-annotation-value",
 				"snapshot-annotation": "snapshot-annotation-value",
 			},
-		},
-		{
-			name: "Metadata by argument",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+		),
+		Entry("Metadata by argument",
+			&mariadbv1alpha1.PhysicalBackup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
@@ -240,37 +238,17 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 					},
 				},
 			},
-			metadata: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Annotations: map[string]string{
 					metadata.GtidAnnotation: "0-10-1897",
 				},
 			},
-			wantLabels: map[string]string{
+			map[string]string{
 				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
-			wantAnnotations: map[string]string{
+			map[string]string{
 				metadata.GtidAnnotation: "0-10-1897",
 			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			snapshot, err := builder.BuildVolumeSnapshot(key, tt.backup, pvcKey, tt.metadata)
-			assert.NoError(t, err, "unexpected error building VolumeSnapshot")
-			assert.NotNil(t, snapshot, "expected snapshot to be created")
-			assert.Equal(t, key.Name, snapshot.Name)
-			assert.Equal(t, key.Namespace, snapshot.Namespace)
-			assert.Equal(t, "test-class", *snapshot.Spec.VolumeSnapshotClassName)
-			assert.NotNil(t, snapshot.Spec.Source.PersistentVolumeClaimName)
-			assert.Equal(t, pvcKey.Name, *snapshot.Spec.Source.PersistentVolumeClaimName)
-
-			for k, v := range tt.wantLabels {
-				assert.Equal(t, v, snapshot.Labels[k], "expected label %s to be %s", k, v)
-			}
-			for k, v := range tt.wantAnnotations {
-				assert.Equal(t, v, snapshot.Annotations[k], "expected annotation %s to be %s", k, v)
-			}
-		})
-	}
-}
+		),
+	)
+})

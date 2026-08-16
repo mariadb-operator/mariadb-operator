@@ -1,37 +1,38 @@
 package builder
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestServiceMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ServiceMeta", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name: "service",
 	}
-	tests := []struct {
-		name     string
-		opts     ServiceOpts
-		wantMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "no meta",
-			opts: ServiceOpts{
+
+	DescribeTable("should build the Service metadata",
+		func(opts ServiceOpts, wantMeta *mariadbv1alpha1.Metadata) {
+			svc, err := builder.BuildService(key, &mariadbv1alpha1.MariaDB{}, opts)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&svc.ObjectMeta, wantMeta.Labels, wantMeta.Annotations)
+		},
+		Entry("no meta",
+			ServiceOpts{
 				ExtraMeta:             &mariadbv1alpha1.Metadata{},
 				ExcludeSelectorLabels: true,
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "meta",
-			opts: ServiceOpts{
+		),
+		Entry("meta",
+			ServiceOpts{
 				ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
 					Metadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
@@ -44,7 +45,7 @@ func TestServiceMeta(t *testing.T) {
 				},
 				ExcludeSelectorLabels: true,
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -52,10 +53,9 @@ func TestServiceMeta(t *testing.T) {
 					"metallb.io/loadBalancerIPs": "172.18.0.20",
 				},
 			},
-		},
-		{
-			name: "extra meta",
-			opts: ServiceOpts{
+		),
+		Entry("extra meta",
+			ServiceOpts{
 				ExtraMeta: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
@@ -66,7 +66,7 @@ func TestServiceMeta(t *testing.T) {
 				},
 				ExcludeSelectorLabels: true,
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -74,10 +74,9 @@ func TestServiceMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "meta and extra meta",
-			opts: ServiceOpts{
+		),
+		Entry("meta and extra meta",
+			ServiceOpts{
 				ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
 					Metadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
@@ -98,7 +97,7 @@ func TestServiceMeta(t *testing.T) {
 				},
 				ExcludeSelectorLabels: true,
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -107,31 +106,23 @@ func TestServiceMeta(t *testing.T) {
 					"metallb.io/loadBalancerIPs": "172.18.0.20",
 				},
 			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			configMap, err := builder.BuildService(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
-			if err != nil {
-				t.Fatalf("unexpected error building Service: %v", err)
-			}
-			assertObjectMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
-		})
-	}
-}
+		),
+	)
+})
 
-func TestServicePorts(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ServicePorts", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name: "service",
 	}
-	tests := []struct {
-		name string
-		opts ServiceOpts
-	}{
-		{
-			name: "duplicated port names",
-			opts: ServiceOpts{
+
+	DescribeTable("should return an error building the Service",
+		func(opts ServiceOpts) {
+			_, err := builder.BuildService(key, &mariadbv1alpha1.MariaDB{}, opts)
+			Expect(err).To(HaveOccurred())
+		},
+		Entry("duplicated port names",
+			ServiceOpts{
 				Ports: []corev1.ServicePort{
 					{
 						Name: "mariadb",
@@ -144,10 +135,9 @@ func TestServicePorts(t *testing.T) {
 				},
 				ExcludeSelectorLabels: true,
 			},
-		},
-		{
-			name: "duplicated port numbers",
-			opts: ServiceOpts{
+		),
+		Entry("duplicated port numbers",
+			ServiceOpts{
 				Ports: []corev1.ServicePort{
 					{
 						Name: "mariadb",
@@ -160,64 +150,42 @@ func TestServicePorts(t *testing.T) {
 				},
 				ExcludeSelectorLabels: true,
 			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := builder.BuildService(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
-			if err == nil {
-				t.Errorf("expected error building Service but got success\n")
-			}
-		})
-	}
-}
+		),
+	)
+})
 
-func TestServiceLoadBalancerClass(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ServiceLoadBalancerClass", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name: "service",
 	}
 	loadBalancerClass := "tailscale"
-	tests := []struct {
-		name                  string
-		opts                  ServiceOpts
-		wantLoadBalancerClass *string
-	}{
-		{
-			name: "no loadBalancerClass",
-			opts: ServiceOpts{
+
+	DescribeTable("should build the Service LoadBalancerClass",
+		func(opts ServiceOpts, wantLoadBalancerClass *string) {
+			svc, err := builder.BuildService(key, &mariadbv1alpha1.MariaDB{}, opts)
+			Expect(err).NotTo(HaveOccurred())
+			if wantLoadBalancerClass == nil {
+				Expect(svc.Spec.LoadBalancerClass).To(BeNil())
+			} else {
+				Expect(svc.Spec.LoadBalancerClass).NotTo(BeNil())
+				Expect(*svc.Spec.LoadBalancerClass).To(Equal(*wantLoadBalancerClass))
+			}
+		},
+		Entry("no loadBalancerClass",
+			ServiceOpts{
 				ExcludeSelectorLabels: true,
 			},
-			wantLoadBalancerClass: nil,
-		},
-		{
-			name: "with loadBalancerClass",
-			opts: ServiceOpts{
+			nil,
+		),
+		Entry("with loadBalancerClass",
+			ServiceOpts{
 				ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
 					LoadBalancerClass: &loadBalancerClass,
 				},
 				ExcludeSelectorLabels: true,
 			},
-			wantLoadBalancerClass: &loadBalancerClass,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			svc, err := builder.BuildService(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
-			if err != nil {
-				t.Fatalf("unexpected error building Service: %v", err)
-			}
-			if tt.wantLoadBalancerClass == nil {
-				if svc.Spec.LoadBalancerClass != nil {
-					t.Errorf("expected nil LoadBalancerClass, got %v", *svc.Spec.LoadBalancerClass)
-				}
-			} else {
-				if svc.Spec.LoadBalancerClass == nil {
-					t.Errorf("expected LoadBalancerClass %v, got nil", *tt.wantLoadBalancerClass)
-				} else if *svc.Spec.LoadBalancerClass != *tt.wantLoadBalancerClass {
-					t.Errorf("expected LoadBalancerClass %v, got %v", *tt.wantLoadBalancerClass, *svc.Spec.LoadBalancerClass)
-				}
-			}
-		})
-	}
-}
+			&loadBalancerClass,
+		),
+	)
+})

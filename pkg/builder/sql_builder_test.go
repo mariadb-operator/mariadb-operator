@@ -1,35 +1,34 @@
 package builder
 
 import (
-	"reflect"
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
 
-func TestUserMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("UserMeta", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name: "user",
 	}
-	tests := []struct {
-		name     string
-		opts     UserOpts
-		wantMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "no meta",
-			opts: UserOpts{},
-			wantMeta: &mariadbv1alpha1.Metadata{
+	DescribeTable("BuildUser meta",
+		func(opts UserOpts, wantMeta *mariadbv1alpha1.Metadata) {
+			user, err := builder.BuildUser(key, &mariadbv1alpha1.MariaDB{}, opts)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&user.ObjectMeta, wantMeta.Labels, wantMeta.Annotations)
+		},
+		Entry("no meta",
+			UserOpts{},
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "meta",
-			opts: UserOpts{
+		),
+		Entry("meta",
+			UserOpts{
 				Metadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
@@ -39,7 +38,7 @@ func TestUserMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -47,76 +46,54 @@ func TestUserMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			user, err := builder.BuildUser(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
-			if err != nil {
-				t.Fatalf("unexpected error building User: %v", err)
-			}
-			assertObjectMeta(t, &user.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
-		})
-	}
-}
+		),
+	)
+})
 
-func TestUserCleanupPolicy(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("UserCleanupPolicy", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name: "user",
 	}
-	tests := []struct {
-		name              string
-		opts              UserOpts
-		wantCleanupPolicy *mariadbv1alpha1.CleanupPolicy
-	}{
-		{
-			name:              "no cleanupPolicy",
-			opts:              UserOpts{},
-			wantCleanupPolicy: nil,
+	DescribeTable("BuildUser cleanupPolicy",
+		func(opts UserOpts, wantCleanupPolicy *mariadbv1alpha1.CleanupPolicy) {
+			user, err := builder.BuildUser(key, &mariadbv1alpha1.MariaDB{}, opts)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(user.Spec.CleanupPolicy).To(Equal(wantCleanupPolicy))
 		},
-		{
-			name: "cleanupPolicy",
-			opts: UserOpts{
+		Entry("no cleanupPolicy",
+			UserOpts{},
+			nil,
+		),
+		Entry("cleanupPolicy",
+			UserOpts{
 				CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 			},
-			wantCleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			user, err := builder.BuildUser(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
-			if err != nil {
-				t.Fatalf("unexpected error building User: %v", err)
-			}
-			if !reflect.DeepEqual(user.Spec.CleanupPolicy, tt.wantCleanupPolicy) {
-				t.Errorf("unexpected cleanupPolicy: got: %v, want: %v", user.Spec.CleanupPolicy, tt.wantCleanupPolicy)
-			}
-		})
-	}
-}
+			ptr.To(mariadbv1alpha1.CleanupPolicySkip),
+		),
+	)
+})
 
-func TestGrantMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GrantMeta", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name: "grant",
 	}
-	tests := []struct {
-		name     string
-		opts     GrantOpts
-		wantMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "no meta",
-			opts: GrantOpts{},
-			wantMeta: &mariadbv1alpha1.Metadata{
+	DescribeTable("BuildGrant meta",
+		func(opts GrantOpts, wantMeta *mariadbv1alpha1.Metadata) {
+			grant, err := builder.BuildGrant(key, &mariadbv1alpha1.MariaDB{}, opts)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&grant.ObjectMeta, wantMeta.Labels, wantMeta.Annotations)
+		},
+		Entry("no meta",
+			GrantOpts{},
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "meta",
-			opts: GrantOpts{
+		),
+		Entry("meta",
+			GrantOpts{
 				Metadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
@@ -126,7 +103,7 @@ func TestGrantMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -134,87 +111,54 @@ func TestGrantMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			grant, err := builder.BuildGrant(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
-			if err != nil {
-				t.Fatalf("unexpected error building Grant: %v", err)
-			}
-			assertObjectMeta(t, &grant.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
-		})
-	}
-}
+		),
+	)
+})
 
-func TestGrantCleanupPolicy(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GrantCleanupPolicy", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name: "grant",
 	}
-	tests := []struct {
-		name              string
-		opts              GrantOpts
-		wantCleanupPolicy *mariadbv1alpha1.CleanupPolicy
-	}{
-		{
-			name:              "no cleanupPolicy",
-			opts:              GrantOpts{},
-			wantCleanupPolicy: nil,
+	DescribeTable("BuildGrant cleanupPolicy",
+		func(opts GrantOpts, wantCleanupPolicy *mariadbv1alpha1.CleanupPolicy) {
+			grant, err := builder.BuildGrant(key, &mariadbv1alpha1.MariaDB{}, opts)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(grant.Spec.CleanupPolicy).To(Equal(wantCleanupPolicy))
 		},
-		{
-			name: "cleanupPolicy",
-			opts: GrantOpts{
+		Entry("no cleanupPolicy",
+			GrantOpts{},
+			nil,
+		),
+		Entry("cleanupPolicy",
+			GrantOpts{
 				CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 			},
-			wantCleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			grant, err := builder.BuildGrant(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
-			if err != nil {
-				t.Fatalf("unexpected error building Grant: %v", err)
-			}
-			if !reflect.DeepEqual(grant.Spec.CleanupPolicy, tt.wantCleanupPolicy) {
-				t.Errorf("unexpected cleanupPolicy: got: %v, want: %v", grant.Spec.CleanupPolicy, tt.wantCleanupPolicy)
-			}
-		})
-	}
-}
+			ptr.To(mariadbv1alpha1.CleanupPolicySkip),
+		),
+	)
+})
 
-func TestDatabaseCleanupPolicy(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("DatabaseCleanupPolicy", func() {
+	builder := newDefaultTestBuilder()
 	key := types.NamespacedName{
 		Name: "database",
 	}
-	tests := []struct {
-		name              string
-		opts              DatabaseOpts
-		wantCleanupPolicy *mariadbv1alpha1.CleanupPolicy
-	}{
-		{
-			name:              "no cleanupPolicy",
-			opts:              DatabaseOpts{},
-			wantCleanupPolicy: nil,
+	DescribeTable("BuildDatabase cleanupPolicy",
+		func(opts DatabaseOpts, wantCleanupPolicy *mariadbv1alpha1.CleanupPolicy) {
+			database, err := builder.BuildDatabase(key, &mariadbv1alpha1.MariaDB{}, opts)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(database.Spec.CleanupPolicy).To(Equal(wantCleanupPolicy))
 		},
-		{
-			name: "cleanupPolicy",
-			opts: DatabaseOpts{
+		Entry("no cleanupPolicy",
+			DatabaseOpts{},
+			nil,
+		),
+		Entry("cleanupPolicy",
+			DatabaseOpts{
 				CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 			},
-			wantCleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			database, err := builder.BuildDatabase(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
-			if err != nil {
-				t.Fatalf("unexpected error building Database: %v", err)
-			}
-			if !reflect.DeepEqual(database.Spec.CleanupPolicy, tt.wantCleanupPolicy) {
-				t.Errorf("unexpected cleanupPolicy: got: %v, want: %v", database.Spec.CleanupPolicy, tt.wantCleanupPolicy)
-			}
-		})
-	}
-}
+			ptr.To(mariadbv1alpha1.CleanupPolicySkip),
+		),
+	)
+})

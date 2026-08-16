@@ -1,8 +1,7 @@
 package builder
 
 import (
-	"reflect"
-	"testing"
+	. "github.com/onsi/gomega"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
@@ -40,34 +39,28 @@ func newTestBuilder(discovery *discovery.Discovery) *Builder {
 	return builder
 }
 
-func newDefaultTestBuilder(t *testing.T) *Builder {
+func newDefaultTestBuilder() *Builder {
 	discovery, err := discovery.NewFakeDiscovery()
-	if err != nil {
-		t.Fatalf("unexpected error creating discovery: %v", err)
-	}
+	Expect(err).NotTo(HaveOccurred())
 	return newTestBuilder(discovery)
 }
 
-func assertObjectMeta(t *testing.T, objMeta *metav1.ObjectMeta, wantLabels, wantAnnotations map[string]string) {
-	if objMeta == nil {
-		t.Fatal("expecting object metadata to not be nil")
+func assertObjectMeta(objMeta *metav1.ObjectMeta, wantLabels, wantAnnotations map[string]string) {
+	Expect(objMeta).NotTo(BeNil())
+	if wantLabels != nil {
+		Expect(objMeta.Labels).To(Equal(wantLabels))
 	}
-	if wantLabels != nil && !reflect.DeepEqual(wantLabels, objMeta.Labels) {
-		t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, objMeta.Labels)
-	}
-	if wantAnnotations != nil && !reflect.DeepEqual(wantAnnotations, objMeta.Annotations) {
-		t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, objMeta.Annotations)
+	if wantAnnotations != nil {
+		Expect(objMeta.Annotations).To(Equal(wantAnnotations))
 	}
 }
 
-func assertMeta(t *testing.T, meta *mariadbv1alpha1.Metadata, wantLabels, wantAnnotations map[string]string) {
-	if meta == nil {
-		t.Fatal("expecting metadata to not be nil")
+func assertMeta(meta *mariadbv1alpha1.Metadata, wantLabels, wantAnnotations map[string]string) {
+	Expect(meta).NotTo(BeNil())
+	if wantLabels != nil {
+		Expect(meta.Labels).To(Equal(wantLabels))
 	}
-	if wantLabels != nil && !reflect.DeepEqual(wantLabels, meta.Labels) {
-		t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, meta.Labels)
-	}
-	if wantAnnotations != nil && !reflect.DeepEqual(wantAnnotations, meta.Annotations) {
-		t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, meta.Annotations)
+	if wantAnnotations != nil {
+		Expect(meta.Annotations).To(Equal(wantAnnotations))
 	}
 }

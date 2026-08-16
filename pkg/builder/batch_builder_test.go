@@ -1,18 +1,18 @@
 package builder
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
-	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
-	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -22,22 +22,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func TestBackupJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("BackupJobImagePullSecrets", func() {
 	objMeta := metav1.ObjectMeta{
 		Name:      "backup-image-pull-secrets",
 		Namespace: "test",
 	}
-
-	tests := []struct {
-		name            string
-		backup          *mariadbv1alpha1.Backup
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			backup: &mariadbv1alpha1.Backup{
+	DescribeTable("BuildBackupJob ImagePullSecrets",
+		func(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB, wantPullSecrets []corev1.LocalObjectReference) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildBackupJob(client.ObjectKeyFromObject(backup), backup, mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(Equal(wantPullSecrets))
+		},
+		Entry("No Secrets",
+			&mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -50,15 +48,14 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec:       mariadbv1alpha1.MariaDBSpec{},
 			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			backup: &mariadbv1alpha1.Backup{
+			nil,
+		),
+		Entry("Secrets in MariaDB",
+			&mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -71,7 +68,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -83,15 +80,14 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in Backup",
-			backup: &mariadbv1alpha1.Backup{
+		),
+		Entry("Secrets in Backup",
+			&mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
@@ -111,19 +107,18 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec:       mariadbv1alpha1.MariaDBSpec{},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "backup-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in MariaDB and Backup",
-			backup: &mariadbv1alpha1.Backup{
+		),
+		Entry("Secrets in MariaDB and Backup",
+			&mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
@@ -143,7 +138,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -155,7 +150,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
@@ -163,43 +158,19 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 					Name: "backup-registry",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildBackupJob(client.ObjectKeyFromObject(tt.backup), tt.backup, tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-// While this test tests mainly the kubernetes_volume_types.go implementation, it still makes a lot of sense to do it
-// here as we get the bonus test coverage if the job building code correctly creates our volume sources. Because of this
-// we only need to do this for backup and not restore.
-// NOTE: We are using a lot of reflection to also capture cases in which a new field is added to the StorageVolumeSource
-// but simply not properly implemented in any of the remaining code. If we would only test for static fields, this test
-// would still pass while this new field would not be properly covered by a test.
-func TestBackupJobVolumeSource(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("BackupJobVolumeSource", func() {
 	objMeta := metav1.ObjectMeta{
 		Name:      "backup-volume-source",
 		Namespace: "test",
 	}
-
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: objMeta,
 		Spec:       mariadbv1alpha1.MariaDBSpec{},
 	}
-
-	// To make our testing easier (see our reflection code below), we define a single volume source that has ALL volume
-	// source fields set!
-	// NOTE: Our test does NOT check if the actual values are correct in the final job and corev1.VolumeSource.
 	volumeSources := mariadbv1alpha1.StorageVolumeSource{
 		EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
 		NFS: &mariadbv1alpha1.NFSVolumeSource{
@@ -218,20 +189,16 @@ func TestBackupJobVolumeSource(t *testing.T) {
 			ClaimName: "test-pvc",
 		},
 	}
-
 	storageVolumeSourceType := reflect.TypeOf(volumeSources)
 	storageVolumeSourceValue := reflect.ValueOf(volumeSources)
 
 	for i := 0; i < storageVolumeSourceType.NumField(); i++ {
 		field := storageVolumeSourceType.Field(i)
-
-		// To prevent our code from being too fragile (as many of the copy code uses ifs without early aborts), we want
-		// to create a plain StorageVolumeSource with only a single field set. So we need to "dynamically" copy over
-		// from our volumeSources into this new volume source.
 		volumeSource := mariadbv1alpha1.StorageVolumeSource{}
 		reflect.ValueOf(&volumeSource).Elem().FieldByName(field.Name).Set(storageVolumeSourceValue.FieldByName(field.Name))
 
-		t.Run(field.Name, func(t *testing.T) {
+		It(field.Name, func() {
+			builder := newDefaultTestBuilder()
 			backup := &mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
@@ -247,54 +214,45 @@ func TestBackupJobVolumeSource(t *testing.T) {
 			}
 
 			job, err := builder.BuildBackupJob(client.ObjectKeyFromObject(backup), backup, mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
+			Expect(err).NotTo(HaveOccurred())
 
 			coreVolumeSourceValue := reflect.ValueOf(*getVolumeSource(batchStorageVolume, job))
-			if coreVolumeSourceValue.FieldByName(field.Name).IsNil() {
-				// NOTE: Ensure, the field is copied in `func (v StorageVolumeSource) ToKubernetesType()
-				// corev1.VolumeSource`.
-				t.Fatalf("The volume source field '%s' is not properly implemented as it is nil in corev1.VolumeSource.", field.Name)
-			}
-
+			Expect(coreVolumeSourceValue.FieldByName(field.Name).IsNil()).To(BeFalse())
 		})
 	}
+})
 
-}
-
-func TestBackupJobMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("BackupJobMeta", func() {
 	key := types.NamespacedName{
 		Name: "backup-job",
 	}
-	tests := []struct {
-		name        string
-		backup      *mariadbv1alpha1.Backup
-		wantJobMeta *mariadbv1alpha1.Metadata
-		wantPodMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "empty",
-			backup: &mariadbv1alpha1.Backup{
+	DescribeTable("BuildBackupJob Meta",
+		func(backup *mariadbv1alpha1.Backup, wantJobMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildBackupJob(key, backup, &mariadbv1alpha1.MariaDB{})
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&job.ObjectMeta, wantJobMeta.Labels, wantJobMeta.Annotations)
+			assertObjectMeta(&job.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+		},
+		Entry("empty",
+			&mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit metadata",
-			backup: &mariadbv1alpha1.Backup{
+		),
+		Entry("inherit metadata",
+			&mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
@@ -309,7 +267,7 @@ func TestBackupJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -317,7 +275,7 @@ func TestBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -325,10 +283,9 @@ func TestBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "Pod meta",
-			backup: &mariadbv1alpha1.Backup{
+		),
+		Entry("Pod meta",
+			&mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
@@ -345,11 +302,11 @@ func TestBackupJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -357,10 +314,9 @@ func TestBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "override inherit metadata",
-			backup: &mariadbv1alpha1.Backup{
+		),
+		Entry("override inherit metadata",
+			&mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
@@ -385,7 +341,7 @@ func TestBackupJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "true",
 				},
@@ -393,7 +349,7 @@ func TestBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -401,10 +357,9 @@ func TestBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "all",
-			backup: &mariadbv1alpha1.Backup{
+		),
+		Entry("all",
+			&mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
 						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
@@ -423,13 +378,13 @@ func TestBackupJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -437,23 +392,11 @@ func TestBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildBackupJob(key, tt.backup, &mariadbv1alpha1.MariaDB{})
-			if err != nil {
-				t.Fatalf("unexpected error building Backup Job: %v", err)
-			}
-			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-		})
-	}
-}
-
-func TestPhysicalBackupJobPodAffinity(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("PhysicalBackupJobPodAffinity", func() {
 	podObjMeta := metav1.ObjectMeta{
 		Name: "mariadb-0",
 	}
@@ -463,29 +406,48 @@ func TestPhysicalBackupJobPodAffinity(t *testing.T) {
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{},
 	}
+	DescribeTable("BuildPhysicalBackupJob PodAffinity",
+		func(backup *mariadbv1alpha1.PhysicalBackup, pod *corev1.Pod, wantErr bool, wantPodAffinity bool) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildPhysicalBackupJob(
+				client.ObjectKeyFromObject(backup),
+				backup,
+				mariadb,
+				pod,
+				"backupfile",
+			)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+				return
+			}
+			Expect(err).NotTo(HaveOccurred())
+			affinity := job.Spec.Template.Spec.Affinity
+			if wantPodAffinity {
+				Expect(affinity).NotTo(BeNil())
+				Expect(affinity.PodAffinity).NotTo(BeNil())
+				Expect(affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution).NotTo(BeEmpty())
 
-	tests := []struct {
-		name            string
-		backup          *mariadbv1alpha1.PhysicalBackup
-		pod             *corev1.Pod
-		wantErr         bool
-		wantPodAffinity bool
-	}{
-		{
-			name:   "error when pod nodeName is empty",
-			backup: &mariadbv1alpha1.PhysicalBackup{},
-			pod: &corev1.Pod{
+				term := affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution[0]
+				Expect(term.TopologyKey).To(Equal("kubernetes.io/hostname"))
+				Expect(term.LabelSelector.MatchLabels["app.kubernetes.io/instance"]).To(Equal(mariadb.Name))
+				Expect(term.LabelSelector.MatchLabels["statefulset.kubernetes.io/pod-name"]).To(Equal(pod.Name))
+			} else {
+				Expect(affinity == nil || affinity.PodAffinity == nil).To(BeTrue())
+			}
+		},
+		Entry("error when pod nodeName is empty",
+			&mariadbv1alpha1.PhysicalBackup{},
+			&corev1.Pod{
 				ObjectMeta: podObjMeta,
 				Spec: corev1.PodSpec{
 					NodeName: "",
 				},
 			},
-			wantErr:         true,
-			wantPodAffinity: false,
-		},
-		{
-			name: "podAffinity set when podAffinity is true (default)",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+			true,
+			false,
+		),
+		Entry("podAffinity set when podAffinity is true (default)",
+			&mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -494,18 +456,17 @@ func TestPhysicalBackupJobPodAffinity(t *testing.T) {
 					},
 				},
 			},
-			pod: &corev1.Pod{
+			&corev1.Pod{
 				ObjectMeta: podObjMeta,
 				Spec: corev1.PodSpec{
 					NodeName: "node-1",
 				},
 			},
-			wantErr:         false,
-			wantPodAffinity: true,
-		},
-		{
-			name: "podAffinity set when podAffinity is true (explicit)",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+			false,
+			true,
+		),
+		Entry("podAffinity set when podAffinity is true (explicit)",
+			&mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					PodAffinity: ptr.To(true),
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
@@ -515,18 +476,17 @@ func TestPhysicalBackupJobPodAffinity(t *testing.T) {
 					},
 				},
 			},
-			pod: &corev1.Pod{
+			&corev1.Pod{
 				ObjectMeta: podObjMeta,
 				Spec: corev1.PodSpec{
 					NodeName: "node-1",
 				},
 			},
-			wantErr:         false,
-			wantPodAffinity: true,
-		},
-		{
-			name: "podAffinity not set when podAffinity is false",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+			false,
+			true,
+		),
+		Entry("podAffinity not set when podAffinity is false",
+			&mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					PodAffinity: ptr.To(false),
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
@@ -536,58 +496,19 @@ func TestPhysicalBackupJobPodAffinity(t *testing.T) {
 					},
 				},
 			},
-			pod: &corev1.Pod{
+			&corev1.Pod{
 				ObjectMeta: podObjMeta,
 				Spec: corev1.PodSpec{
 					NodeName: "node-1",
 				},
 			},
-			wantErr:         false,
-			wantPodAffinity: false,
-		},
-	}
+			false,
+			false,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildPhysicalBackupJob(
-				client.ObjectKeyFromObject(tt.backup),
-				tt.backup,
-				mariadb,
-				tt.pod,
-				"backupfile",
-			)
-			if tt.wantErr {
-				if err == nil {
-					t.Fatalf("expected error but got none")
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			affinity := job.Spec.Template.Spec.Affinity
-			if tt.wantPodAffinity {
-				assert.NotNil(t, affinity, "expected affinity to be set")
-				assert.NotNil(t, affinity.PodAffinity, "expected podAffinity to be set")
-				assert.NotEmpty(t, affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution, "expected required pod affinity terms")
-
-				term := affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution[0]
-				assert.Equal(t, "kubernetes.io/hostname", term.TopologyKey)
-				assert.Equal(t, mariadb.Name, term.LabelSelector.MatchLabels["app.kubernetes.io/instance"])
-				assert.Equal(t, tt.pod.Name, term.LabelSelector.MatchLabels["statefulset.kubernetes.io/pod-name"])
-			} else {
-				assert.True(
-					t,
-					affinity == nil || affinity.PodAffinity == nil,
-					fmt.Errorf("expected affinity to be nil or not have podAffinity, got %v", affinity),
-				)
-			}
-		})
-	}
-}
-
-func TestPhysicalBackupJobMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("PhysicalBackupJobMeta", func() {
 	key := types.NamespacedName{
 		Name: "physical-backup-job",
 	}
@@ -599,15 +520,16 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 			NodeName: "node-1",
 		},
 	}
-	tests := []struct {
-		name        string
-		backup      *mariadbv1alpha1.PhysicalBackup
-		wantJobMeta *mariadbv1alpha1.Metadata
-		wantPodMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "empty",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+	DescribeTable("BuildPhysicalBackupJob Meta",
+		func(backup *mariadbv1alpha1.PhysicalBackup, wantJobMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildPhysicalBackupJob(key, backup, &mariadbv1alpha1.MariaDB{}, pod, "backupfile")
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&job.ObjectMeta, wantJobMeta.Labels, wantJobMeta.Annotations)
+			assertObjectMeta(&job.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+		},
+		Entry("empty",
+			&mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -616,18 +538,17 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit metadata",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+		),
+		Entry("inherit metadata",
+			&mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -644,7 +565,7 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -652,7 +573,7 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -660,10 +581,9 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "Pod meta",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+		),
+		Entry("Pod meta",
+			&mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -682,11 +602,11 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -694,10 +614,9 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "override inherit metadata",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+		),
+		Entry("override inherit metadata",
+			&mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -724,7 +643,7 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "true",
 				},
@@ -732,7 +651,7 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -740,10 +659,9 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "all",
-			backup: &mariadbv1alpha1.PhysicalBackup{
+		),
+		Entry("all",
+			&mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -764,13 +682,13 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -778,23 +696,11 @@ func TestPhysicalBackupJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildPhysicalBackupJob(key, tt.backup, &mariadbv1alpha1.MariaDB{}, pod, "backupfile")
-			if err != nil {
-				t.Fatalf("unexpected error building PhysicalBackup Job: %v", err)
-			}
-			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-		})
-	}
-}
-
-func TestPhysicalBackupJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("PhysicalBackupJobImagePullSecrets", func() {
 	objMeta := metav1.ObjectMeta{
 		Name:      "physical-backup-image-pull-secrets",
 		Namespace: "test",
@@ -811,184 +717,133 @@ func TestPhysicalBackupJobImagePullSecrets(t *testing.T) {
 			NodeName: "node-1",
 		},
 	}
-
-	tests := []struct {
-		name            string
-		backup          *mariadbv1alpha1.PhysicalBackup
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			backup: &mariadbv1alpha1.PhysicalBackup{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.PhysicalBackupSpec{
-					Storage: mariadbv1alpha1.PhysicalBackupStorage{
-						Volume: &mariadbv1alpha1.StorageVolumeSource{
-							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
-						},
-					},
-				},
-			},
-			mariadb:         mariadb,
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			backup: &mariadbv1alpha1.PhysicalBackup{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.PhysicalBackupSpec{
-					Storage: mariadbv1alpha1.PhysicalBackupStorage{
-						Volume: &mariadbv1alpha1.StorageVolumeSource{
-							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
-						},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
-							{
-								Name: "mariadb-registry",
-							},
-						},
-					},
-				},
-			},
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "mariadb-registry",
-				},
-			},
-		},
-		{
-			name: "Secrets in PhysicalBackup",
-			backup: &mariadbv1alpha1.PhysicalBackup{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.PhysicalBackupSpec{
-					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
-						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
-							{
-								Name: "physicalbackup-registry",
-							},
-						},
-					},
-					Storage: mariadbv1alpha1.PhysicalBackupStorage{
-						Volume: &mariadbv1alpha1.StorageVolumeSource{
-							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
-						},
-					},
-				},
-			},
-			mariadb: mariadb,
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "physicalbackup-registry",
-				},
-			},
-		},
-		{
-			name: "Secrets in MariaDB and PhysicalBackup",
-			backup: &mariadbv1alpha1.PhysicalBackup{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.PhysicalBackupSpec{
-					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
-						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
-							{
-								Name: "physicalbackup-registry",
-							},
-						},
-					},
-					Storage: mariadbv1alpha1.PhysicalBackupStorage{
-						Volume: &mariadbv1alpha1.StorageVolumeSource{
-							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
-						},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
-							{
-								Name: "mariadb-registry",
-							},
-						},
-					},
-				},
-			},
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "mariadb-registry",
-				},
-				{
-					Name: "physicalbackup-registry",
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	DescribeTable("BuildPhysicalBackupJob ImagePullSecrets",
+		func(backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB, wantPullSecrets []corev1.LocalObjectReference) {
+			builder := newDefaultTestBuilder()
 			job, err := builder.BuildPhysicalBackupJob(
-				client.ObjectKeyFromObject(tt.backup),
-				tt.backup,
-				tt.mariadb,
+				client.ObjectKeyFromObject(backup),
+				backup,
+				mariadb,
 				pod,
 				"backupfile",
 			)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestPhysicalBackupJobInitContainers(t *testing.T) {
-	tests := []struct {
-		name               string
-		mariadb            *mariadbv1alpha1.MariaDB
-		wantInitContainers []string
-	}{
-		{
-			name: "Point-in-time recovery disabled",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("1Gi")),
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(Equal(wantPullSecrets))
+		},
+		Entry("No Secrets",
+			&mariadbv1alpha1.PhysicalBackup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
 					},
 				},
 			},
-			wantInitContainers: []string{"mariadb"},
-		},
-		{
-			name: "Replication and point-in-time recovery enabled",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PointInTimeRecoveryRef: &mariadbv1alpha1.LocalObjectReference{
-						Name: "test",
-					},
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-					},
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("1Gi")),
+			mariadb,
+			nil,
+		),
+		Entry("Secrets in MariaDB",
+			&mariadbv1alpha1.PhysicalBackup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
 					},
 				},
 			},
-			wantInitContainers: []string{"mariadb", "backup-meta"},
-		},
-	}
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			[]corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+			},
+		),
+		Entry("Secrets in PhysicalBackup",
+			&mariadbv1alpha1.PhysicalBackup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
+							{
+								Name: "physicalbackup-registry",
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			mariadb,
+			[]corev1.LocalObjectReference{
+				{
+					Name: "physicalbackup-registry",
+				},
+			},
+		),
+		Entry("Secrets in MariaDB and PhysicalBackup",
+			&mariadbv1alpha1.PhysicalBackup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
+							{
+								Name: "physicalbackup-registry",
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			[]corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+				{
+					Name: "physicalbackup-registry",
+				},
+			},
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			builder := newDefaultTestBuilder(t)
+var _ = Describe("PhysicalBackupJobInitContainers", func() {
+	DescribeTable("BuildPhysicalBackupJob InitContainers",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantInitContainers []string) {
+			builder := newDefaultTestBuilder()
 
 			key := types.NamespacedName{
 				Name:      "test-backup",
@@ -1014,36 +869,60 @@ func TestPhysicalBackupJobInitContainers(t *testing.T) {
 				},
 			}
 
-			job, err := builder.BuildPhysicalBackupJob(key, backup, tt.mariadb, pod, "backup.xb.bz2")
+			job, err := builder.BuildPhysicalBackupJob(key, backup, mariadb, pod, "backup.xb.bz2")
 
-			assert.NoError(t, err)
-			assert.NotNil(t, job)
-			assert.NotNil(t, job.Spec.Template.Spec.InitContainers)
-			assert.Len(t, job.Spec.Template.Spec.InitContainers, len(tt.wantInitContainers))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job).NotTo(BeNil())
+			Expect(job.Spec.Template.Spec.InitContainers).NotTo(BeNil())
+			Expect(job.Spec.Template.Spec.InitContainers).To(HaveLen(len(wantInitContainers)))
 
 			for i, container := range job.Spec.Template.Spec.InitContainers {
-				assert.Equal(t, tt.wantInitContainers[i], container.Name)
+				Expect(container.Name).To(Equal(wantInitContainers[i]))
 			}
-		})
-	}
-}
+		},
+		Entry("Point-in-time recovery disabled",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+				},
+			},
+			[]string{"mariadb"},
+		),
+		Entry("Replication and point-in-time recovery enabled",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PointInTimeRecoveryRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "test",
+					},
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+				},
+			},
+			[]string{"mariadb", "backup-meta"},
+		),
+	)
+})
 
-func TestRestoreJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("RestoreJobImagePullSecrets", func() {
 	objMeta := metav1.ObjectMeta{
 		Name:      "restore-image-pull-secrets",
 		Namespace: "test",
 	}
-
-	tests := []struct {
-		name            string
-		restore         *mariadbv1alpha1.Restore
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			restore: &mariadbv1alpha1.Restore{
+	DescribeTable("BuildRestoreJob ImagePullSecrets",
+		func(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB, wantPullSecrets []corev1.LocalObjectReference) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildRestoreJob(client.ObjectKeyFromObject(restore), restore, mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(Equal(wantPullSecrets))
+		},
+		Entry("No Secrets",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -1056,15 +935,14 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec:       mariadbv1alpha1.MariaDBSpec{},
 			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			restore: &mariadbv1alpha1.Restore{
+			nil,
+		),
+		Entry("Secrets in MariaDB",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -1077,7 +955,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -1089,15 +967,14 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in Restore",
-			restore: &mariadbv1alpha1.Restore{
+		),
+		Entry("Secrets in Restore",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
@@ -1117,19 +994,18 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec:       mariadbv1alpha1.MariaDBSpec{},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "restore-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in MariaDB and Restore",
-			restore: &mariadbv1alpha1.Restore{
+		),
+		Entry("Secrets in MariaDB and Restore",
+			&mariadbv1alpha1.Restore{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
@@ -1149,7 +1025,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -1161,7 +1037,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
@@ -1169,36 +1045,24 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 					Name: "restore-registry",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildRestoreJob(client.ObjectKeyFromObject(tt.restore), tt.restore, tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestRestoreJobMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("RestoreJobMeta", func() {
 	key := types.NamespacedName{
 		Name: "restore-job",
 	}
-	tests := []struct {
-		name        string
-		restore     *mariadbv1alpha1.Restore
-		wantJobMeta *mariadbv1alpha1.Metadata
-		wantPodMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "empty",
-			restore: &mariadbv1alpha1.Restore{
+	DescribeTable("BuildRestoreJob Meta",
+		func(restore *mariadbv1alpha1.Restore, wantJobMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildRestoreJob(key, restore, &mariadbv1alpha1.MariaDB{})
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&job.ObjectMeta, wantJobMeta.Labels, wantJobMeta.Annotations)
+			assertObjectMeta(&job.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+		},
+		Entry("empty",
+			&mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -1208,18 +1072,17 @@ func TestRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit metadata",
-			restore: &mariadbv1alpha1.Restore{
+		),
+		Entry("inherit metadata",
+			&mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -1237,7 +1100,7 @@ func TestRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1245,7 +1108,7 @@ func TestRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1253,10 +1116,9 @@ func TestRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "Pod meta",
-			restore: &mariadbv1alpha1.Restore{
+		),
+		Entry("Pod meta",
+			&mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -1276,11 +1138,11 @@ func TestRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1288,10 +1150,9 @@ func TestRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "override inherit metadata",
-			restore: &mariadbv1alpha1.Restore{
+		),
+		Entry("override inherit metadata",
+			&mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -1319,7 +1180,7 @@ func TestRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "true",
 				},
@@ -1327,7 +1188,7 @@ func TestRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1335,10 +1196,9 @@ func TestRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "all",
-			restore: &mariadbv1alpha1.Restore{
+		),
+		Entry("all",
+			&mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.StorageVolumeSource{
@@ -1360,13 +1220,13 @@ func TestRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1374,66 +1234,49 @@ func TestRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildRestoreJob(key, tt.restore, &mariadbv1alpha1.MariaDB{})
-			if err != nil {
-				t.Fatalf("unexpected error building Restore Job: %v", err)
-			}
-			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-		})
-	}
-}
-
-func TestPhysicalBackupRestoreJobSelectorLabels(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	key := types.NamespacedName{
-		Name:      "physical-backup-restore-job",
-		Namespace: "test",
-	}
-
-	// Setup MariaDB with BootstrapFrom and selector labels
-	mariadb := &mariadbv1alpha1.MariaDB{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mariadb-test",
+var _ = Describe("PhysicalBackupRestoreJobSelectorLabels", func() {
+	It("sets selector labels on the pod template", func() {
+		builder := newDefaultTestBuilder()
+		key := types.NamespacedName{
+			Name:      "physical-backup-restore-job",
 			Namespace: "test",
-		},
-		Spec: mariadbv1alpha1.MariaDBSpec{
-			BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
-				Volume: &mariadbv1alpha1.StorageVolumeSource{
-					EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+		}
+
+		mariadb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mariadb-test",
+				Namespace: "test",
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
+						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+					},
 				},
 			},
-		},
-	}
-	podIndex := ptr.To(0)
-
-	job, err := builder.BuildPhysicalBackupRestoreJob(
-		key,
-		mariadb,
-		podIndex,
-		WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
-	)
-	if err != nil {
-		t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
-	}
-
-	// The selector labels should be present in the pod template metadata
-	selectorLabels := labels.NewLabelsBuilder().WithMariaDBSelectorLabels(mariadb).Build()
-	for k, v := range selectorLabels {
-		got := job.Spec.Template.Labels[k]
-		if got != v {
-			t.Errorf("expected selector label %q=%q, got %q", k, v, got)
 		}
-	}
-}
+		podIndex := ptr.To(0)
 
-func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+		job, err := builder.BuildPhysicalBackupRestoreJob(
+			key,
+			mariadb,
+			podIndex,
+			WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		selectorLabels := labels.NewLabelsBuilder().WithMariaDBSelectorLabels(mariadb).Build()
+		for k, v := range selectorLabels {
+			Expect(job.Spec.Template.Labels[k]).To(Equal(v))
+		}
+	})
+})
+
+var _ = Describe("PhysicalBackupRestoreJobMeta", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
@@ -1441,16 +1284,22 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 		Name:      "physical-backup-restore-job-meta",
 		Namespace: "test",
 	}
-
-	tests := []struct {
-		name        string
-		mariadb     *mariadbv1alpha1.MariaDB
-		wantJobMeta *mariadbv1alpha1.Metadata
-		wantPodMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "empty",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	podIndex := ptr.To(0)
+	DescribeTable("BuildPhysicalBackupRestoreJob Meta",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantJobMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildPhysicalBackupRestoreJob(
+				key,
+				mariadb,
+				podIndex,
+				WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&job.ObjectMeta, wantJobMeta.Labels, wantJobMeta.Annotations)
+			assertObjectMeta(&job.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+		},
+		Entry("empty",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
@@ -1460,21 +1309,20 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
 				},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit metadata",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("inherit metadata",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
@@ -1492,7 +1340,7 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1500,7 +1348,7 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject":    "false",
 					"app.kubernetes.io/name":     "mariadb",
@@ -1510,10 +1358,9 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "Pod meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("Pod meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
@@ -1533,11 +1380,11 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject":    "false",
 					"app.kubernetes.io/name":     "mariadb",
@@ -1547,10 +1394,9 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "override inherit metadata",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("override inherit metadata",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
@@ -1580,7 +1426,7 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "true",
 				},
@@ -1588,7 +1434,7 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject":    "false",
 					"app.kubernetes.io/name":     "mariadb",
@@ -1598,10 +1444,9 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "all",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("all",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
@@ -1623,13 +1468,13 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject":    "false",
 					"app.kubernetes.io/name":     "mariadb",
@@ -1639,29 +1484,11 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	podIndex := ptr.To(0)
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildPhysicalBackupRestoreJob(
-				key,
-				tt.mariadb,
-				podIndex,
-				WithBootstrapFrom(tt.mariadb.Spec.BootstrapFrom),
-			)
-			if err != nil {
-				t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
-			}
-			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-		})
-	}
-}
-
-func TestPhysicalBackupRestoreJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("PhysicalBackupRestoreJobImagePullSecrets", func() {
 	objMeta := metav1.ObjectMeta{
 		Name:      "physical-backup-restore-image-pull-secrets",
 		Namespace: "test",
@@ -1670,15 +1497,21 @@ func TestPhysicalBackupRestoreJobImagePullSecrets(t *testing.T) {
 		Name:      "physical-backup-restore-job",
 		Namespace: "test",
 	}
-
-	tests := []struct {
-		name            string
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	podIndex := ptr.To(0)
+	DescribeTable("BuildPhysicalBackupRestoreJob ImagePullSecrets",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantPullSecrets []corev1.LocalObjectReference) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildPhysicalBackupRestoreJob(
+				key,
+				mariadb,
+				podIndex,
+				WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(Equal(wantPullSecrets))
+		},
+		Entry("No Secrets",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
@@ -1688,11 +1521,10 @@ func TestPhysicalBackupRestoreJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+		),
+		Entry("Secrets in MariaDB",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
@@ -1709,47 +1541,28 @@ func TestPhysicalBackupRestoreJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	podIndex := ptr.To(0)
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildPhysicalBackupRestoreJob(
-				key,
-				tt.mariadb,
-				podIndex,
-				WithBootstrapFrom(tt.mariadb.Spec.BootstrapFrom),
-			)
-			if err != nil {
-				t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestGaleraInitJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GaleraInitJobImagePullSecrets", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "init-image-pull-secrets",
 	}
-
-	tests := []struct {
-		name            string
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("BuildGaleraInitJob ImagePullSecrets",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantPullSecrets []corev1.LocalObjectReference) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildGaleraInitJob(mariadb.InitKey(), mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(Equal(wantPullSecrets))
+		},
+		Entry("No Secrets",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -1757,11 +1570,10 @@ func TestGaleraInitJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+		),
+		Entry("Secrets in MariaDB",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -1776,44 +1588,32 @@ func TestGaleraInitJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraInitJob(tt.mariadb.InitKey(), tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestGaleraInitJobMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GaleraInitJobMeta", func() {
 	key := types.NamespacedName{
 		Name: "init-obj",
 	}
 	mariadbObjMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
-	tests := []struct {
-		name        string
-		mariadb     *mariadbv1alpha1.MariaDB
-		wantJobMeta *mariadbv1alpha1.Metadata
-		wantPodMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "empty",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("BuildGaleraInitJob Meta",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantJobMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildGaleraInitJob(key, mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&job.ObjectMeta, wantJobMeta.Labels, wantJobMeta.Annotations)
+			assertObjectMeta(&job.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+		},
+		Entry("empty",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -1821,18 +1621,17 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("inherit meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -1848,7 +1647,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1856,7 +1655,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1864,10 +1663,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "extra meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("extra meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -1887,7 +1685,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1895,7 +1693,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1903,10 +1701,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "Pod meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("Pod meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -1924,11 +1721,11 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -1936,10 +1733,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "override Pod meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("override Pod meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -1966,13 +1762,13 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "true",
 				},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "true",
 				},
@@ -1980,10 +1776,9 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "all",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("all",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2012,14 +1807,14 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{},
 				Annotations: map[string]string{
 					"database.myorg.io":       "mariadb",
 					"sidecar.istio.io/inject": "false",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -2028,37 +1823,29 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraInitJob(key, tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building init Job: %v", err)
-			}
-			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-		})
-	}
-}
-
-func TestGaleraInitJobResources(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GaleraInitJobResources", func() {
 	key := types.NamespacedName{
 		Name: "job-obj",
 	}
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
-	tests := []struct {
-		name          string
-		mariadb       *mariadbv1alpha1.MariaDB
-		wantResources corev1.ResourceRequirements
-	}{
-		{
-			name: "no resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("BuildGaleraInitJob Resources",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantResources corev1.ResourceRequirements) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildGaleraInitJob(key, mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			podTpl := job.Spec.Template
+			Expect(podTpl.Spec.Containers).To(HaveLen(1))
+			resources := podTpl.Spec.Containers[0].Resources
+			Expect(resources).To(Equal(wantResources))
+		},
+		Entry("no resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2066,11 +1853,10 @@ func TestGaleraInitJobResources(t *testing.T) {
 					},
 				},
 			},
-			wantResources: corev1.ResourceRequirements{},
-		},
-		{
-			name: "mariadb resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			corev1.ResourceRequirements{},
+		),
+		Entry("mariadb resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2085,11 +1871,10 @@ func TestGaleraInitJobResources(t *testing.T) {
 					},
 				},
 			},
-			wantResources: corev1.ResourceRequirements{},
-		},
-		{
-			name: "init Job resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			corev1.ResourceRequirements{},
+		),
+		Entry("init Job resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2106,87 +1891,65 @@ func TestGaleraInitJobResources(t *testing.T) {
 					},
 				},
 			},
-			wantResources: corev1.ResourceRequirements{
+			corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					"cpu": resource.MustParse("100m"),
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraInitJob(key, tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building Galera init Job: %v", err)
-			}
-			podTpl := job.Spec.Template
-			if len(podTpl.Spec.Containers) != 1 {
-				t.Error("expecting to have one container")
-			}
-			resources := podTpl.Spec.Containers[0].Resources
-			if !reflect.DeepEqual(resources, tt.wantResources) {
-				t.Errorf("unexpected resources, got: %v, expected: %v", resources, tt.wantResources)
-			}
-		})
-	}
-}
-
-func TestGaleraInitContainers(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	key := types.NamespacedName{
-		Name: "job-obj",
-	}
-	mdb := &mariadbv1alpha1.MariaDB{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "mariadb-obj",
-		},
-		Spec: mariadbv1alpha1.MariaDBSpec{
-			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-				InitContainers: []mariadbv1alpha1.Container{
-					{
-						Name:    "init",
-						Image:   "busybox",
-						Command: []string{"bash", "-c"},
-						Args:    []string{"exit 0;"},
+var _ = Describe("GaleraInitContainers", func() {
+	It("builds the expected init and sidecar containers", func() {
+		builder := newDefaultTestBuilder()
+		key := types.NamespacedName{
+			Name: "job-obj",
+		}
+		mdb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mariadb-obj",
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+					InitContainers: []mariadbv1alpha1.Container{
+						{
+							Name:    "init",
+							Image:   "busybox",
+							Command: []string{"bash", "-c"},
+							Args:    []string{"exit 0;"},
+						},
+					},
+					SidecarContainers: []mariadbv1alpha1.Container{
+						{
+							Name:    "sidecar",
+							Image:   "busybox",
+							Command: []string{"sleep", "infinity"},
+						},
 					},
 				},
-				SidecarContainers: []mariadbv1alpha1.Container{
-					{
-						Name:    "sidecar",
-						Image:   "busybox",
-						Command: []string{"sleep", "infinity"},
+				Galera: &mariadbv1alpha1.Galera{
+					Enabled: true,
+					GaleraSpec: mariadbv1alpha1.GaleraSpec{
+						Recovery: &mariadbv1alpha1.GaleraRecovery{
+							Enabled: true,
+						},
 					},
 				},
 			},
-			Galera: &mariadbv1alpha1.Galera{
-				Enabled: true,
-				GaleraSpec: mariadbv1alpha1.GaleraSpec{
-					Recovery: &mariadbv1alpha1.GaleraRecovery{
-						Enabled: true,
-					},
-				},
-			},
-		},
-	}
+		}
 
-	job, err := builder.BuildGaleraInitJob(key, mdb)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", 0)
-	}
-	initContainers := job.Spec.Template.Spec.InitContainers
-	containers := job.Spec.Template.Spec.Containers
+		job, err := builder.BuildGaleraInitJob(key, mdb)
+		Expect(err).NotTo(HaveOccurred())
+		initContainers := job.Spec.Template.Spec.InitContainers
+		containers := job.Spec.Template.Spec.Containers
 
-	if got := len(initContainers); got != 0 {
-		t.Errorf("expecting 0 init containers, got: %d", got)
-	}
-	if got := len(containers); got != 1 {
-		t.Errorf("expecting 1 container, got: %d", got)
-	}
-}
+		Expect(initContainers).To(BeEmpty())
+		Expect(containers).To(HaveLen(1))
+	})
+})
 
-func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GaleraRecoveryJobImagePullSecrets", func() {
 	key := types.NamespacedName{
 		Name: "recovery-obj",
 	}
@@ -2201,14 +1964,15 @@ func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 			NodeName: "compute-0",
 		},
 	}
-	tests := []struct {
-		name            string
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("BuildGaleraRecoveryJob ImagePullSecrets",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantPullSecrets []corev1.LocalObjectReference) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildGaleraRecoveryJob(key, mariadb, &pod)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(Equal(wantPullSecrets))
+		},
+		Entry("No Secrets",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2221,11 +1985,10 @@ func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+		),
+		Entry("Secrets in MariaDB",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2245,29 +2008,16 @@ func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, &pod)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestGaleraRecoveryJobMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GaleraRecoveryJobMeta", func() {
 	key := types.NamespacedName{
 		Name: "recovery-obj",
 	}
@@ -2282,15 +2032,16 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			NodeName: "compute-0",
 		},
 	}
-	tests := []struct {
-		name        string
-		mariadb     *mariadbv1alpha1.MariaDB
-		wantJobMeta *mariadbv1alpha1.Metadata
-		wantPodMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "empty",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("BuildGaleraRecoveryJob Meta",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantJobMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildGaleraRecoveryJob(key, mariadb, &pod)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&job.ObjectMeta, wantJobMeta.Labels, wantJobMeta.Annotations)
+			assertObjectMeta(&job.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+		},
+		Entry("empty",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2303,18 +2054,17 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("inherit meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2335,7 +2085,7 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -2343,7 +2093,7 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -2351,10 +2101,9 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "extra meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("extra meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2377,7 +2126,7 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -2385,7 +2134,7 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -2393,10 +2142,9 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "Pod meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("Pod meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2419,11 +2167,11 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -2431,10 +2179,9 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "override Pod meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("override Pod meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2464,13 +2211,13 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "true",
 				},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "true",
 				},
@@ -2478,10 +2225,9 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "all",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("all",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2513,14 +2259,14 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{},
 				Annotations: map[string]string{
 					"database.myorg.io":       "mariadb",
 					"sidecar.istio.io/inject": "false",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -2529,23 +2275,11 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, &pod)
-			if err != nil {
-				t.Fatalf("unexpected error building Galera recovery Job: %v", err)
-			}
-			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-		})
-	}
-}
-
-func TestGaleraRecoveryJobVolumes(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GaleraRecoveryJobVolumes", func() {
 	key := types.NamespacedName{
 		Name: "job-obj",
 	}
@@ -2560,14 +2294,17 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 			NodeName: "compute-0",
 		},
 	}
-	tests := []struct {
-		name        string
-		mariadb     *mariadbv1alpha1.MariaDB
-		wantVolumes []string
-	}{
-		{
-			name: "dedicated storage",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("BuildGaleraRecoveryJob Volumes",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantVolumes []string) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildGaleraRecoveryJob(key, mariadb, &pod)
+			Expect(err).NotTo(HaveOccurred())
+			for _, wantVolume := range wantVolumes {
+				Expect(hasVolumePVC(job.Spec.Template.Spec.Volumes, wantVolume)).To(BeTrue())
+			}
+		},
+		Entry("dedicated storage",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2609,11 +2346,10 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 					},
 				},
 			},
-			wantVolumes: []string{StorageVolume, galeraresources.GaleraConfigVolume},
-		},
-		{
-			name: "reuse storage",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			[]string{StorageVolume, galeraresources.GaleraConfigVolume},
+		),
+		Entry("reuse storage",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2644,43 +2380,32 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 					},
 				},
 			},
-			wantVolumes: []string{StorageVolume},
-		},
-	}
+			[]string{StorageVolume},
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, &pod)
-			if err != nil {
-				t.Errorf("unexpected error building Galera recovery Job: %v", err)
-			}
-			for _, wantVolume := range tt.wantVolumes {
-				if !hasVolumePVC(job.Spec.Template.Spec.Volumes, wantVolume) {
-					t.Errorf("expecting Volume PVC \"%s\", but it was not found", wantVolume)
-				}
-			}
-		})
-	}
-}
-
-func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GaleraRecoveryJobNodeSelector", func() {
 	key := types.NamespacedName{
 		Name: "job-obj",
 	}
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
 	}
-	tests := []struct {
-		name             string
-		mariadb          *mariadbv1alpha1.MariaDB
-		pod              *corev1.Pod
-		wantNodeSelector map[string]string
-		wantErr          bool
-	}{
-		{
-			name: "no Pod index",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("BuildGaleraRecoveryJob NodeSelector",
+		func(mariadb *mariadbv1alpha1.MariaDB, pod *corev1.Pod, wantNodeSelector map[string]string, wantErr bool) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildGaleraRecoveryJob(key, mariadb, pod)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+				Expect(job).To(BeNil())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(job.Spec.Template.Spec.NodeSelector).To(Equal(wantNodeSelector))
+			}
+		},
+		Entry("no Pod index",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2699,7 +2424,7 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 					},
 				},
 			},
-			pod: &corev1.Pod{
+			&corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "foo",
 				},
@@ -2707,12 +2432,11 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 					NodeName: "compute-0",
 				},
 			},
-			wantNodeSelector: nil,
-			wantErr:          true,
-		},
-		{
-			name: "no Node",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+			true,
+		),
+		Entry("no Node",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2731,18 +2455,17 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 					},
 				},
 			},
-			pod: &corev1.Pod{
+			&corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mariadb-galera-0",
 				},
 				Spec: corev1.PodSpec{},
 			},
-			wantNodeSelector: nil,
-			wantErr:          true,
-		},
-		{
-			name: "no recovery Job nodeSelector",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+			true,
+		),
+		Entry("no recovery Job nodeSelector",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2761,7 +2484,7 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 					},
 				},
 			},
-			pod: &corev1.Pod{
+			&corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mariadb-galera-0",
 				},
@@ -2769,12 +2492,11 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 					NodeName: "compute-0",
 				},
 			},
-			wantNodeSelector: nil,
-			wantErr:          false,
-		},
-		{
-			name: "recovery Job nodeSelector",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+			false,
+		),
+		Entry("recovery Job nodeSelector",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2793,7 +2515,7 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 					},
 				},
 			},
-			pod: &corev1.Pod{
+			&corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mariadb-galera-0",
 				},
@@ -2801,37 +2523,15 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 					NodeName: "compute-0",
 				},
 			},
-			wantNodeSelector: map[string]string{
+			map[string]string{
 				"kubernetes.io/hostname": "compute-0",
 			},
-			wantErr: false,
-		},
-	}
+			false,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, tt.pod)
-			if tt.wantErr {
-				if err == nil {
-					t.Error("expect error to have occurred, got nil")
-				}
-				if job != nil {
-					t.Error("expected Job to be nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("expect error to not have occurred, got: %v", err)
-				}
-				if !reflect.DeepEqual(tt.wantNodeSelector, job.Spec.Template.Spec.NodeSelector) {
-					t.Errorf("unexpected nodeSelector, want: %v got: %v", tt.wantNodeSelector, job.Spec.Template.Spec.NodeSelector)
-				}
-			}
-		})
-	}
-}
-
-func TestGaleraRecoveryJobResources(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("GaleraRecoveryJobResources", func() {
 	key := types.NamespacedName{
 		Name: "job-obj",
 	}
@@ -2846,14 +2546,18 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 			NodeName: "compute-0",
 		},
 	}
-	tests := []struct {
-		name          string
-		mariadb       *mariadbv1alpha1.MariaDB
-		wantResources corev1.ResourceRequirements
-	}{
-		{
-			name: "no resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable("BuildGaleraRecoveryJob Resources",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantResources corev1.ResourceRequirements) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildGaleraRecoveryJob(key, mariadb, pod)
+			Expect(err).NotTo(HaveOccurred())
+			podTpl := job.Spec.Template
+			Expect(podTpl.Spec.Containers).To(HaveLen(1))
+			resources := podTpl.Spec.Containers[0].Resources
+			Expect(resources).To(Equal(wantResources))
+		},
+		Entry("no resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2866,11 +2570,10 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 					},
 				},
 			},
-			wantResources: corev1.ResourceRequirements{},
-		},
-		{
-			name: "mariadb resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			corev1.ResourceRequirements{},
+		),
+		Entry("mariadb resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2890,11 +2593,10 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 					},
 				},
 			},
-			wantResources: corev1.ResourceRequirements{},
-		},
-		{
-			name: "recovery Job resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			corev1.ResourceRequirements{},
+		),
+		Entry("recovery Job resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
@@ -2914,152 +2616,127 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 					},
 				},
 			},
-			wantResources: corev1.ResourceRequirements{
+			corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					"cpu": resource.MustParse("100m"),
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, pod)
-			if err != nil {
-				t.Fatalf("unexpected error building Galera recovery Job: %v", err)
-			}
-			podTpl := job.Spec.Template
-			if len(podTpl.Spec.Containers) != 1 {
-				t.Error("expecting to have one container")
-			}
-			resources := podTpl.Spec.Containers[0].Resources
-			if !reflect.DeepEqual(resources, tt.wantResources) {
-				t.Errorf("unexpected resources, got: %v, expected: %v", resources, tt.wantResources)
-			}
-		})
-	}
-}
-
-func TestGaleraRecoveryContainers(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	key := types.NamespacedName{
-		Name: "job-obj",
-	}
-	mdb := &mariadbv1alpha1.MariaDB{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "mariadb-obj",
-		},
-		Spec: mariadbv1alpha1.MariaDBSpec{
-			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-				InitContainers: []mariadbv1alpha1.Container{
-					{
-						Name:    "init",
-						Image:   "busybox",
-						Command: []string{"bash", "-c"},
-						Args:    []string{"exit 0;"},
+var _ = Describe("GaleraRecoveryContainers", func() {
+	It("builds the expected init and sidecar containers", func() {
+		builder := newDefaultTestBuilder()
+		key := types.NamespacedName{
+			Name: "job-obj",
+		}
+		mdb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mariadb-obj",
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+					InitContainers: []mariadbv1alpha1.Container{
+						{
+							Name:    "init",
+							Image:   "busybox",
+							Command: []string{"bash", "-c"},
+							Args:    []string{"exit 0;"},
+						},
+					},
+					SidecarContainers: []mariadbv1alpha1.Container{
+						{
+							Name:    "sidecar",
+							Image:   "busybox",
+							Command: []string{"sleep", "infinity"},
+						},
 					},
 				},
-				SidecarContainers: []mariadbv1alpha1.Container{
-					{
-						Name:    "sidecar",
-						Image:   "busybox",
-						Command: []string{"sleep", "infinity"},
+				Galera: &mariadbv1alpha1.Galera{
+					Enabled: true,
+					GaleraSpec: mariadbv1alpha1.GaleraSpec{
+						Recovery: &mariadbv1alpha1.GaleraRecovery{
+							Enabled: true,
+						},
 					},
 				},
 			},
-			Galera: &mariadbv1alpha1.Galera{
-				Enabled: true,
-				GaleraSpec: mariadbv1alpha1.GaleraSpec{
-					Recovery: &mariadbv1alpha1.GaleraRecovery{
-						Enabled: true,
+		}
+		pod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mariadb-galera-0",
+			},
+			Spec: corev1.PodSpec{
+				NodeName: "compute-0",
+			},
+		}
+
+		job, err := builder.BuildGaleraRecoveryJob(key, mdb, pod)
+		Expect(err).NotTo(HaveOccurred())
+		initContainers := job.Spec.Template.Spec.InitContainers
+		containers := job.Spec.Template.Spec.Containers
+
+		Expect(initContainers).To(BeEmpty())
+		Expect(containers).To(HaveLen(1))
+	})
+})
+
+var _ = Describe("GaleraRecoveryJobCommand", func() {
+	It("builds the expected galera recovery command", func() {
+		expected := "mariadbd --log-error=/dev/stderr --wsrep-recover"
+		builder := newDefaultTestBuilder()
+		key := types.NamespacedName{
+			Name: "job-obj",
+		}
+		mdb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mariadb-obj",
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Galera: &mariadbv1alpha1.Galera{
+					Enabled: true,
+					GaleraSpec: mariadbv1alpha1.GaleraSpec{
+						Recovery: &mariadbv1alpha1.GaleraRecovery{
+							Enabled: true,
+						},
 					},
 				},
 			},
-		},
-	}
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "mariadb-galera-0",
-		},
-		Spec: corev1.PodSpec{
-			NodeName: "compute-0",
-		},
-	}
-
-	job, err := builder.BuildGaleraRecoveryJob(key, mdb, pod)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", 0)
-	}
-	initContainers := job.Spec.Template.Spec.InitContainers
-	containers := job.Spec.Template.Spec.Containers
-
-	if got := len(initContainers); got != 0 {
-		t.Errorf("expecting 0 init containers, got: %d", got)
-	}
-	if got := len(containers); got != 1 {
-		t.Errorf("expecting 1 container, got: %d", got)
-	}
-}
-
-func TestGaleraRecoveryJobCommand(t *testing.T) {
-	expected := "mariadbd --log-error=/dev/stderr --wsrep-recover"
-	builder := newDefaultTestBuilder(t)
-	key := types.NamespacedName{
-		Name: "job-obj",
-	}
-	mdb := &mariadbv1alpha1.MariaDB{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "mariadb-obj",
-		},
-		Spec: mariadbv1alpha1.MariaDBSpec{
-			Galera: &mariadbv1alpha1.Galera{
-				Enabled: true,
-				GaleraSpec: mariadbv1alpha1.GaleraSpec{
-					Recovery: &mariadbv1alpha1.GaleraRecovery{
-						Enabled: true,
-					},
-				},
+		}
+		pod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mariadb-galera-0",
 			},
-		},
-	}
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "mariadb-galera-0",
-		},
-		Spec: corev1.PodSpec{
-			NodeName: "compute-0",
-		},
-	}
+			Spec: corev1.PodSpec{
+				NodeName: "compute-0",
+			},
+		}
 
-	job, err := builder.BuildGaleraRecoveryJob(key, mdb, pod)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", 0)
-	}
+		job, err := builder.BuildGaleraRecoveryJob(key, mdb, pod)
+		Expect(err).NotTo(HaveOccurred())
 
-	container := job.Spec.Template.Spec.Containers[0]
-	command := strings.Join(append(container.Command, container.Args...), " ")
+		container := job.Spec.Template.Spec.Containers[0]
+		command := strings.Join(append(container.Command, container.Args...), " ")
 
-	if command != expected {
-		t.Errorf("expected galera recovery command to be %s, got: %s", expected, command)
-	}
-}
+		Expect(command).To(Equal(expected))
+	})
+})
 
-func TestSqlJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("SqlJobImagePullSecrets", func() {
 	objMeta := metav1.ObjectMeta{
 		Name:      "sqljob-image-pull-secrets",
 		Namespace: "test",
 	}
-
-	tests := []struct {
-		name            string
-		sqlJob          *mariadbv1alpha1.SqlJob
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+	DescribeTable("BuildSqlJob ImagePullSecrets",
+		func(sqlJob *mariadbv1alpha1.SqlJob, mariadb *mariadbv1alpha1.MariaDB, wantPullSecrets []corev1.LocalObjectReference) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildSqlJob(client.ObjectKeyFromObject(sqlJob), sqlJob, mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(Equal(wantPullSecrets))
+		},
+		Entry("No Secrets",
+			&mariadbv1alpha1.SqlJob{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -3072,15 +2749,14 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec:       mariadbv1alpha1.MariaDBSpec{},
 			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+			nil,
+		),
+		Entry("Secrets in MariaDB",
+			&mariadbv1alpha1.SqlJob{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -3093,7 +2769,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -3105,15 +2781,14 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in SqlJob",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+		),
+		Entry("Secrets in SqlJob",
+			&mariadbv1alpha1.SqlJob{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
@@ -3133,19 +2808,18 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec:       mariadbv1alpha1.MariaDBSpec{},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "sqljob-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in MariaDB and SqlJob",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+		),
+		Entry("Secrets in MariaDB and SqlJob",
+			&mariadbv1alpha1.SqlJob{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
@@ -3165,7 +2839,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -3177,7 +2851,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
@@ -3185,52 +2859,39 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 					Name: "sqljob-registry",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildSqlJob(client.ObjectKeyFromObject(tt.sqlJob), tt.sqlJob, tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestSqlJobMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("SqlJobMeta", func() {
 	key := types.NamespacedName{
 		Name: "sql-job",
 	}
-	tests := []struct {
-		name        string
-		sqlJob      *mariadbv1alpha1.SqlJob
-		wantJobMeta *mariadbv1alpha1.Metadata
-		wantPodMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "empty",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+	DescribeTable("BuildSqlJob Meta",
+		func(sqlJob *mariadbv1alpha1.SqlJob, wantJobMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata) {
+			builder := newDefaultTestBuilder()
+			job, err := builder.BuildSqlJob(key, sqlJob, &mariadbv1alpha1.MariaDB{})
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&job.ObjectMeta, wantJobMeta.Labels, wantJobMeta.Annotations)
+			assertObjectMeta(&job.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+		},
+		Entry("empty",
+			&mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit metadata",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+		),
+		Entry("inherit metadata",
+			&mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -3243,7 +2904,7 @@ func TestSqlJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -3251,7 +2912,7 @@ func TestSqlJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -3259,10 +2920,9 @@ func TestSqlJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "Pod meta",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+		),
+		Entry("Pod meta",
+			&mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
@@ -3277,11 +2937,11 @@ func TestSqlJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -3289,10 +2949,9 @@ func TestSqlJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "override inherit metadata",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+		),
+		Entry("override inherit metadata",
+			&mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -3315,7 +2974,7 @@ func TestSqlJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "true",
 				},
@@ -3323,7 +2982,7 @@ func TestSqlJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -3331,10 +2990,9 @@ func TestSqlJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "all",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+		),
+		Entry("all",
+			&mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -3351,13 +3009,13 @@ func TestSqlJobMeta(t *testing.T) {
 					},
 				},
 			},
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -3365,23 +3023,11 @@ func TestSqlJobMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildSqlJob(key, tt.sqlJob, &mariadbv1alpha1.MariaDB{})
-			if err != nil {
-				t.Fatalf("unexpected error building SqlJob Job: %v", err)
-			}
-			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-		})
-	}
-}
-
-func TestBuildPITRJob(t *testing.T) {
-	t.Parallel()
+var _ = Describe("BuildPITRJob", func() {
 	pitr := &mariadbv1alpha1.PointInTimeRecovery{
 		Spec: mariadbv1alpha1.PointInTimeRecoverySpec{
 			PhysicalBackupRef: mariadbv1alpha1.LocalObjectReference{
@@ -3397,91 +3043,130 @@ func TestBuildPITRJob(t *testing.T) {
 			},
 		},
 	}
-	startGtid := mustParseGtid(t, "0-10-1")
 	targetRecoveryTime := &metav1.Time{Time: time.Now()}
 
-	tests := []struct {
-		name         string
-		pitr         *mariadbv1alpha1.PointInTimeRecovery
-		mariadb      *mariadbv1alpha1.MariaDB
-		restoreOpts  []RestoreOpt
-		wantErr      bool
-		wantJob      bool
-		wantJobMeta  *mariadbv1alpha1.Metadata
-		wantPodMeta  *mariadbv1alpha1.Metadata
-		wantAffinity bool
-	}{
-		{
-			name:    "PITR job missing startGtid",
-			pitr:    pitr,
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
-				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
-					TargetRecoveryTime: targetRecoveryTime,
-					Volume: &mariadbv1alpha1.StorageVolumeSource{
-						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
-					},
-				}),
-			},
-			wantErr: true,
-			wantJob: false,
+	DescribeTable("BuildPITRJob",
+		func(pitr *mariadbv1alpha1.PointInTimeRecovery, mariadb *mariadbv1alpha1.MariaDB, restoreOptsFn func() []RestoreOpt,
+			wantErr bool, wantJobMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata, wantAffinity bool) {
+			b := newDefaultTestBuilder()
+			key := types.NamespacedName{
+				Name:      "test-pitr-job",
+				Namespace: "test",
+			}
+
+			job, err := b.BuildPITRJob(key, pitr, mariadb, restoreOptsFn()...)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+				Expect(job).To(BeNil())
+				return
+			}
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job).NotTo(BeNil())
+
+			Expect(job.Name).To(Equal(key.Name))
+			Expect(job.Namespace).To(Equal(key.Namespace))
+
+			Expect(job.Spec.Template.Spec.RestartPolicy).To(Equal(corev1.RestartPolicyOnFailure))
+			Expect(job.Spec.Template.Spec.Containers).NotTo(BeEmpty())
+			Expect(job.Spec.Template.Spec.InitContainers).NotTo(BeEmpty())
+
+			if wantJobMeta != nil {
+				assertObjectMeta(&job.ObjectMeta, wantJobMeta.Labels, wantJobMeta.Annotations)
+			}
+			if wantPodMeta != nil {
+				assertObjectMeta(&job.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+			}
+			if wantAffinity {
+				Expect(job.Spec.Template.Spec.Affinity).NotTo(BeNil())
+			} else {
+				Expect(job.Spec.Template.Spec.Affinity).To(BeNil())
+			}
 		},
-		{
-			name:    "PITR job missing targetRecoveryTime",
-			pitr:    pitr,
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
-				WithStartGtid(mustParseGtid(t, "0-10-1")),
+		Entry("PITR job missing startGtid",
+			pitr,
+			&mariadbv1alpha1.MariaDB{},
+			func() []RestoreOpt {
+				return []RestoreOpt{
+					WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+						TargetRecoveryTime: targetRecoveryTime,
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					}),
+				}
 			},
-			wantErr: true,
-			wantJob: false,
-		},
-		{
-			name:    "PITR job missing volume",
-			pitr:    pitr,
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
-				WithStartGtid(mustParseGtid(t, "0-10-1")),
-				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
-					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
-				}),
+			true,
+			nil,
+			nil,
+			false,
+		),
+		Entry("PITR job missing targetRecoveryTime",
+			pitr,
+			&mariadbv1alpha1.MariaDB{},
+			func() []RestoreOpt {
+				return []RestoreOpt{
+					WithStartGtid(mustParseGtid("0-10-1")),
+				}
 			},
-			wantErr: true,
-			wantJob: false,
-		},
-		{
-			name:    "PITR job missing volume",
-			pitr:    pitr,
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
-				WithStartGtid(mustParseGtid(t, "0-10-1")),
-				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
-					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
-				}),
+			true,
+			nil,
+			nil,
+			false,
+		),
+		Entry("PITR job missing volume",
+			pitr,
+			&mariadbv1alpha1.MariaDB{},
+			func() []RestoreOpt {
+				return []RestoreOpt{
+					WithStartGtid(mustParseGtid("0-10-1")),
+					WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+					}),
+				}
 			},
-			wantErr: true,
-			wantJob: false,
-		},
-		{
-			name:    "Valid PITR job ",
-			pitr:    pitr,
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
-				WithStartGtid(startGtid),
-				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
-					TargetRecoveryTime: targetRecoveryTime,
-					Volume: &mariadbv1alpha1.StorageVolumeSource{
-						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
-					},
-				}),
+			true,
+			nil,
+			nil,
+			false,
+		),
+		Entry("PITR job missing volume",
+			pitr,
+			&mariadbv1alpha1.MariaDB{},
+			func() []RestoreOpt {
+				return []RestoreOpt{
+					WithStartGtid(mustParseGtid("0-10-1")),
+					WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+					}),
+				}
 			},
-			wantErr: false,
-			wantJob: true,
-		},
-		{
-			name: "Valid PITR job with meta",
-			pitr: pitr,
-			mariadb: &mariadbv1alpha1.MariaDB{
+			true,
+			nil,
+			nil,
+			false,
+		),
+		Entry("Valid PITR job ",
+			pitr,
+			&mariadbv1alpha1.MariaDB{},
+			func() []RestoreOpt {
+				return []RestoreOpt{
+					WithStartGtid(mustParseGtid("0-10-1")),
+					WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+						TargetRecoveryTime: targetRecoveryTime,
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					}),
+				}
+			},
+			false,
+			nil,
+			nil,
+			false,
+		),
+		Entry("Valid PITR job with meta",
+			pitr,
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
@@ -3497,60 +3182,63 @@ func TestBuildPITRJob(t *testing.T) {
 					},
 				},
 			},
-			restoreOpts: []RestoreOpt{
-				WithStartGtid(startGtid),
-				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
-					TargetRecoveryTime: targetRecoveryTime,
-					Volume: &mariadbv1alpha1.StorageVolumeSource{
-						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
-					},
-					RestoreJob: &mariadbv1alpha1.Job{
-						Metadata: &mariadbv1alpha1.Metadata{
-							Annotations: map[string]string{
-								"job.myorg.io": "test",
+			func() []RestoreOpt {
+				return []RestoreOpt{
+					WithStartGtid(mustParseGtid("0-10-1")),
+					WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+						TargetRecoveryTime: targetRecoveryTime,
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+						RestoreJob: &mariadbv1alpha1.Job{
+							Metadata: &mariadbv1alpha1.Metadata{
+								Annotations: map[string]string{
+									"job.myorg.io": "test",
+								},
 							},
 						},
-					},
-				}),
+					}),
+				}
 			},
-			wantErr: false,
-			wantJob: true,
-			wantJobMeta: &mariadbv1alpha1.Metadata{
+			false,
+			&mariadbv1alpha1.Metadata{
 				Annotations: map[string]string{
 					"database.myorg.io": "test",
 					"job.myorg.io":      "test",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Annotations: map[string]string{
 					"database.myorg.io": "test",
 					"pod.myorg.io":      "test",
 				},
 			},
-		},
-		{
-			name:    "Valid PITR job with affinity",
-			pitr:    pitr,
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			restoreOpts: []RestoreOpt{
-				WithStartGtid(startGtid),
-				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
-					TargetRecoveryTime: targetRecoveryTime,
-					Volume: &mariadbv1alpha1.StorageVolumeSource{
-						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
-					},
-					RestoreJob: &mariadbv1alpha1.Job{
-						Affinity: &mariadbv1alpha1.AffinityConfig{
-							Affinity: mariadbv1alpha1.Affinity{
-								NodeAffinity: &mariadbv1alpha1.NodeAffinity{
-									RequiredDuringSchedulingIgnoredDuringExecution: &mariadbv1alpha1.NodeSelector{
-										NodeSelectorTerms: []mariadbv1alpha1.NodeSelectorTerm{
-											{
-												MatchExpressions: []mariadbv1alpha1.NodeSelectorRequirement{
-													{
-														Key:      "kubernetes.io/hostname",
-														Operator: corev1.NodeSelectorOpIn,
-														Values:   []string{"node1", "node2"},
+			false,
+		),
+		Entry("Valid PITR job with affinity",
+			pitr,
+			&mariadbv1alpha1.MariaDB{},
+			func() []RestoreOpt {
+				return []RestoreOpt{
+					WithStartGtid(mustParseGtid("0-10-1")),
+					WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+						TargetRecoveryTime: targetRecoveryTime,
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+						RestoreJob: &mariadbv1alpha1.Job{
+							Affinity: &mariadbv1alpha1.AffinityConfig{
+								Affinity: mariadbv1alpha1.Affinity{
+									NodeAffinity: &mariadbv1alpha1.NodeAffinity{
+										RequiredDuringSchedulingIgnoredDuringExecution: &mariadbv1alpha1.NodeSelector{
+											NodeSelectorTerms: []mariadbv1alpha1.NodeSelectorTerm{
+												{
+													MatchExpressions: []mariadbv1alpha1.NodeSelectorRequirement{
+														{
+															Key:      "kubernetes.io/hostname",
+															Operator: corev1.NodeSelectorOpIn,
+															Values:   []string{"node1", "node2"},
+														},
 													},
 												},
 											},
@@ -3559,104 +3247,91 @@ func TestBuildPITRJob(t *testing.T) {
 								},
 							},
 						},
-					},
-				}),
+					}),
+				}
 			},
-			wantErr:      false,
-			wantJob:      true,
-			wantAffinity: true,
-		},
-	}
+			false,
+			nil,
+			nil,
+			true,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			b := newDefaultTestBuilder(t)
-			key := types.NamespacedName{
-				Name:      "test-pitr-job",
-				Namespace: "test",
-			}
-
-			job, err := b.BuildPITRJob(key, tt.pitr, tt.mariadb, tt.restoreOpts...)
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, job)
-				return
-			}
-			assert.NoError(t, err)
-			assert.NotNil(t, job)
-
-			assert.Equal(t, key.Name, job.Name)
-			assert.Equal(t, key.Namespace, job.Namespace)
-
-			assert.Equal(t, corev1.RestartPolicyOnFailure, job.Spec.Template.Spec.RestartPolicy)
-			assert.NotEmpty(t, job.Spec.Template.Spec.Containers)
-			assert.NotEmpty(t, job.Spec.Template.Spec.InitContainers)
-
-			if tt.wantJobMeta != nil {
-				assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
-			}
-			if tt.wantPodMeta != nil {
-				assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-			}
-			if tt.wantAffinity {
-				assert.NotNil(t, job.Spec.Template.Spec.Affinity)
-			} else {
-				assert.Nil(t, job.Spec.Template.Spec.Affinity)
-			}
-		})
-	}
-}
-
-func TestJobPhysicalBackupVolumes(t *testing.T) {
+var _ = Describe("JobPhysicalBackupVolumes", func() {
 	podIndex := 0
+	DescribeTable("jobPhysicalBackupVolumes",
+		func(storageVolume mariadbv1alpha1.StorageVolumeSource, s3 *mariadbv1alpha1.S3, abs *mariadbv1alpha1.AzureBlob,
+			mariadb *mariadbv1alpha1.MariaDB, wantVolumeNames []string) {
+			volumes, volumeMounts := jobPhysicalBackupVolumes(storageVolume, s3, abs, mariadb, &podIndex)
 
-	tests := []struct {
-		name            string
-		storageVolume   mariadbv1alpha1.StorageVolumeSource
-		s3              *mariadbv1alpha1.S3
-		abs             *mariadbv1alpha1.AzureBlob
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantVolumeNames []string
-	}{
-		{
-			name: "Basic backup volumes",
-			storageVolume: mariadbv1alpha1.StorageVolumeSource{
+			Expect(volumes).To(HaveLen(len(wantVolumeNames)))
+			Expect(volumeMounts).To(HaveLen(len(wantVolumeNames)))
+
+			for _, wantName := range wantVolumeNames {
+				foundVol := false
+				for _, v := range volumes {
+					if v.Name == wantName {
+						foundVol = true
+						break
+					}
+				}
+				Expect(foundVol).To(BeTrue())
+
+				foundMount := false
+				for _, vm := range volumeMounts {
+					if vm.Name == wantName {
+						foundMount = true
+						break
+					}
+				}
+				Expect(foundMount).To(BeTrue())
+			}
+		},
+		Entry("Basic backup volumes",
+			mariadbv1alpha1.StorageVolumeSource{
 				EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			(*mariadbv1alpha1.S3)(nil),
+			(*mariadbv1alpha1.AzureBlob)(nil),
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
 			},
-			wantVolumeNames: []string{batchStorageVolume, StorageVolume},
-		},
-		{
-			name: "S3 Volumes",
-			s3: &mariadbv1alpha1.S3{
+			[]string{batchStorageVolume, StorageVolume},
+		),
+		Entry("S3 Volumes",
+			mariadbv1alpha1.StorageVolumeSource{},
+			&mariadbv1alpha1.S3{
 				TLS: &mariadbv1alpha1.TLSConfig{
 					Enabled:        true,
 					CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			(*mariadbv1alpha1.AzureBlob)(nil),
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
 			},
-			wantVolumeNames: []string{batchStorageVolume, StorageVolume, S3PKI},
-		},
-		{
-			name: "ABS Volumes",
-			abs: &mariadbv1alpha1.AzureBlob{
+			[]string{batchStorageVolume, StorageVolume, S3PKI},
+		),
+		Entry("ABS Volumes",
+			mariadbv1alpha1.StorageVolumeSource{},
+			(*mariadbv1alpha1.S3)(nil),
+			&mariadbv1alpha1.AzureBlob{
 				TLS: &mariadbv1alpha1.TLSConfig{
 					Enabled:        true,
 					CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
 			},
-			wantVolumeNames: []string{batchStorageVolume, StorageVolume, ABSPKI},
-		},
-		{
-			name: "PKI Volumes",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			[]string{batchStorageVolume, StorageVolume, ABSPKI},
+		),
+		Entry("PKI Volumes",
+			mariadbv1alpha1.StorageVolumeSource{},
+			(*mariadbv1alpha1.S3)(nil),
+			(*mariadbv1alpha1.AzureBlob)(nil),
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					TLS: &mariadbv1alpha1.TLS{
@@ -3664,11 +3339,13 @@ func TestJobPhysicalBackupVolumes(t *testing.T) {
 					},
 				},
 			},
-			wantVolumeNames: []string{batchStorageVolume, StorageVolume, builderpki.PKIVolume},
-		},
-		{
-			name: "Additional env",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			[]string{batchStorageVolume, StorageVolume, builderpki.PKIVolume},
+		),
+		Entry("Additional env",
+			mariadbv1alpha1.StorageVolumeSource{},
+			(*mariadbv1alpha1.S3)(nil),
+			(*mariadbv1alpha1.AzureBlob)(nil),
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					TLS: &mariadbv1alpha1.TLS{
@@ -3690,48 +3367,10 @@ func TestJobPhysicalBackupVolumes(t *testing.T) {
 					},
 				},
 			},
-			wantVolumeNames: []string{batchStorageVolume, StorageVolume, builderpki.PKIVolume, "test"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			volumes, volumeMounts := jobPhysicalBackupVolumes(tt.storageVolume, tt.s3, tt.abs, tt.mariadb, &podIndex)
-
-			if len(volumes) != len(tt.wantVolumeNames) {
-				t.Errorf("got %d volumes, want %d", len(volumes), len(tt.wantVolumeNames))
-			}
-			if len(volumeMounts) != len(tt.wantVolumeNames) {
-				t.Errorf("got %d volumeMounts, want %d", len(volumes), len(tt.wantVolumeNames))
-			}
-
-			for _, wantName := range tt.wantVolumeNames {
-				foundVol := false
-				for _, v := range volumes {
-					if v.Name == wantName {
-						foundVol = true
-						break
-					}
-				}
-				if !foundVol {
-					t.Errorf("volume %s not found in volumes", wantName)
-				}
-
-				// Check if each expected volume mount exists
-				foundMount := false
-				for _, vm := range volumeMounts {
-					if vm.Name == wantName {
-						foundMount = true
-						break
-					}
-				}
-				if !foundMount {
-					t.Errorf("volume mount %s not found in volumeMounts", wantName)
-				}
-			}
-		})
-	}
-}
+			[]string{batchStorageVolume, StorageVolume, builderpki.PKIVolume, "test"},
+		),
+	)
+})
 
 func hasVolumePVC(volumes []corev1.Volume, volumeName string) bool {
 	for _, v := range volumes {
@@ -3751,10 +3390,8 @@ func getVolumeSource(name string, job *v1.Job) *corev1.VolumeSource {
 	return nil
 }
 
-func mustParseGtid(t *testing.T, rawGtid string) *replication.Gtid {
+func mustParseGtid(rawGtid string) *replication.Gtid {
 	gtid, err := replication.ParseGtid(rawGtid)
-	if err != nil {
-		t.Fatalf("unexpected error parsing GTID: %v", err)
-	}
+	Expect(err).NotTo(HaveOccurred())
 	return gtid
 }

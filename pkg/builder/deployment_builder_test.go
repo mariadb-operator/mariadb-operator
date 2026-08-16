@@ -1,8 +1,8 @@
 package builder
 
 import (
-	"reflect"
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
@@ -14,21 +14,23 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func TestExporterImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ExporterImagePullSecrets", func() {
+	builder := newDefaultTestBuilder()
 	objMeta := metav1.ObjectMeta{
 		Name:      "mariadb-metrics-image-pull-secrets",
 		Namespace: "test",
 	}
 
-	tests := []struct {
-		name            string
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable(
+		"should build the expected ImagePullSecrets",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantPullSecrets []corev1.LocalObjectReference) {
+			job, err := builder.BuildExporterDeployment(mariadb, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(Equal(wantPullSecrets))
+		},
+		Entry(
+			"No Secrets",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -36,11 +38,11 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+		),
+		Entry(
+			"Secrets in MariaDB",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -55,15 +57,15 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in Exporter",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry(
+			"Secrets in Exporter",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -78,15 +80,15 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "exporter-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in MariaDB and Exporter",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry(
+			"Secrets in MariaDB and Exporter",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -108,7 +110,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "mariadb-registry",
 				},
@@ -116,37 +118,27 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					Name: "exporter-registry",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ExporterMaxScaleImagePullSecrets", func() {
+	builder := newDefaultTestBuilder()
 	objMeta := metav1.ObjectMeta{
 		Name:      "maxscale-metrics-image-pull-secrets",
 		Namespace: "test",
 	}
 
-	tests := []struct {
-		name            string
-		maxscale        *mariadbv1alpha1.MaxScale
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			maxscale: &mariadbv1alpha1.MaxScale{
+	DescribeTable(
+		"should build the expected ImagePullSecrets",
+		func(maxscale *mariadbv1alpha1.MaxScale, wantPullSecrets []corev1.LocalObjectReference) {
+			job, err := builder.BuildMaxScaleExporterDeployment(maxscale, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(job.Spec.Template.Spec.ImagePullSecrets).To(Equal(wantPullSecrets))
+		},
+		Entry(
+			"No Secrets",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
@@ -154,11 +146,11 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MaxScale",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			nil,
+		),
+		Entry(
+			"Secrets in MaxScale",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
@@ -173,15 +165,15 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "maxscale-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in MaxScale",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry(
+			"Secrets in MaxScale",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
@@ -196,15 +188,15 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "exporter-registry",
 				},
 			},
-		},
-		{
-			name: "Secrets in MariaDB and Exporter",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry(
+			"Secrets in MariaDB and Exporter",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
@@ -226,7 +218,7 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 					},
 				},
 			},
-			wantPullSecrets: []corev1.LocalObjectReference{
+			[]corev1.LocalObjectReference{
 				{
 					Name: "maxscale-registry",
 				},
@@ -234,37 +226,28 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 					Name: "exporter-registry",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildMaxScaleExporterDeployment(tt.maxscale, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestExporterResources(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ExporterResources", func() {
+	builder := newDefaultTestBuilder()
 	objMeta := metav1.ObjectMeta{
 		Name:      "mariadb-metrics-resources",
 		Namespace: "test",
 	}
 
-	tests := []struct {
-		name          string
-		mariadb       *mariadbv1alpha1.MariaDB
-		wantResources corev1.ResourceRequirements
-	}{
-		{
-			name: "No Resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable(
+		"should build the expected Resources",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantResources corev1.ResourceRequirements) {
+			job, err := builder.BuildExporterDeployment(mariadb, nil)
+			Expect(err).NotTo(HaveOccurred())
+			resources := job.Spec.Template.Spec.Containers[0].Resources
+			Expect(resources).To(Equal(wantResources))
+		},
+		Entry(
+			"No Resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -272,11 +255,11 @@ func TestExporterResources(t *testing.T) {
 					},
 				},
 			},
-			wantResources: corev1.ResourceRequirements{},
-		},
-		{
-			name: "Resources",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			corev1.ResourceRequirements{},
+		),
+		Entry(
+			"Resources",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -295,7 +278,7 @@ func TestExporterResources(t *testing.T) {
 					},
 				},
 			},
-			wantResources: corev1.ResourceRequirements{
+			corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					"cpu":    resource.MustParse("100m"),
 					"memory": resource.MustParse("100Mi"),
@@ -304,38 +287,28 @@ func TestExporterResources(t *testing.T) {
 					"memory": resource.MustParse("100Mi"),
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-			resources := job.Spec.Template.Spec.Containers[0].Resources
-			if !reflect.DeepEqual(tt.wantResources, resources) {
-				t.Errorf("unexpected Resources, want: %v  got: %v", tt.wantResources, resources)
-			}
-		})
-	}
-}
-
-func TestExporterSecurityContext(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ExporterSecurityContext", func() {
+	builder := newDefaultTestBuilder()
 	objMeta := metav1.ObjectMeta{
 		Name:      "mariadb-metrics-security-context",
 		Namespace: "test",
 	}
 
-	tests := []struct {
-		name                string
-		mariadb             *mariadbv1alpha1.MariaDB
-		wantSecurityContext *corev1.SecurityContext
-	}{
-		{
-			name: "No SecurityContext",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable(
+		"should build the expected SecurityContext",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantSecurityContext *corev1.SecurityContext) {
+			job, err := builder.BuildExporterDeployment(mariadb, nil)
+			Expect(err).NotTo(HaveOccurred())
+			securityContext := job.Spec.Template.Spec.Containers[0].SecurityContext
+			Expect(securityContext).To(Equal(wantSecurityContext))
+		},
+		Entry(
+			"No SecurityContext",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -343,11 +316,11 @@ func TestExporterSecurityContext(t *testing.T) {
 					},
 				},
 			},
-			wantSecurityContext: nil,
-		},
-		{
-			name: "SecurityContext",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+		),
+		Entry(
+			"SecurityContext",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -360,41 +333,31 @@ func TestExporterSecurityContext(t *testing.T) {
 					},
 				},
 			},
-			wantSecurityContext: &corev1.SecurityContext{
+			&corev1.SecurityContext{
 				RunAsUser: ptr.To(int64(666)),
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-			securityContext := job.Spec.Template.Spec.Containers[0].SecurityContext
-			if !reflect.DeepEqual(tt.wantSecurityContext, securityContext) {
-				t.Errorf("unexpected SecurityContext, want: %v  got: %v", tt.wantSecurityContext, securityContext)
-			}
-		})
-	}
-}
-
-func TestExporterPodSecurityContext(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ExporterPodSecurityContext", func() {
+	builder := newDefaultTestBuilder()
 	objMeta := metav1.ObjectMeta{
 		Name:      "mariadb-metrics-pod-security-context",
 		Namespace: "test",
 	}
 
-	tests := []struct {
-		name                string
-		mariadb             *mariadbv1alpha1.MariaDB
-		wantSecurityContext *corev1.PodSecurityContext
-	}{
-		{
-			name: "No PodSecurityContext",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable(
+		"should build the expected PodSecurityContext",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantSecurityContext *corev1.PodSecurityContext) {
+			job, err := builder.BuildExporterDeployment(mariadb, nil)
+			Expect(err).NotTo(HaveOccurred())
+			securityContext := job.Spec.Template.Spec.SecurityContext
+			Expect(securityContext).To(Equal(wantSecurityContext))
+		},
+		Entry(
+			"No PodSecurityContext",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -402,11 +365,11 @@ func TestExporterPodSecurityContext(t *testing.T) {
 					},
 				},
 			},
-			wantSecurityContext: nil,
-		},
-		{
-			name: "PodSecurityContext",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			nil,
+		),
+		Entry(
+			"PodSecurityContext",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -419,41 +382,31 @@ func TestExporterPodSecurityContext(t *testing.T) {
 					},
 				},
 			},
-			wantSecurityContext: &corev1.PodSecurityContext{
+			&corev1.PodSecurityContext{
 				RunAsUser: ptr.To(int64(666)),
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-			securityContext := job.Spec.Template.Spec.SecurityContext
-			if !reflect.DeepEqual(tt.wantSecurityContext, securityContext) {
-				t.Errorf("unexpected PodSecurityContext, want: %v  got: %v", tt.wantSecurityContext, securityContext)
-			}
-		})
-	}
-}
-
-func TestExporterDeploymentMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ExporterDeploymentMeta", func() {
+	builder := newDefaultTestBuilder()
 	mdbObjMeta := metav1.ObjectMeta{
 		Name: "test",
 	}
-	tests := []struct {
-		name           string
-		mariadb        *mariadbv1alpha1.MariaDB
-		podAnnotations map[string]string
-		wantDeployMeta *mariadbv1alpha1.Metadata
-		wantPodMeta    *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "no meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+
+	DescribeTable(
+		"should build the expected Deployment metadata",
+		func(mariadb *mariadbv1alpha1.MariaDB, podAnnotations map[string]string,
+			wantDeployMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata) {
+			deploy, err := builder.BuildExporterDeployment(mariadb, podAnnotations)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&deploy.ObjectMeta, wantDeployMeta.Labels, wantDeployMeta.Annotations)
+			assertObjectMeta(&deploy.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+		},
+		Entry(
+			"no meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mdbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -461,22 +414,22 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
-			podAnnotations: nil,
-			wantDeployMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/instance": "test-metrics",
 					"app.kubernetes.io/name":     "exporter",
 				},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry(
+			"inherit meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mdbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -492,8 +445,8 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
-			podAnnotations: nil,
-			wantDeployMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -501,7 +454,7 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/instance": "test-metrics",
 					"app.kubernetes.io/name":     "exporter",
@@ -511,10 +464,10 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "pod meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry(
+			"pod meta",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mdbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -532,14 +485,14 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
-			podAnnotations: map[string]string{
+			map[string]string{
 				metadata.ConfigAnnotation: "config-hash",
 			},
-			wantDeployMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/instance": "test-metrics",
 					"app.kubernetes.io/name":     "exporter",
@@ -550,10 +503,10 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					metadata.ConfigAnnotation: "config-hash",
 				},
 			},
-		},
-		{
-			name: "all",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry(
+			"all",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: mdbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -579,10 +532,10 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
-			podAnnotations: map[string]string{
+			map[string]string{
 				metadata.ConfigAnnotation: "config-hash",
 			},
-			wantDeployMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -590,7 +543,7 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/instance": "test-metrics",
 					"app.kubernetes.io/name":     "exporter",
@@ -601,36 +554,28 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					metadata.ConfigAnnotation: "config-hash",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			deploy, err := builder.BuildExporterDeployment(tt.mariadb, tt.podAnnotations)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-			assertObjectMeta(t, &deploy.ObjectMeta, tt.wantDeployMeta.Labels, tt.wantDeployMeta.Annotations)
-			assertObjectMeta(t, &deploy.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-		})
-	}
-}
-
-func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ExporterMaxScaleDeploymentMeta", func() {
+	builder := newDefaultTestBuilder()
 	mxsObjMeta := metav1.ObjectMeta{
 		Name: "test",
 	}
-	tests := []struct {
-		name           string
-		maxscale       *mariadbv1alpha1.MaxScale
-		podAnnotations map[string]string
-		wantDeployMeta *mariadbv1alpha1.Metadata
-		wantPodMeta    *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "no meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+
+	DescribeTable(
+		"should build the expected Deployment metadata",
+		func(maxscale *mariadbv1alpha1.MaxScale, podAnnotations map[string]string,
+			wantDeployMeta *mariadbv1alpha1.Metadata, wantPodMeta *mariadbv1alpha1.Metadata) {
+			deploy, err := builder.BuildMaxScaleExporterDeployment(maxscale, podAnnotations)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&deploy.ObjectMeta, wantDeployMeta.Labels, wantDeployMeta.Annotations)
+			assertObjectMeta(&deploy.Spec.Template.ObjectMeta, wantPodMeta.Labels, wantPodMeta.Annotations)
+		},
+		Entry(
+			"no meta",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: mxsObjMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
@@ -638,22 +583,22 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
-			podAnnotations: nil,
-			wantDeployMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/instance": "test-metrics",
 					"app.kubernetes.io/name":     "exporter",
 				},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "inherit meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry(
+			"inherit meta",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: mxsObjMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
@@ -669,8 +614,8 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
-			podAnnotations: nil,
-			wantDeployMeta: &mariadbv1alpha1.Metadata{
+			nil,
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -678,7 +623,7 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/instance": "test-metrics",
 					"app.kubernetes.io/name":     "exporter",
@@ -688,10 +633,10 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-		{
-			name: "pod meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry(
+			"pod meta",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: mxsObjMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
@@ -709,14 +654,14 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
-			podAnnotations: map[string]string{
+			map[string]string{
 				metadata.ConfigAnnotation: "config-hash",
 			},
-			wantDeployMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/instance": "test-metrics",
 					"app.kubernetes.io/name":     "exporter",
@@ -727,10 +672,10 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					metadata.ConfigAnnotation: "config-hash",
 				},
 			},
-		},
-		{
-			name: "all",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry(
+			"all",
+			&mariadbv1alpha1.MaxScale{
 				ObjectMeta: mxsObjMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -756,10 +701,10 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					},
 				},
 			},
-			podAnnotations: map[string]string{
+			map[string]string{
 				metadata.ConfigAnnotation: "config-hash",
 			},
-			wantDeployMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -767,7 +712,7 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/instance": "test-metrics",
 					"app.kubernetes.io/name":     "exporter",
@@ -778,66 +723,18 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					metadata.ConfigAnnotation: "config-hash",
 				},
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			deploy, err := builder.BuildMaxScaleExporterDeployment(tt.maxscale, tt.podAnnotations)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-			assertObjectMeta(t, &deploy.ObjectMeta, tt.wantDeployMeta.Labels, tt.wantDeployMeta.Annotations)
-			assertObjectMeta(t, &deploy.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
-		})
-	}
-}
+var _ = Describe("ExporterVolumes", func() {
+	builder := newDefaultTestBuilder()
 
-func TestExporterVolumes(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	tests := []struct {
-		name            string
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantVolumeNames []string
-	}{
-		{
-			name: "empty",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.MariadbMetrics{
-						Enabled: true,
-					},
-				},
-			},
-			wantVolumeNames: []string{
-				deployConfigVolume,
-			},
-		},
-		{
-			name: "TLS",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.MariadbMetrics{
-						Enabled: true,
-					},
-					TLS: &mariadbv1alpha1.TLS{
-						Enabled: true,
-					},
-				},
-			},
-			wantVolumeNames: []string{
-				deployConfigVolume,
-				builderpki.PKIVolume,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			deploy, err := builder.BuildExporterDeployment(tt.mariadb, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
+	DescribeTable(
+		"should build the expected Volumes",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantVolumeNames []string) {
+			deploy, err := builder.BuildExporterDeployment(mariadb, nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			volumes := deploy.Spec.Template.Spec.Volumes
 			volumeMounts := deploy.Spec.Template.Spec.Containers[0].VolumeMounts
@@ -849,31 +746,61 @@ func TestExporterVolumes(t *testing.T) {
 				return vm.Name
 			})
 
-			if !datastructures.AllExists(volumeIndex, tt.wantVolumeNames...) {
-				t.Errorf("expecting all volumes %v to exist", tt.wantVolumeNames)
-			}
-			if !datastructures.AllExists(volumeMountIndex, tt.wantVolumeNames...) {
-				t.Errorf("expecting all volumeMounts %v to exist", tt.wantVolumeNames)
-			}
-		})
-	}
-}
+			Expect(datastructures.AllExists(volumeIndex, wantVolumeNames...)).To(BeTrue())
+			Expect(datastructures.AllExists(volumeMountIndex, wantVolumeNames...)).To(BeTrue())
+		},
+		Entry(
+			"empty",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+				},
+			},
+			[]string{
+				deployConfigVolume,
+			},
+		),
+		Entry(
+			"TLS",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			[]string{
+				deployConfigVolume,
+				builderpki.PKIVolume,
+			},
+		),
+	)
+})
 
-func TestExporterArgs(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
+var _ = Describe("ExporterArgs", func() {
+	builder := newDefaultTestBuilder()
 	objMeta := metav1.ObjectMeta{
 		Name:      "mariadb-metrics-resources",
 		Namespace: "test",
 	}
 
-	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantArgs []string
-	}{
-		{
-			name: "Without args",
-			mariadb: &mariadbv1alpha1.MariaDB{
+	DescribeTable(
+		"should build the expected Args",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantArgs []string) {
+			deploy, err := builder.BuildExporterDeployment(mariadb, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			args := deploy.Spec.Template.Spec.Containers[0].Args
+			Expect(args).To(Equal(wantArgs))
+		},
+		Entry(
+			"Without args",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -881,13 +808,13 @@ func TestExporterArgs(t *testing.T) {
 					},
 				},
 			},
-			wantArgs: []string{
+			[]string{
 				"--config.my-cnf=/etc/config/exporter.cnf",
 			},
-		},
-		{
-			name: "With args",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry(
+			"With args",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
@@ -901,25 +828,11 @@ func TestExporterArgs(t *testing.T) {
 					},
 				},
 			},
-			wantArgs: []string{
+			[]string{
 				"--config.my-cnf=/etc/config/exporter.cnf",
 				"--no-collect.auto_increment.columns",
 				"--collect.sys.user_summary",
 			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			deploy, err := builder.BuildExporterDeployment(tt.mariadb, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-
-			args := deploy.Spec.Template.Spec.Containers[0].Args
-			if !reflect.DeepEqual(tt.wantArgs, args) {
-				t.Errorf("unexpected Args, want: %v got: %v", tt.wantArgs, args)
-			}
-		})
-	}
-}
+		),
+	)
+})

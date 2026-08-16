@@ -1,14 +1,15 @@
 package builder
 
 import (
-	"reflect"
+	"os"
 	"slices"
 	"sort"
 	"strconv"
-	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
@@ -19,16 +20,16 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func TestMariadbStartupProbe(t *testing.T) {
-	tests := []struct {
-		name      string
-		mariadb   *mariadbv1alpha1.MariaDB
-		wantProbe *corev1.Probe
-	}{
-		{
-			name:    "MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantProbe: &corev1.Probe{
+var _ = Describe("MariadbStartupProbe", func() {
+	DescribeTable("should build the expected probe",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantProbe *corev1.Probe) {
+			probe, err := mariadbStartupProbe(mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(probe).To(Equal(wantProbe))
+		},
+		Entry("MariaDB",
+			&mariadbv1alpha1.MariaDB{},
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -42,10 +43,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB with thresholds",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB with thresholds",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						StartupProbe: &mariadbv1alpha1.Probe{
@@ -56,7 +56,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -71,10 +71,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 				PeriodSeconds:       10,
 				FailureThreshold:    10,
 			},
-		},
-		{
-			name: "MariaDB custom",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB custom",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						StartupProbe: &mariadbv1alpha1.Probe{
@@ -94,7 +93,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -108,10 +107,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 				TimeoutSeconds:   10,
 				PeriodSeconds:    10,
 			},
-		},
-		{
-			name: "MariaDB replication",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -123,7 +121,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -134,10 +132,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication with thresholds",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication with thresholds",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -156,7 +153,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -168,10 +165,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication custom",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication custom",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -196,7 +192,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -208,10 +204,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication with standalone probe",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication with standalone probe",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -221,7 +216,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -235,10 +230,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB Galera",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB Galera",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -250,7 +244,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -261,10 +255,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB Galera with thresholds",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB Galera with thresholds",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -283,7 +276,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -295,10 +288,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB Galera custom",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB Galera custom",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -323,7 +315,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -335,32 +327,20 @@ func TestMariadbStartupProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
+		),
+	)
+})
+
+var _ = Describe("MariadbLivenessProbe", func() {
+	DescribeTable("should build the expected probe",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantProbe *corev1.Probe) {
+			probe, err := mariadbLivenessProbe(mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(probe).To(Equal(wantProbe))
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			probe, err := mariadbStartupProbe(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
-				t.Errorf("unexpected probe (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestMariadbLivenessProbe(t *testing.T) {
-	tests := []struct {
-		name      string
-		mariadb   *mariadbv1alpha1.MariaDB
-		wantProbe *corev1.Probe
-	}{
-		{
-			name:    "MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantProbe: &corev1.Probe{
+		Entry("MariaDB",
+			&mariadbv1alpha1.MariaDB{},
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -374,10 +354,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB with thresholds",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB with thresholds",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						LivenessProbe: &mariadbv1alpha1.Probe{
@@ -388,7 +367,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -402,10 +381,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB custom",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB custom",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						LivenessProbe: &mariadbv1alpha1.Probe{
@@ -425,7 +403,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -439,10 +417,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -454,7 +431,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -465,10 +442,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication with thresholds",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication with thresholds",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -487,7 +463,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -498,10 +474,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication custom",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication custom",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -526,7 +501,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -537,10 +512,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication with standalone probe",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication with standalone probe",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -550,7 +524,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -564,10 +538,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB Galera",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB Galera",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -579,7 +552,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -590,10 +563,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB Galera with thresholds",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB Galera with thresholds",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -612,7 +584,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -623,10 +595,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB Galera custom",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB Galera custom",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -651,7 +622,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
@@ -662,32 +633,20 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
+		),
+	)
+})
+
+var _ = Describe("MariadbReadinessProbe", func() {
+	DescribeTable("should build the expected probe",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantProbe *corev1.Probe) {
+			probe, err := mariadbReadinessProbe(mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(probe).To(Equal(wantProbe))
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			probe, err := mariadbLivenessProbe(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
-				t.Errorf("unexpected probe (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestMariadbReadinessProbe(t *testing.T) {
-	tests := []struct {
-		name      string
-		mariadb   *mariadbv1alpha1.MariaDB
-		wantProbe *corev1.Probe
-	}{
-		{
-			name:    "MariaDB empty",
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantProbe: &corev1.Probe{
+		Entry("MariaDB empty",
+			&mariadbv1alpha1.MariaDB{},
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -701,10 +660,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB with thresholds",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB with thresholds",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						ReadinessProbe: &mariadbv1alpha1.Probe{
@@ -715,7 +673,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -729,10 +687,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB custom",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB custom",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						ReadinessProbe: &mariadbv1alpha1.Probe{
@@ -752,7 +709,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
@@ -766,10 +723,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -781,7 +737,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
@@ -792,10 +748,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication with thresholds",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication with thresholds",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -814,7 +769,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
@@ -825,10 +780,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication custom",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication custom",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -853,7 +807,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
@@ -864,10 +818,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB replication with ignored standalone probe",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB replication with ignored standalone probe",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
@@ -880,7 +833,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
@@ -891,10 +844,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB Galera",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB Galera",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -906,7 +858,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
@@ -917,10 +869,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB Galera with thresholds",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB Galera with thresholds",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -939,7 +890,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
@@ -950,10 +901,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MariaDB Galera custom",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB Galera custom",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -978,7 +928,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 					},
 				},
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
@@ -989,40 +939,26 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
+		),
+	)
+})
+
+var _ = Describe("MaxScaleProbe", func() {
+	DescribeTable("should build the expected probe",
+		func(maxScale *mariadbv1alpha1.MaxScale, probe *mariadbv1alpha1.Probe, wantProbe *corev1.Probe) {
+			got := maxscaleProbe(maxScale, probe)
+			Expect(got).To(Equal(wantProbe))
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			probe, err := mariadbReadinessProbe(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
-				t.Errorf("unexpected probe (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestMaxScaleProbe(t *testing.T) {
-	tests := []struct {
-		name      string
-		maxScale  *mariadbv1alpha1.MaxScale
-		probe     *mariadbv1alpha1.Probe
-		wantProbe *corev1.Probe
-	}{
-		{
-			name: "MaxScale empty",
-			maxScale: &mariadbv1alpha1.MaxScale{
+		Entry("MaxScale empty",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Admin: mariadbv1alpha1.MaxScaleAdmin{
 						Port: 8989,
 					},
 				},
 			},
-			probe: &mariadbv1alpha1.Probe{},
-			wantProbe: &corev1.Probe{
+			&mariadbv1alpha1.Probe{},
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					TCPSocket: &corev1.TCPSocketAction{
 						Port: intstr.FromInt(8989),
@@ -1032,22 +968,21 @@ func TestMaxScaleProbe(t *testing.T) {
 				TimeoutSeconds:      5,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MaxScale partial",
-			maxScale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("MaxScale partial",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Admin: mariadbv1alpha1.MaxScaleAdmin{
 						Port: 8989,
 					},
 				},
 			},
-			probe: &mariadbv1alpha1.Probe{
+			&mariadbv1alpha1.Probe{
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					TCPSocket: &corev1.TCPSocketAction{
 						Port: intstr.FromInt(8989),
@@ -1057,17 +992,16 @@ func TestMaxScaleProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MaxScale full",
-			maxScale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("MaxScale full",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Admin: mariadbv1alpha1.MaxScaleAdmin{
 						Port: 8989,
 					},
 				},
 			},
-			probe: &mariadbv1alpha1.Probe{
+			&mariadbv1alpha1.Probe{
 				ProbeHandler: mariadbv1alpha1.ProbeHandler{
 					TCPSocket: &mariadbv1alpha1.TCPSocketAction{
 						Host: "custom",
@@ -1078,7 +1012,7 @@ func TestMaxScaleProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					TCPSocket: &corev1.TCPSocketAction{
 						Host: "custom",
@@ -1089,17 +1023,16 @@ func TestMaxScaleProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-		{
-			name: "MaxScale Probe with Failure Threshold",
-			maxScale: &mariadbv1alpha1.MaxScale{
+		),
+		Entry("MaxScale Probe with Failure Threshold",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					Admin: mariadbv1alpha1.MaxScaleAdmin{
 						Port: 8989,
 					},
 				},
 			},
-			probe: &mariadbv1alpha1.Probe{
+			&mariadbv1alpha1.Probe{
 				ProbeHandler: mariadbv1alpha1.ProbeHandler{
 					HTTPGet: &mariadbv1alpha1.HTTPGetAction{
 						Path: "/custom",
@@ -1111,7 +1044,7 @@ func TestMaxScaleProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-			wantProbe: &corev1.Probe{
+			&corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/custom",
@@ -1123,88 +1056,63 @@ func TestMaxScaleProbe(t *testing.T) {
 				TimeoutSeconds:      10,
 				PeriodSeconds:       10,
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			probe := maxscaleProbe(tt.maxScale, tt.probe)
-			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
-				t.Errorf("unexpected probe (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
+var _ = Describe("ContainerSecurityContext", func() {
+	It("should build the expected security context", func() {
+		builder := newDefaultTestBuilder()
+		tpl := &mariadbv1alpha1.ContainerTemplate{}
 
-func TestContainerSecurityContext(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	tpl := &mariadbv1alpha1.ContainerTemplate{}
+		container, err := builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(container.SecurityContext).To(BeNil())
 
-	container, err := builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
-	if err != nil {
-		t.Fatalf("unexpected error building container: %v", err)
-	}
-	if container.SecurityContext != nil {
-		t.Error("expected SecurityContext to be nil")
-	}
-
-	tpl = &mariadbv1alpha1.ContainerTemplate{
-		SecurityContext: &mariadbv1alpha1.SecurityContext{
-			RunAsUser: ptr.To(mysqlUser),
-		},
-	}
-	container, err = builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
-	if err != nil {
-		t.Fatalf("unexpected error building container: %v", err)
-	}
-	if container.SecurityContext == nil {
-		t.Error("expected SecurityContext not to be nil")
-	}
-
-	resource := &metav1.APIResourceList{
-		GroupVersion: "security.openshift.io/v1",
-		APIResources: []metav1.APIResource{
-			{
-				Name: "securitycontextconstraints",
+		tpl = &mariadbv1alpha1.ContainerTemplate{
+			SecurityContext: &mariadbv1alpha1.SecurityContext{
+				RunAsUser: ptr.To(mysqlUser),
 			},
+		}
+		container, err = builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(container.SecurityContext).NotTo(BeNil())
+
+		resource := &metav1.APIResourceList{
+			GroupVersion: "security.openshift.io/v1",
+			APIResources: []metav1.APIResource{
+				{
+					Name: "securitycontextconstraints",
+				},
+			},
+		}
+		dsc, err := discovery.NewFakeDiscovery(resource)
+		Expect(err).NotTo(HaveOccurred())
+		builder = newTestBuilder(dsc)
+
+		container, err = builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(container.SecurityContext).To(BeNil())
+	})
+})
+
+var _ = Describe("BuildContainerLifecycle", func() {
+	DescribeTable("should build the expected lifecycle",
+		func(container *mariadbv1alpha1.ContainerTemplate, opts []mariadbPodOpt, want *corev1.Lifecycle) {
+			builder := newDefaultTestBuilder()
+			got, err := builder.buildContainerWithTemplate("mariadb", corev1.PullIfNotPresent, container, opts...)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got.Lifecycle).To(Equal(want))
 		},
-	}
-	discovery, err := discovery.NewFakeDiscovery(resource)
-	if err != nil {
-		t.Fatalf("unexpected error getting discovery: %v", err)
-	}
-	builder = newTestBuilder(discovery)
-
-	container, err = builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
-	if err != nil {
-		t.Fatalf("unexpected error building container: %v", err)
-	}
-	if container.SecurityContext != nil {
-		t.Error("expected SecurityContext to be nil")
-	}
-}
-
-func TestBuildContainerLifecycle(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-
-	tests := []struct {
-		name      string
-		container *mariadbv1alpha1.ContainerTemplate
-		opts      []mariadbPodOpt
-		want      *corev1.Lifecycle
-	}{
-
-		{
-			name:      "no lifecycle",
-			container: &mariadbv1alpha1.ContainerTemplate{},
-			opts: []mariadbPodOpt{
+		Entry("no lifecycle",
+			&mariadbv1alpha1.ContainerTemplate{},
+			[]mariadbPodOpt{
 				withLifecycle(true),
 			},
-			want: nil,
-		},
-		{
-			name: "with postStart lifecycle",
-			container: &mariadbv1alpha1.ContainerTemplate{
+			nil,
+		),
+		Entry("with postStart lifecycle",
+			&mariadbv1alpha1.ContainerTemplate{
 				Lifecycle: &mariadbv1alpha1.Lifecycle{
 					PostStart: &mariadbv1alpha1.LifecycleHandler{
 						Exec: &mariadbv1alpha1.ExecAction{
@@ -1213,20 +1121,19 @@ func TestBuildContainerLifecycle(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withLifecycle(true),
 			},
-			want: &corev1.Lifecycle{
+			&corev1.Lifecycle{
 				PostStart: &corev1.LifecycleHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{"echo", "hello"},
 					},
 				},
 			},
-		},
-		{
-			name: "with preStop lifecycle",
-			container: &mariadbv1alpha1.ContainerTemplate{
+		),
+		Entry("with preStop lifecycle",
+			&mariadbv1alpha1.ContainerTemplate{
 				Lifecycle: &mariadbv1alpha1.Lifecycle{
 					PreStop: &mariadbv1alpha1.LifecycleHandler{
 						Exec: &mariadbv1alpha1.ExecAction{
@@ -1235,20 +1142,19 @@ func TestBuildContainerLifecycle(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withLifecycle(true),
 			},
-			want: &corev1.Lifecycle{
+			&corev1.Lifecycle{
 				PreStop: &corev1.LifecycleHandler{
 					Exec: &corev1.ExecAction{
 						Command: []string{"echo", "hello"},
 					},
 				},
 			},
-		},
-		{
-			name: "without lifecycle",
-			container: &mariadbv1alpha1.ContainerTemplate{
+		),
+		Entry("without lifecycle",
+			&mariadbv1alpha1.ContainerTemplate{
 				Lifecycle: &mariadbv1alpha1.Lifecycle{
 					PreStop: &mariadbv1alpha1.LifecycleHandler{
 						Exec: &mariadbv1alpha1.ExecAction{
@@ -1257,14 +1163,13 @@ func TestBuildContainerLifecycle(t *testing.T) {
 					},
 				},
 			},
-			opts: []mariadbPodOpt{
+			[]mariadbPodOpt{
 				withLifecycle(false),
 			},
-			want: nil,
-		},
-		{
-			name: "defaults to no lifecycle",
-			container: &mariadbv1alpha1.ContainerTemplate{
+			nil,
+		),
+		Entry("defaults to no lifecycle",
+			&mariadbv1alpha1.ContainerTemplate{
 				Lifecycle: &mariadbv1alpha1.Lifecycle{
 					PreStop: &mariadbv1alpha1.LifecycleHandler{
 						Exec: &mariadbv1alpha1.ExecAction{
@@ -1273,108 +1178,102 @@ func TestBuildContainerLifecycle(t *testing.T) {
 					},
 				},
 			},
-			want: nil,
-		},
-	}
+			nil,
+			nil,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := builder.buildContainerWithTemplate("mariadb", corev1.PullIfNotPresent, tt.container, tt.opts...)
-			if err != nil {
-				t.Fatalf("unexpected error building container: %v", err)
+var _ = Describe("MariadbEnv", func() {
+	DescribeTable("should build the expected env",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantEnv []corev1.EnvVar, setClusterName bool) {
+			if setClusterName {
+				DeferCleanup(os.Setenv, "CLUSTER_NAME", os.Getenv("CLUSTER_NAME"))
+				os.Setenv("CLUSTER_NAME", "example.com")
 			}
+			env, err := mariadbEnv(mariadb)
+			Expect(err).NotTo(HaveOccurred())
 
-			if diff := cmp.Diff(tt.want, got.Lifecycle); diff != "" {
-				t.Errorf("unexpected Lifecycle (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
+			sortedWantEnv := sortEnvVars(wantEnv)
+			sortedEnv := sortEnvVars(env)
 
-func TestMariadbEnv(t *testing.T) {
-	tests := []struct {
-		name           string
-		mariadb        *mariadbv1alpha1.MariaDB
-		wantEnv        []corev1.EnvVar
-		setClusterName bool
-	}{
-		{
-			name:    "MariaDB empty",
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantEnv: defaultEnv(nil),
+			Expect(sortedEnv).To(Equal(sortedWantEnv))
 		},
-		{
-			name:    "MariaDB cluster name",
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantEnv: defaultEnv([]corev1.EnvVar{
+		Entry("MariaDB empty",
+			&mariadbv1alpha1.MariaDB{},
+			defaultEnv(nil),
+			false,
+		),
+		Entry("MariaDB cluster name",
+			&mariadbv1alpha1.MariaDB{},
+			defaultEnv([]corev1.EnvVar{
 				{
 					Name:  "CLUSTER_NAME",
 					Value: "example.com",
 				},
 			}),
-			setClusterName: true,
-		},
-		{
-			name: "MariaDB tcp port",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("MariaDB tcp port",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 12345,
 				},
 			},
-			wantEnv: defaultEnv([]corev1.EnvVar{
+			defaultEnv([]corev1.EnvVar{
 				{
 					Name:  "MYSQL_TCP_PORT",
 					Value: strconv.Itoa(12345),
 				},
 			}),
-		},
-		{
-			name: "MariaDB name",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("MariaDB name",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "example",
 				},
 			},
-			wantEnv: defaultEnv([]corev1.EnvVar{
+			defaultEnv([]corev1.EnvVar{
 				{
 					Name:  "MARIADB_NAME",
 					Value: "example",
 				},
 			}),
-		},
-		{
-			name: "MariaDB root empty password",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("MariaDB root empty password",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootEmptyPassword: ptr.To(true),
 				},
 			},
-			wantEnv: defaultEnv([]corev1.EnvVar{
+			defaultEnv([]corev1.EnvVar{
 				{
 					Name:  "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
 					Value: "yes",
 				},
 			}),
-		},
-		{
-			name: "MariaDB timeZone",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("MariaDB timeZone",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					TimeZone: ptr.To("UTC"),
 				},
 			},
-			wantEnv: removeEnv(defaultEnv(nil), "MYSQL_INITDB_SKIP_TZINFO"),
-		},
-		{
-			name: "MariaDB TLS",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			removeEnv(defaultEnv(nil), "MYSQL_INITDB_SKIP_TZINFO"),
+			false,
+		),
+		Entry("MariaDB TLS",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					TLS: &mariadbv1alpha1.TLS{
 						Enabled: true,
 					},
 				},
 			},
-			wantEnv: append(defaultEnv(nil),
+			append(defaultEnv(nil),
 				[]corev1.EnvVar{
 					{
 						Name:  "TLS_ENABLED",
@@ -1401,10 +1300,10 @@ func TestMariadbEnv(t *testing.T) {
 						Value: builderpki.ClientKeyPath,
 					},
 				}...),
-		},
-		{
-			name: "MariaDB replication",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("MariaDB replication",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mariadb-repl",
 				},
@@ -1422,7 +1321,7 @@ func TestMariadbEnv(t *testing.T) {
 					},
 				},
 			},
-			wantEnv: append(
+			append(
 				defaultEnv([]corev1.EnvVar{
 					{
 						Name:  "MARIADB_NAME",
@@ -1459,10 +1358,10 @@ func TestMariadbEnv(t *testing.T) {
 						Value: "AFTER_COMMIT",
 					},
 				}...),
-		},
-		{
-			name: "MariaDB Galera TLS",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("MariaDB Galera TLS",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mariadb-galera",
 				},
@@ -1475,7 +1374,7 @@ func TestMariadbEnv(t *testing.T) {
 					},
 				},
 			},
-			wantEnv: append(
+			append(
 				defaultEnv([]corev1.EnvVar{
 					{
 						Name:  "MARIADB_NAME",
@@ -1512,10 +1411,10 @@ func TestMariadbEnv(t *testing.T) {
 						Value: "mariadb-galera-client:",
 					},
 				}...),
-		},
-		{
-			name: "MariaDB env append",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("MariaDB env append",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Env: []mariadbv1alpha1.EnvVar{
@@ -1527,14 +1426,14 @@ func TestMariadbEnv(t *testing.T) {
 					},
 				},
 			},
-			wantEnv: append(defaultEnv(nil), corev1.EnvVar{
+			append(defaultEnv(nil), corev1.EnvVar{
 				Name:  "FOO_BAR_BAZ",
 				Value: "LOREM_IPSUM_DOLOR",
 			}),
-		},
-		{
-			name: "MariaDB env override",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("MariaDB env override",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Env: []mariadbv1alpha1.EnvVar{
@@ -1578,7 +1477,7 @@ func TestMariadbEnv(t *testing.T) {
 					},
 				},
 			},
-			wantEnv: []corev1.EnvVar{
+			[]corev1.EnvVar{
 				{
 					Name:  "MYSQL_TCP_PORT",
 					Value: strconv.Itoa(12345),
@@ -1616,205 +1515,165 @@ func TestMariadbEnv(t *testing.T) {
 					Value: "0",
 				},
 			},
-		},
-	}
+			false,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.setClusterName {
-				t.Setenv("CLUSTER_NAME", "example.com")
-			}
-			env, err := mariadbEnv(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+var _ = Describe("S3Env", func() {
+	DescribeTable("should build the expected env",
+		func(s3 *mariadbv1alpha1.S3, expectedEnv []string) {
+			env := s3Env(s3)
 
-			sortedWantEnv := sortEnvVars(tt.wantEnv)
-			sortedEnv := sortEnvVars(env)
-
-			if diff := cmp.Diff(sortedWantEnv, sortedEnv); diff != "" {
-				t.Errorf("unexpected env (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestS3Env(t *testing.T) {
-	tests := []struct {
-		name        string
-		s3          *mariadbv1alpha1.S3
-		expectedEnv []string
-	}{
-		{
-			name:        "nil S3",
-			s3:          nil,
-			expectedEnv: nil,
-		},
-		{
-			name: "S3 with access key only",
-			s3: &mariadbv1alpha1.S3{
-				Bucket:   "test-bucket",
-				Endpoint: "s3.amazonaws.com",
-				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "access-key-id",
-				},
-				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "secret-access-key",
-				},
-			},
-			expectedEnv: []string{S3AccessKeyId, S3SecretAccessKey},
-		},
-		{
-			name: "S3 with session token",
-			s3: &mariadbv1alpha1.S3{
-				Bucket:   "test-bucket",
-				Endpoint: "s3.amazonaws.com",
-				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "access-key-id",
-				},
-				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "secret-access-key",
-				},
-				SessionTokenSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "session-token",
-				},
-			},
-			expectedEnv: []string{S3AccessKeyId, S3SecretAccessKey, S3SessionTokenKey},
-		},
-		{
-			name: "S3 with SSE-C",
-			s3: &mariadbv1alpha1.S3{
-				Bucket:   "test-bucket",
-				Endpoint: "s3.amazonaws.com",
-				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "access-key-id",
-				},
-				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "secret-access-key",
-				},
-				SSEC: &mariadbv1alpha1.SSECConfig{
-					CustomerKeySecretKeyRef: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: "ssec-key",
-						},
-						Key: "customer-key",
-					},
-				},
-			},
-			expectedEnv: []string{S3AccessKeyId, S3SecretAccessKey, S3SSECCustomerKey},
-		},
-		{
-			name: "S3 with all options",
-			s3: &mariadbv1alpha1.S3{
-				Bucket:   "test-bucket",
-				Endpoint: "s3.amazonaws.com",
-				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "access-key-id",
-				},
-				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "secret-access-key",
-				},
-				SessionTokenSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: "s3-credentials",
-					},
-					Key: "session-token",
-				},
-				SSEC: &mariadbv1alpha1.SSECConfig{
-					CustomerKeySecretKeyRef: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: "ssec-key",
-						},
-						Key: "customer-key",
-					},
-				},
-			},
-			expectedEnv: []string{S3AccessKeyId, S3SecretAccessKey, S3SessionTokenKey, S3SSECCustomerKey},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env := s3Env(tt.s3)
-
-			if tt.expectedEnv == nil {
-				if env != nil {
-					t.Errorf("expected nil env, got: %v", env)
-				}
+			if expectedEnv == nil {
+				Expect(env).To(BeNil())
 				return
 			}
 
-			if len(env) != len(tt.expectedEnv) {
-				t.Errorf("expected %d env vars, got: %d", len(tt.expectedEnv), len(env))
-				return
-			}
+			Expect(env).To(HaveLen(len(expectedEnv)))
 
-			for _, expectedName := range tt.expectedEnv {
+			for _, expectedName := range expectedEnv {
 				found := slices.ContainsFunc(env, func(e corev1.EnvVar) bool {
 					return e.Name == expectedName
 				})
-				if !found {
-					t.Errorf("expected env var %s not found in %v", expectedName, env)
-				}
+				Expect(found).To(BeTrue())
 			}
-		})
-	}
-}
-
-func TestContainerArgs(t *testing.T) {
-	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantArgs []string
-	}{
-		{
-			name:     "MariaDB args empty",
-			mariadb:  &mariadbv1alpha1.MariaDB{},
-			wantArgs: nil,
 		},
-		{
-			name: "MariaDB args verbose",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		Entry("nil S3",
+			nil,
+			nil,
+		),
+		Entry("S3 with access key only",
+			&mariadbv1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.amazonaws.com",
+				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "access-key-id",
+				},
+				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "secret-access-key",
+				},
+			},
+			[]string{S3AccessKeyId, S3SecretAccessKey},
+		),
+		Entry("S3 with session token",
+			&mariadbv1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.amazonaws.com",
+				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "access-key-id",
+				},
+				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "secret-access-key",
+				},
+				SessionTokenSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "session-token",
+				},
+			},
+			[]string{S3AccessKeyId, S3SecretAccessKey, S3SessionTokenKey},
+		),
+		Entry("S3 with SSE-C",
+			&mariadbv1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.amazonaws.com",
+				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "access-key-id",
+				},
+				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "secret-access-key",
+				},
+				SSEC: &mariadbv1alpha1.SSECConfig{
+					CustomerKeySecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: "ssec-key",
+						},
+						Key: "customer-key",
+					},
+				},
+			},
+			[]string{S3AccessKeyId, S3SecretAccessKey, S3SSECCustomerKey},
+		),
+		Entry("S3 with all options",
+			&mariadbv1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.amazonaws.com",
+				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "access-key-id",
+				},
+				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "secret-access-key",
+				},
+				SessionTokenSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "session-token",
+				},
+				SSEC: &mariadbv1alpha1.SSECConfig{
+					CustomerKeySecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: "ssec-key",
+						},
+						Key: "customer-key",
+					},
+				},
+			},
+			[]string{S3AccessKeyId, S3SecretAccessKey, S3SessionTokenKey, S3SSECCustomerKey},
+		),
+	)
+})
+
+var _ = Describe("ContainerArgs", func() {
+	DescribeTable("should build the expected args",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantArgs []string) {
+			args := mariadbArgs(mariadb)
+			Expect(args).To(Equal(wantArgs))
+		},
+		Entry("MariaDB args empty",
+			&mariadbv1alpha1.MariaDB{},
+			nil,
+		),
+		Entry("MariaDB args verbose",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Args: []string{"--verbose"},
 					},
 				},
 			},
-			wantArgs: []string{
+			[]string{
 				"--verbose",
 			},
-		},
-		{
-			name: "MariaDB args verbose",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("MariaDB args verbose",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mariadb-test",
 				},
@@ -1827,198 +1686,181 @@ func TestContainerArgs(t *testing.T) {
 					},
 				},
 			},
-			wantArgs: []string{
+			[]string{
 				"--verbose",
 			},
-		},
-	}
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			args := mariadbArgs(tt.mariadb)
-			if !reflect.DeepEqual(tt.wantArgs, args) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantArgs, args)
-			}
-		})
-	}
-}
-
-func TestMariadbContainers(t *testing.T) {
-	tests := []struct {
-		name                string
-		mariadb             *mariadbv1alpha1.MariaDB
-		wantName            string
-		wantEnvKeys         []string
-		wantVolumeMountKeys []string
-	}{
-		{
-			name: "Without sidecar container name",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-						SidecarContainers: []mariadbv1alpha1.Container{
-							{
-								Image: "busybox",
-								Command: []string{
-									"sh",
-									"-c",
-									"sleep infinity",
-								},
-							},
-						},
-					},
-				},
-			},
-			wantName:            "sidecar-0",
-			wantEnvKeys:         nil,
-			wantVolumeMountKeys: nil,
-		},
-		{
-			name: "With sidecar container name",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-						SidecarContainers: []mariadbv1alpha1.Container{
-							{
-								Name:  "busybox",
-								Image: "busybox",
-								Command: []string{
-									"sh",
-									"-c",
-									"sleep infinity",
-								},
-							},
-						},
-					},
-				},
-			},
-			wantName:            "busybox",
-			wantEnvKeys:         nil,
-			wantVolumeMountKeys: nil,
-		},
-		{
-			name: "With env",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Port: 3306,
-					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-						SidecarContainers: []mariadbv1alpha1.Container{
-							{
-								Name:  "busybox",
-								Image: "busybox",
-								Command: []string{
-									"sh",
-									"-c",
-									"sleep 1",
-								},
-								Env: []mariadbv1alpha1.EnvVar{
-									{
-										Name:  "TEST",
-										Value: "TEST",
-									},
-									{
-										Name:  "FOO",
-										Value: "FOO",
-									},
-									{
-										Name:  "BAR",
-										Value: "BAR",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			wantName:            "busybox",
-			wantEnvKeys:         []string{"TEST", "FOO", "BAR"},
-			wantVolumeMountKeys: nil,
-		},
-		{
-			name: "With volumeMount",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Port: 3306,
-					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
-						SidecarContainers: []mariadbv1alpha1.Container{
-							{
-								Name:  "busybox",
-								Image: "busybox",
-								Command: []string{
-									"sh",
-									"-c",
-									"sleep 1",
-								},
-								VolumeMounts: []mariadbv1alpha1.VolumeMount{
-									{
-										Name:      "TEST",
-										MountPath: "/test",
-									},
-									{
-										Name:      "FOO",
-										MountPath: "/foo",
-									},
-									{
-										Name:      "BAR",
-										MountPath: "/bar",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			wantName:            "busybox",
-			wantEnvKeys:         nil,
-			wantVolumeMountKeys: []string{"TEST", "FOO", "BAR"},
-		},
-	}
-
-	builder := newDefaultTestBuilder(t)
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			containers, err := builder.mariadbContainers(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building containers: %v", err)
-			}
+var _ = Describe("MariadbContainers", func() {
+	DescribeTable("should build the expected container",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantName string, wantEnvKeys []string, wantVolumeMountKeys []string) {
+			builder := newDefaultTestBuilder()
+			containers, err := builder.mariadbContainers(mariadb)
+			Expect(err).NotTo(HaveOccurred())
 
 			container := containers[1]
 
-			if container.Name != tt.wantName {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, containers[1].Name)
-			}
-			if tt.wantEnvKeys != nil {
+			Expect(container.Name).To(Equal(wantName))
+			if wantEnvKeys != nil {
 				idx := datastructures.NewIndex(container.Env, func(env corev1.EnvVar) string {
 					return env.Name
 				})
-				if !datastructures.AllExists(idx, tt.wantEnvKeys...) {
-					t.Errorf("expected env keys \"%v\" to exist", tt.wantEnvKeys)
-				}
+				Expect(datastructures.AllExists(idx, wantEnvKeys...)).To(BeTrue())
 			}
-			if tt.wantVolumeMountKeys != nil {
+			if wantVolumeMountKeys != nil {
 				idx := datastructures.NewIndex(container.VolumeMounts, func(volumeMount corev1.VolumeMount) string {
 					return volumeMount.Name
 				})
-				if !datastructures.AllExists(idx, tt.wantVolumeMountKeys...) {
-					t.Errorf("expected volumeMount keys \"%s\" to exist", tt.wantVolumeMountKeys)
-				}
+				Expect(datastructures.AllExists(idx, wantVolumeMountKeys...)).To(BeTrue())
 			}
-		})
-	}
-}
+		},
+		Entry("Without sidecar container name",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep infinity",
+								},
+							},
+						},
+					},
+				},
+			},
+			"sidecar-0",
+			nil,
+			nil,
+		),
+		Entry("With sidecar container name",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep infinity",
+								},
+							},
+						},
+					},
+				},
+			},
+			"busybox",
+			nil,
+			nil,
+		),
+		Entry("With env",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Port: 3306,
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+								Env: []mariadbv1alpha1.EnvVar{
+									{
+										Name:  "TEST",
+										Value: "TEST",
+									},
+									{
+										Name:  "FOO",
+										Value: "FOO",
+									},
+									{
+										Name:  "BAR",
+										Value: "BAR",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"busybox",
+			[]string{"TEST", "FOO", "BAR"},
+			nil,
+		),
+		Entry("With volumeMount",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Port: 3306,
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+								VolumeMounts: []mariadbv1alpha1.VolumeMount{
+									{
+										Name:      "TEST",
+										MountPath: "/test",
+									},
+									{
+										Name:      "FOO",
+										MountPath: "/foo",
+									},
+									{
+										Name:      "BAR",
+										MountPath: "/bar",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"busybox",
+			nil,
+			[]string{"TEST", "FOO", "BAR"},
+		),
+	)
+})
 
-func TestMariadbInitContainers(t *testing.T) {
-	tests := []struct {
-		name                string
-		mariadb             *mariadbv1alpha1.MariaDB
-		wantName            string
-		wantEnvKeys         []string
-		wantVolumeMountKeys []string
-	}{
-		{
-			name: "Without container name",
-			mariadb: &mariadbv1alpha1.MariaDB{
+var _ = Describe("MariadbInitContainers", func() {
+	DescribeTable("should build the expected init container",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantName string, wantEnvKeys []string, wantVolumeMountKeys []string) {
+			builder := newDefaultTestBuilder()
+			initContainers, err := builder.mariadbInitContainers(mariadb)
+			Expect(err).NotTo(HaveOccurred())
+
+			initContainer := initContainers[0]
+
+			Expect(initContainer.Name).To(Equal(wantName))
+			if wantEnvKeys != nil {
+				idx := datastructures.NewIndex(initContainer.Env, func(env corev1.EnvVar) string {
+					return env.Name
+				})
+				Expect(datastructures.AllExists(idx, wantEnvKeys...)).To(BeTrue())
+			}
+			if wantVolumeMountKeys != nil {
+				idx := datastructures.NewIndex(initContainer.VolumeMounts, func(volumeMount corev1.VolumeMount) string {
+					return volumeMount.Name
+				})
+				Expect(datastructures.AllExists(idx, wantVolumeMountKeys...)).To(BeTrue())
+			}
+		},
+		Entry("Without container name",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
@@ -2034,13 +1876,12 @@ func TestMariadbInitContainers(t *testing.T) {
 					},
 				},
 			},
-			wantName:            "init-0",
-			wantEnvKeys:         nil,
-			wantVolumeMountKeys: nil,
-		},
-		{
-			name: "With container name",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			"init-0",
+			nil,
+			nil,
+		),
+		Entry("With container name",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
@@ -2057,13 +1898,12 @@ func TestMariadbInitContainers(t *testing.T) {
 					},
 				},
 			},
-			wantName:            "busybox",
-			wantEnvKeys:         nil,
-			wantVolumeMountKeys: nil,
-		},
-		{
-			name: "With env",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			"busybox",
+			nil,
+			nil,
+		),
+		Entry("With env",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -2095,13 +1935,12 @@ func TestMariadbInitContainers(t *testing.T) {
 					},
 				},
 			},
-			wantName:            "busybox",
-			wantEnvKeys:         []string{"TEST", "FOO", "BAR"},
-			wantVolumeMountKeys: nil,
-		},
-		{
-			name: "With volumeMount",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			"busybox",
+			[]string{"TEST", "FOO", "BAR"},
+			nil,
+		),
+		Entry("With volumeMount",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
@@ -2133,78 +1972,47 @@ func TestMariadbInitContainers(t *testing.T) {
 					},
 				},
 			},
-			wantName:            "busybox",
-			wantEnvKeys:         nil,
-			wantVolumeMountKeys: []string{"TEST", "FOO", "BAR"},
+			"busybox",
+			nil,
+			[]string{"TEST", "FOO", "BAR"},
+		),
+	)
+})
+
+var _ = Describe("MaxscaleContainers", func() {
+	DescribeTable("should build the expected container",
+		func(maxscale *mariadbv1alpha1.MaxScale, wantCommand []string, wantArgs []string) {
+			builder := newDefaultTestBuilder()
+			containers, err := builder.maxscaleContainers(maxscale)
+			Expect(err).NotTo(HaveOccurred())
+
+			container := containers[0]
+
+			Expect(container.Command[0]).To(Equal(wantCommand[0]))
+			Expect(container.Args).To(Equal(wantArgs))
 		},
-	}
-
-	builder := newDefaultTestBuilder(t)
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			initContainers, err := builder.mariadbInitContainers(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building init containers: %v", err)
-			}
-
-			initContainer := initContainers[0]
-
-			if initContainer.Name != tt.wantName {
-				t.Errorf("unexpected name:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, initContainer.Name)
-			}
-			if tt.wantEnvKeys != nil {
-				idx := datastructures.NewIndex(initContainer.Env, func(env corev1.EnvVar) string {
-					return env.Name
-				})
-				if !datastructures.AllExists(idx, tt.wantEnvKeys...) {
-					t.Errorf("expected env keys \"%v\" to exist", tt.wantEnvKeys)
-				}
-			}
-			if tt.wantVolumeMountKeys != nil {
-				idx := datastructures.NewIndex(initContainer.VolumeMounts, func(volumeMount corev1.VolumeMount) string {
-					return volumeMount.Name
-				})
-				if !datastructures.AllExists(idx, tt.wantVolumeMountKeys...) {
-					t.Errorf("expected volumeMount keys \"%s\" to exist", tt.wantVolumeMountKeys)
-				}
-			}
-		})
-	}
-}
-
-func TestMaxscaleContainers(t *testing.T) {
-	tests := []struct {
-		name        string
-		maxscale    *mariadbv1alpha1.MaxScale
-		wantCommand []string
-		wantArgs    []string
-	}{
-		{
-			name: "Without custom command and args",
-			maxscale: &mariadbv1alpha1.MaxScale{
+		Entry("Without custom command and args",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{},
 				},
 			},
-			wantCommand: []string{"maxscale"},
-			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
-		},
-		{
-			name: "With custom command",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			[]string{"maxscale"},
+			[]string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
+		),
+		Entry("With custom command",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Command: []string{"maxscale-test"},
 					},
 				},
 			},
-			wantCommand: []string{"maxscale-test"},
-			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
-		},
-		{
-			name: "With custom command and args",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			[]string{"maxscale-test"},
+			[]string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
+		),
+		Entry("With custom command and args",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Command: []string{"maxscale-test"},
@@ -2212,47 +2020,24 @@ func TestMaxscaleContainers(t *testing.T) {
 					},
 				},
 			},
-			wantCommand: []string{"maxscale-test"},
-			wantArgs:    []string{"--test", "--unit"},
+			[]string{"maxscale-test"},
+			[]string{"--test", "--unit"},
+		),
+	)
+})
+
+var _ = Describe("MariadbStorageVolumeMount", func() {
+	DescribeTable("should build the expected volume mount",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantSubPath string) {
+			vm := mariadbStorageVolumeMount(mariadb)
+			Expect(vm.SubPath).To(Equal(wantSubPath))
 		},
-	}
-
-	builder := newDefaultTestBuilder(t)
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			containers, err := builder.maxscaleContainers(tt.maxscale)
-			if err != nil {
-				t.Fatalf("unexpected error building containers: %v", err)
-			}
-
-			container := containers[0]
-
-			if !reflect.DeepEqual(container.Command[0], tt.wantCommand[0]) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantCommand[0], container.Command[0])
-			}
-
-			if !reflect.DeepEqual(tt.wantArgs, container.Args) {
-				t.Errorf("expected env keys \"%v\" to exist\n got:\"%v\"", tt.wantArgs, container.Args)
-			}
-		})
-	}
-}
-
-func TestMariadbStorageVolumeMount(t *testing.T) {
-	tests := []struct {
-		name        string
-		mariadb     *mariadbv1alpha1.MariaDB
-		wantSubPath string
-	}{
-		{
-			name:        "no galera configured",
-			mariadb:     &mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{}},
-			wantSubPath: "",
-		},
-		{
-			name: "galera enabled reuse disabled",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		Entry("no galera configured",
+			&mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{}},
+			"",
+		),
+		Entry("galera enabled reuse disabled",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -2264,11 +2049,10 @@ func TestMariadbStorageVolumeMount(t *testing.T) {
 					},
 				},
 			},
-			wantSubPath: "",
-		},
-		{
-			name: "galera enabled reuse enabled",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			"",
+		),
+		Entry("galera enabled reuse enabled",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
@@ -2280,19 +2064,10 @@ func TestMariadbStorageVolumeMount(t *testing.T) {
 					},
 				},
 			},
-			wantSubPath: StorageVolume,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			vm := mariadbStorageVolumeMount(tt.mariadb)
-			if vm.SubPath != tt.wantSubPath {
-				t.Fatalf("unexpected SubPath: want=%q got=%q", tt.wantSubPath, vm.SubPath)
-			}
-		})
-	}
-}
+			StorageVolume,
+		),
+	)
+})
 
 func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 	mysqlTcpPort := corev1.EnvVar{
