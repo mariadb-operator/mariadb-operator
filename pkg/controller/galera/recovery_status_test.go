@@ -1,144 +1,126 @@
 package galera
 
 import (
-	"reflect"
-	"testing"
 	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/recovery"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestRecoveryStatusGetSet(t *testing.T) {
-	rs := newRecoveryStatus(&mariadbv1alpha1.MariaDB{})
+var _ = Describe("RecoveryStatus get and set", func() {
+	It("gets and sets state, recovered and recovery status", func() {
+		rs := newRecoveryStatus(&mariadbv1alpha1.MariaDB{})
 
-	state0 := &recovery.GaleraState{
-		Version:         "2.1",
-		UUID:            "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
-		Seqno:           3,
-		SafeToBootstrap: false,
-	}
-	state1 := &recovery.GaleraState{
-		Version:         "2.1",
-		UUID:            "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
-		Seqno:           6,
-		SafeToBootstrap: true,
-	}
-	state2 := &recovery.GaleraState{
-		Version:         "2.1",
-		UUID:            "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
-		Seqno:           1,
-		SafeToBootstrap: true,
-	}
-	rs.setState("mariadb-galera-0", state0)
-	rs.setState("mariadb-galera-1", state1)
-	rs.setState("mariadb-galera-2", state2)
+		state0 := &recovery.GaleraState{
+			Version:         "2.1",
+			UUID:            "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
+			Seqno:           3,
+			SafeToBootstrap: false,
+		}
+		state1 := &recovery.GaleraState{
+			Version:         "2.1",
+			UUID:            "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
+			Seqno:           6,
+			SafeToBootstrap: true,
+		}
+		state2 := &recovery.GaleraState{
+			Version:         "2.1",
+			UUID:            "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
+			Seqno:           1,
+			SafeToBootstrap: true,
+		}
+		rs.setState("mariadb-galera-0", state0)
+		rs.setState("mariadb-galera-1", state1)
+		rs.setState("mariadb-galera-2", state2)
 
-	gotState, ok := rs.state("mariadb-galera-1")
-	if !ok {
-		t.Error("expect mariadb-galera-1 state to be found")
-	}
-	if !reflect.DeepEqual(state1, gotState) {
-		t.Errorf("unexpected state value: expected: %v, got: %v", state1, gotState)
-	}
-	gotState, ok = rs.state("foo-0")
-	if ok {
-		t.Error("expect state not to be found")
-	}
-	if gotState != nil {
-		t.Errorf("unexpected state value: expected: %v, got: %v", nil, gotState)
-	}
+		gotState, ok := rs.state("mariadb-galera-1")
+		Expect(ok).To(BeTrue())
+		Expect(gotState).To(Equal(state1))
+		gotState, ok = rs.state("foo-0")
+		Expect(ok).To(BeFalse())
+		Expect(gotState).To(BeNil())
 
-	recovered0 := &recovery.Bootstrap{
-		UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
-		Seqno: 2,
-	}
-	recovered1 := &recovery.Bootstrap{
-		UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
-		Seqno: 3,
-	}
-	recovered2 := &recovery.Bootstrap{
-		UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
-		Seqno: 9,
-	}
-	rs.setRecovered("mariadb-galera-0", recovered0)
-	rs.setRecovered("mariadb-galera-1", recovered1)
-	rs.setRecovered("mariadb-galera-2", recovered2)
+		recovered0 := &recovery.Bootstrap{
+			UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
+			Seqno: 2,
+		}
+		recovered1 := &recovery.Bootstrap{
+			UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
+			Seqno: 3,
+		}
+		recovered2 := &recovery.Bootstrap{
+			UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
+			Seqno: 9,
+		}
+		rs.setRecovered("mariadb-galera-0", recovered0)
+		rs.setRecovered("mariadb-galera-1", recovered1)
+		rs.setRecovered("mariadb-galera-2", recovered2)
 
-	gotRecovered, ok := rs.recovered("mariadb-galera-0")
-	if !ok {
-		t.Error("expect mariadb-galera-0 state to be found")
-	}
-	if !reflect.DeepEqual(recovered0, gotRecovered) {
-		t.Errorf("unexpected recovered value: expected: %v, got: %v", recovered0, gotRecovered)
-	}
-	gotRecovered, ok = rs.recovered("foo-1")
-	if ok {
-		t.Error("expect recovered not to be found")
-	}
-	if gotState != nil {
-		t.Errorf("unexpected recovered value: expected: %v, got: %v", nil, gotRecovered)
-	}
+		gotRecovered, ok := rs.recovered("mariadb-galera-0")
+		Expect(ok).To(BeTrue())
+		Expect(gotRecovered).To(Equal(recovered0))
+		_, ok = rs.recovered("foo-1")
+		Expect(ok).To(BeFalse())
+		Expect(gotState).To(BeNil())
 
-	expectedRecoveryStatus := mariadbv1alpha1.GaleraRecoveryStatus{
-		State: map[string]*recovery.GaleraState{
-			"mariadb-galera-0": state0,
-			"mariadb-galera-1": state1,
-			"mariadb-galera-2": state2,
-		},
-		Recovered: map[string]*recovery.Bootstrap{
-			"mariadb-galera-0": recovered0,
-			"mariadb-galera-1": recovered1,
-			"mariadb-galera-2": recovered2,
-		},
-	}
-	gotRecoveryStatus := rs.galeraRecoveryStatus()
-	if !reflect.DeepEqual(expectedRecoveryStatus, gotRecoveryStatus) {
-		t.Errorf("unexpected recovery status value: expected: %v, got: %v", expectedRecoveryStatus, gotRecoveryStatus)
-	}
+		expectedRecoveryStatus := mariadbv1alpha1.GaleraRecoveryStatus{
+			State: map[string]*recovery.GaleraState{
+				"mariadb-galera-0": state0,
+				"mariadb-galera-1": state1,
+				"mariadb-galera-2": state2,
+			},
+			Recovered: map[string]*recovery.Bootstrap{
+				"mariadb-galera-0": recovered0,
+				"mariadb-galera-1": recovered1,
+				"mariadb-galera-2": recovered2,
+			},
+		}
+		gotRecoveryStatus := rs.galeraRecoveryStatus()
+		Expect(gotRecoveryStatus).To(Equal(expectedRecoveryStatus))
 
-	rs.setPodsRestarted(true)
-	expectedRecoveryStatus = mariadbv1alpha1.GaleraRecoveryStatus{
-		State: map[string]*recovery.GaleraState{
-			"mariadb-galera-0": state0,
-			"mariadb-galera-1": state1,
-			"mariadb-galera-2": state2,
-		},
-		Recovered: map[string]*recovery.Bootstrap{
-			"mariadb-galera-0": recovered0,
-			"mariadb-galera-1": recovered1,
-			"mariadb-galera-2": recovered2,
-		},
-		PodsRestarted: ptr.To(true),
-	}
+		rs.setPodsRestarted(true)
+		expectedRecoveryStatus = mariadbv1alpha1.GaleraRecoveryStatus{
+			State: map[string]*recovery.GaleraState{
+				"mariadb-galera-0": state0,
+				"mariadb-galera-1": state1,
+				"mariadb-galera-2": state2,
+			},
+			Recovered: map[string]*recovery.Bootstrap{
+				"mariadb-galera-0": recovered0,
+				"mariadb-galera-1": recovered1,
+				"mariadb-galera-2": recovered2,
+			},
+			PodsRestarted: ptr.To(true),
+		}
 
-	gotRecoveryStatus = rs.galeraRecoveryStatus()
-	if !reflect.DeepEqual(expectedRecoveryStatus, gotRecoveryStatus) {
-		t.Errorf("unexpected recovery status value: expected: %v, got: %v", expectedRecoveryStatus, gotRecoveryStatus)
-	}
-}
+		gotRecoveryStatus = rs.galeraRecoveryStatus()
+		Expect(gotRecoveryStatus).To(Equal(expectedRecoveryStatus))
+	})
+})
 
-func TestRecoveryStatusIsComplete(t *testing.T) {
+var _ = Describe("RecoveryStatus isComplete", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-galera",
 	}
-	tests := []struct {
-		name     string
-		mdb      *mariadbv1alpha1.MariaDB
-		wantBool bool
-	}{
-		{
-			name:     "no status",
-			mdb:      &mariadbv1alpha1.MariaDB{},
-			wantBool: false,
+
+	DescribeTable("returns whether the recovery is complete",
+		func(mdb *mariadbv1alpha1.MariaDB, wantBool bool) {
+			rs := newRecoveryStatus(mdb)
+			complete := rs.isComplete(mdb, logr.Logger{})
+			Expect(complete).To(Equal(wantBool))
 		},
-		{
-			name: "missing pods",
-			mdb: &mariadbv1alpha1.MariaDB{
+		Entry("no status",
+			&mariadbv1alpha1.MariaDB{},
+			false,
+		),
+		Entry("missing pods",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -172,11 +154,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: false,
-		},
-		{
-			name: "safe to bootstrap",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("safe to bootstrap",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -206,11 +187,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "safe to bootstrap with negative seqnos",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("safe to bootstrap with negative seqnos",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -240,11 +220,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "safe to bootstrap with skipped Pods",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("safe to bootstrap with skipped Pods",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -288,11 +267,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "partial state",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("partial state",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -316,11 +294,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: false,
-		},
-		{
-			name: "full state",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("full state",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -350,11 +327,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "partially recovered",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("partially recovered",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -374,11 +350,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: false,
-		},
-		{
-			name: "fully recovered",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("fully recovered",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -402,11 +377,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "incomplete",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("incomplete",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -436,11 +410,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: false,
-		},
-		{
-			name: "incomplete seqnos",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("incomplete seqnos",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -470,11 +443,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: false,
-		},
-		{
-			name: "complete",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("complete",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -504,11 +476,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "complete with intersection",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("complete with intersection",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -542,11 +513,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "fully complete",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("fully complete",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -590,11 +560,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "some skipped Pods",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("some skipped Pods",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -638,11 +607,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "all skipped Pods",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("all skipped Pods",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -686,11 +654,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: false,
-		},
-		{
-			name: "recover from all zero UUIDs",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("recover from all zero UUIDs",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -734,11 +701,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "recover all zero UUIDs",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("recover all zero UUIDs",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -782,11 +748,10 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-		{
-			name: "recover all zero UUIDs and some zero seqno",
-			mdb: &mariadbv1alpha1.MariaDB{
+			true,
+		),
+		Entry("recover all zero UUIDs and some zero seqno",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -830,45 +795,38 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: true,
-		},
-	}
+			true,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rs := newRecoveryStatus(tt.mdb)
-			complete := rs.isComplete(tt.mdb, logr.Logger{})
-			if tt.wantBool != complete {
-				t.Errorf("unexpected complete value: expected: %v, got: %v", tt.wantBool, complete)
-			}
-		})
-	}
-}
-
-func TestRecoveryStatusBootstrapSource(t *testing.T) {
+var _ = Describe("RecoveryStatus bootstrapSource", func() {
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-galera",
 	}
 	pod0 := "mariadb-galera-0"
 	pod1 := "mariadb-galera-1"
 	pod2 := "mariadb-galera-2"
-	tests := []struct {
-		name                string
-		mdb                 *mariadbv1alpha1.MariaDB
-		pods                []corev1.Pod
-		forceBootstrapInPod *string
-		wantSource          *bootstrapSource
-		wantErr             bool
-	}{
-		{
-			name:       "no status",
-			mdb:        &mariadbv1alpha1.MariaDB{},
-			wantSource: nil,
-			wantErr:    true,
+
+	DescribeTable("returns the bootstrap source",
+		func(mdb *mariadbv1alpha1.MariaDB, forceBootstrapInPod *string, wantSource *bootstrapSource, wantErr bool) {
+			rs := newRecoveryStatus(mdb)
+			source, err := rs.bootstrapSource(mdb, forceBootstrapInPod, logr.Logger{})
+			Expect(source).To(Equal(wantSource))
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 		},
-		{
-			name: "missing pods",
-			mdb: &mariadbv1alpha1.MariaDB{
+		Entry("no status",
+			&mariadbv1alpha1.MariaDB{},
+			nil,
+			nil,
+			true,
+		),
+		Entry("missing pods",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -902,13 +860,12 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource:          nil,
-			wantErr:             true,
-		},
-		{
-			name: "force bootstrap",
-			mdb: &mariadbv1alpha1.MariaDB{
+			nil,
+			nil,
+			true,
+		),
+		Entry("force bootstrap",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -942,15 +899,14 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: ptr.To("mariadb-galera-0"),
-			wantSource: &bootstrapSource{
+			ptr.To("mariadb-galera-0"),
+			&bootstrapSource{
 				pod: pod0,
 			},
-			wantErr: false,
-		},
-		{
-			name: "force bootstrap in non existing Pod",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("force bootstrap in non existing Pod",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -984,13 +940,12 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: ptr.To("mariadb-galera-5"),
-			wantSource:          nil,
-			wantErr:             true,
-		},
-		{
-			name: "safe to bootstrap",
-			mdb: &mariadbv1alpha1.MariaDB{
+			ptr.To("mariadb-galera-5"),
+			nil,
+			true,
+		),
+		Entry("safe to bootstrap",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1020,19 +975,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
 					Seqno: 1,
 				},
 				pod: pod1,
 			},
-			wantErr: false,
-		},
-		{
-			name: "incomplete recovery",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("incomplete recovery",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1062,13 +1016,12 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource:          nil,
-			wantErr:             true,
-		},
-		{
-			name: "partially recovered",
-			mdb: &mariadbv1alpha1.MariaDB{
+			nil,
+			nil,
+			true,
+		),
+		Entry("partially recovered",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1098,19 +1051,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
 					Seqno: 1,
 				},
 				pod: pod2,
 			},
-			wantErr: false,
-		},
-		{
-			name: "partially recovered with different seqnos",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("partially recovered with different seqnos",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1140,19 +1092,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
 					Seqno: 8,
 				},
 				pod: pod1,
 			},
-			wantErr: false,
-		},
-		{
-			name: "partially recovered with different seqnos and safe to bootstrap",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("partially recovered with different seqnos and safe to bootstrap",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1182,19 +1133,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
 					Seqno: 4,
 				},
 				pod: pod0,
 			},
-			wantErr: false,
-		},
-		{
-			name: "partially recovered with skipped Pods",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("partially recovered with skipped Pods",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1234,19 +1184,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
 					Seqno: 4,
 				},
 				pod: pod0,
 			},
-			wantErr: false,
-		},
-		{
-			name: "fully recovered",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("fully recovered",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1290,19 +1239,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
 					Seqno: 1,
 				},
 				pod: pod2,
 			},
-			wantErr: false,
-		},
-		{
-			name: "fully recovered with different seqnos",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("fully recovered with different seqnos",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1346,19 +1294,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
 					Seqno: 9,
 				},
 				pod: pod2,
 			},
-			wantErr: false,
-		},
-		{
-			name: "fully recovered with different seqnos and safe to bootstrap",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("fully recovered with different seqnos and safe to bootstrap",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1402,19 +1349,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
 					Seqno: 6,
 				},
 				pod: pod1,
 			},
-			wantErr: false,
-		},
-		{
-			name: "fully recovered with skipped Pods",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("fully recovered with skipped Pods",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1458,19 +1404,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
 					Seqno: 3,
 				},
 				pod: pod0,
 			},
-			wantErr: false,
-		},
-		{
-			name: "fully recovered with zero UUIDs",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("fully recovered with zero UUIDs",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1514,19 +1459,18 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "00000000-0000-0000-0000-000000000000",
 					Seqno: 1,
 				},
 				pod: pod2,
 			},
-			wantErr: false,
-		},
-		{
-			name: "fully recovered with zero UUIDs and some zero seqnos",
-			mdb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry("fully recovered with zero UUIDs and some zero seqnos",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replicas: 3,
@@ -1570,61 +1514,43 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					},
 				},
 			},
-			forceBootstrapInPod: nil,
-			wantSource: &bootstrapSource{
+			nil,
+			&bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  "00000000-0000-0000-0000-000000000000",
 					Seqno: 1,
 				},
 				pod: pod2,
 			},
-			wantErr: false,
-		},
-	}
+			false,
+		),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rs := newRecoveryStatus(tt.mdb)
-			source, err := rs.bootstrapSource(tt.mdb, tt.forceBootstrapInPod, logr.Logger{})
-			if !reflect.DeepEqual(tt.wantSource, source) {
-				t.Errorf("unexpected bootstrapSource value: expected: %v, got: %v", tt.wantSource, source)
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestRecoveryStatusPodsRestarted(t *testing.T) {
-	timeout := 3 * time.Second
-	duration := metav1.Duration{Duration: timeout}
-	mdb := &mariadbv1alpha1.MariaDB{
-		Spec: mariadbv1alpha1.MariaDBSpec{
-			Galera: &mariadbv1alpha1.Galera{
-				Enabled: true,
-				GaleraSpec: mariadbv1alpha1.GaleraSpec{
-					Recovery: &mariadbv1alpha1.GaleraRecovery{
-						Enabled:                 true,
-						ClusterHealthyTimeout:   &duration,
-						ClusterBootstrapTimeout: &duration,
-						PodRecoveryTimeout:      &duration,
-						PodSyncTimeout:          &duration,
+var _ = Describe("RecoveryStatus podsRestarted", func() {
+	It("reports whether Pods have been restarted", func() {
+		timeout := 3 * time.Second
+		duration := metav1.Duration{Duration: timeout}
+		mdb := &mariadbv1alpha1.MariaDB{
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Galera: &mariadbv1alpha1.Galera{
+					Enabled: true,
+					GaleraSpec: mariadbv1alpha1.GaleraSpec{
+						Recovery: &mariadbv1alpha1.GaleraRecovery{
+							Enabled:                 true,
+							ClusterHealthyTimeout:   &duration,
+							ClusterBootstrapTimeout: &duration,
+							PodRecoveryTimeout:      &duration,
+							PodSyncTimeout:          &duration,
+						},
 					},
 				},
 			},
-		},
-	}
-	rs := newRecoveryStatus(mdb)
-	if rs.podsRestarted() {
-		t.Error("expect recovery status to not have Pods restarted")
-	}
+		}
+		rs := newRecoveryStatus(mdb)
+		Expect(rs.podsRestarted()).To(BeFalse())
 
-	rs.setPodsRestarted(true)
-	if !rs.podsRestarted() {
-		t.Error("expect recovery status to have Pods restarted")
-	}
-}
+		rs.setPodsRestarted(true)
+		Expect(rs.podsRestarted()).To(BeTrue())
+	})
+})
