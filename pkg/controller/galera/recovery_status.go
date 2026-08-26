@@ -248,14 +248,14 @@ func validSeqno(recoverer recovery.GaleraRecoverer) bool {
 }
 
 // shouldSkipRecoverer determines whether a recoverer should be skipped during the recovery process.
-// UUID 00000000-0000-0000-0000-000000000000 means that the Pods needs SST to rejoin the cluster.
+// ZeroUUID means that the Pod needs SST to rejoin the cluster.
 // See: https://galeracluster.com/library/documentation/node-provisioning.html#node-provisioning
 // Seqno -1 does not really help determining the last running Pod.
 func shouldSkipRecoverer(recoverer recovery.GaleraRecoverer) bool {
 	if recoverer == nil || (reflect.ValueOf(recoverer).IsNil()) {
 		return false
 	}
-	return recoverer.GetUUID() == "00000000-0000-0000-0000-000000000000" && recoverer.GetSeqno() == -1
+	return recoverer.GetUUID() == recovery.ZeroUUID && recoverer.GetSeqno() == -1
 }
 
 func (rs *recoveryStatus) setPodsRestarted(restarted bool) {
