@@ -1,0 +1,17 @@
+# KIND cluster config for the Cloud Agent environment.
+#
+# The agent VM's root filesystem is an overlay mount, so the KIND node's inner
+# containerd cannot use its default "overlayfs" snapshotter (mounting a kernel
+# overlay on top of an overlay fails with EINVAL and the control plane never
+# starts). The "native" snapshotter copies layers instead of mounting overlays,
+# which works in this nested environment.
+#
+# Usage (instead of `make cluster`):
+#   kind create cluster --name mdb --image kindest/node:v1.36.1 --config .cursor/kind.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".containerd]
+    snapshotter = "native"
+    disable_snapshot_annotations = true

@@ -266,6 +266,9 @@ _Appears in:_
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled. |  |  |
 | `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the restoration Job. |  |  |
 | `logLevel` _string_ | LogLevel to be used in the mariadb-operator container of the restoration Job. It defaults to 'info'. | info | Enum: [debug info warn error dpanic panic fatal] <br /> |
+| `restoreOnlyPrimary` _boolean_ | RestoreOnlyPrimary indicates that only the primary Pod (index 0) should be restored from the physical backup.<br />Secondary Pods will join the cluster via Galera State Snapshot Transfer (SST).<br />Only applicable for physical backups with Galera enabled. Mutually exclusive with RestoreParallel. |  |  |
+| `secondarySSTParallel` _boolean_ | SecondarySSTParallel indicates that secondary Pods should be allowed to join via Galera SST in parallel<br />after the primary Pod has been restored. This only applies together with RestoreOnlyPrimary. |  |  |
+| `restoreParallel` _boolean_ | RestoreParallel indicates that all Pods should restore from the physical backup in parallel.<br />Each Pod downloads and restores the backup independently. This is the fastest mode but uses the most bandwidth.<br />Only applicable for physical backups. Mutually exclusive with RestoreOnlyPrimary. |  |  |
 
 
 #### CSIVolumeSource

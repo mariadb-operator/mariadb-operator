@@ -109,8 +109,14 @@ const multipartAbortTimeout = 2 * time.Minute
 
 type multipartUploader interface {
 	NewMultipartUpload(ctx context.Context, bucket, object string, opts minio.PutObjectOptions) (string, error)
-	PutObjectPart(ctx context.Context, bucket, object, uploadID string, partID int, data io.Reader, size int64, opts minio.PutObjectPartOptions) (minio.ObjectPart, error)
-	CompleteMultipartUpload(ctx context.Context, bucket, object, uploadID string, parts []minio.CompletePart, opts minio.PutObjectOptions) (minio.UploadInfo, error)
+	PutObjectPart(
+		ctx context.Context, bucket, object, uploadID string, partID int,
+		data io.Reader, size int64, opts minio.PutObjectPartOptions,
+	) (minio.ObjectPart, error)
+	CompleteMultipartUpload(
+		ctx context.Context, bucket, object, uploadID string,
+		parts []minio.CompletePart, opts minio.PutObjectOptions,
+	) (minio.UploadInfo, error)
 	AbortMultipartUpload(ctx context.Context, bucket, object, uploadID string) error
 }
 
