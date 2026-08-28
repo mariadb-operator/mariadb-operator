@@ -1520,7 +1520,6 @@ _Appears in:_
 | `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
 | `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
 | `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
-| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
 | `name` _string_ |  |  |  |
 
 
@@ -1545,7 +1544,6 @@ _Appears in:_
 | `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
 | `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
 | `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
-| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
 
 
 #### MariadbMetrics

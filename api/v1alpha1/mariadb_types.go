@@ -500,8 +500,8 @@ type TLS struct {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
 type MariaDBVolumeSource struct {
 	VolumeSource `json:",inline"`
-	// +optional
-	Ephemeral *EphemeralVolumeSource `json:"ephemeral,omitempty"`
+	// // +optional
+	// Ephemeral *EphemeralVolumeSource `json:"ephemeral,omitempty"`
 }
 
 func (v MariaDBVolumeSource) ToKubernetesType() corev1.VolumeSource {

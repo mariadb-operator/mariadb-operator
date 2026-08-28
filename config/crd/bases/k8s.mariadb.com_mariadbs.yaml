@@ -6649,11 +6649,8 @@ spec:
                             PVC objects.
                           properties:
                             accessModes:
-                              allOf:
-                              - items:
-                                  type: string
-                              - items:
-                                  type: string
+                              items:
+                                type: string
                               type: array
                               x-kubernetes-list-type: atomic
                             metadata:
@@ -6677,13 +6674,9 @@ spec:
                               properties:
                                 limits:
                                   additionalProperties:
-                                    allOf:
-                                    - anyOf:
-                                      - type: integer
-                                      - type: string
-                                    - anyOf:
-                                      - type: integer
-                                      - type: string
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
                                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                     x-kubernetes-int-or-string: true
                                   description: |-
@@ -6692,13 +6685,9 @@ spec:
                                   type: object
                                 requests:
                                   additionalProperties:
-                                    allOf:
-                                    - anyOf:
-                                      - type: integer
-                                      - type: string
-                                    - anyOf:
-                                      - type: integer
-                                      - type: string
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
                                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                     x-kubernetes-int-or-string: true
                                   description: |-
@@ -6715,65 +6704,36 @@ spec:
                                 label selector matches no objects.
                               properties:
                                 matchExpressions:
-                                  allOf:
-                                  - items:
-                                      description: |-
-                                        A label selector requirement is a selector that contains values, a key, and an operator that
-                                        relates the key and values.
-                                      properties:
-                                        key:
-                                          description: key is the label key that the
-                                            selector applies to.
-                                          type: string
-                                        operator:
-                                          description: |-
-                                            operator represents a key's relationship to a set of values.
-                                            Valid operators are In, NotIn, Exists and DoesNotExist.
-                                          type: string
-                                        values:
-                                          description: |-
-                                            values is an array of string values. If the operator is In or NotIn,
-                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                            the values array must be empty. This array is replaced during a strategic
-                                            merge patch.
-                                          items:
-                                            type: string
-                                          type: array
-                                          x-kubernetes-list-type: atomic
-                                      required:
-                                      - key
-                                      - operator
-                                      type: object
-                                  - items:
-                                      description: |-
-                                        A label selector requirement is a selector that contains values, a key, and an operator that
-                                        relates the key and values.
-                                      properties:
-                                        key:
-                                          description: key is the label key that the
-                                            selector applies to.
-                                          type: string
-                                        operator:
-                                          description: |-
-                                            operator represents a key's relationship to a set of values.
-                                            Valid operators are In, NotIn, Exists and DoesNotExist.
-                                          type: string
-                                        values:
-                                          description: |-
-                                            values is an array of string values. If the operator is In or NotIn,
-                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                            the values array must be empty. This array is replaced during a strategic
-                                            merge patch.
-                                          items:
-                                            type: string
-                                          type: array
-                                          x-kubernetes-list-type: atomic
-                                      required:
-                                      - key
-                                      - operator
-                                      type: object
                                   description: matchExpressions is a list of label
                                     selector requirements. The requirements are ANDed.
+                                  items:
+                                    description: |-
+                                      A label selector requirement is a selector that contains values, a key, and an operator that
+                                      relates the key and values.
+                                    properties:
+                                      key:
+                                        description: key is the label key that the
+                                          selector applies to.
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          operator represents a key's relationship to a set of values.
+                                          Valid operators are In, NotIn, Exists and DoesNotExist.
+                                        type: string
+                                      values:
+                                        description: |-
+                                          values is an array of string values. If the operator is In or NotIn,
+                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                          the values array must be empty. This array is replaced during a strategic
+                                          merge patch.
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
                                   type: array
                                   x-kubernetes-list-type: atomic
                                 matchLabels:
