@@ -170,6 +170,7 @@ Currently the following compression algorithms are supported:
 - `bzip2`: Good compression ratio, but slower compression/decompression speed compared to gzip.
 - `gzip`: Good compression/decompression speed, but worse compression ratio compared to bzip2.
 - `none`: No compression.
+- `zstd`: Excellent compression/decompression speed with good compression ratio. Uses multiple threads by default.
 
 `compression` is defaulted to `none` by the operator.
 

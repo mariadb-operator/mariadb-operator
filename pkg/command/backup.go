@@ -32,6 +32,7 @@ type BackupOpts struct {
 	StartGtid            *replication.Gtid
 	TargetTime           time.Time
 	Compression          mariadbv1alpha1.CompressAlgorithm
+	CompressionThreads   *int32
 	LogLevel             string
 	ExtraOpts            []string
 
@@ -107,6 +108,12 @@ func WithTargetTime(t time.Time) BackupOpt {
 func WithCompression(c mariadbv1alpha1.CompressAlgorithm) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Compression = c
+	}
+}
+
+func WithCompressionThreads(t *int32) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.CompressionThreads = t
 	}
 }
 
@@ -341,6 +348,12 @@ func (b *BackupCommand) MariadbOperatorBackup() (*Command, error) {
 			string(b.Compression),
 		}...)
 	}
+	if b.CompressionThreads != nil {
+		args = append(args, []string{
+			"--compression-threads",
+			fmt.Sprintf("%d", *b.CompressionThreads),
+		}...)
+	}
 	if b.LogLevel != "" {
 		args = append(args, []string{
 			"--log-level",
@@ -501,6 +514,12 @@ func (b *BackupCommand) MariadbOperatorPITR(strictMode bool) (*Command, error) {
 		args = append(args, []string{
 			"--compression",
 			string(b.Compression),
+		}...)
+	}
+	if b.CompressionThreads != nil {
+		args = append(args, []string{
+			"--compression-threads",
+			fmt.Sprintf("%d", *b.CompressionThreads),
 		}...)
 	}
 	if b.LogLevel != "" {
