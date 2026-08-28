@@ -317,7 +317,7 @@ func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariad
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mariadbcompression.NewCompressor(calg)
+	return mariadbcompression.NewCompressor(calg, 0)
 }
 
 func (a *Archiver) checkStorageReadyForArchival(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,

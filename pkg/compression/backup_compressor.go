@@ -18,7 +18,7 @@ type BackupCompressor interface {
 
 type GetBackupUncompressedFilenameFn func(compressedFilename string) (string, error)
 
-func NewBackupCompressor(calg mariadbv1alpha1.CompressAlgorithm, basePath string,
+func NewBackupCompressor(calg mariadbv1alpha1.CompressAlgorithm, threads int, basePath string,
 	getUncompressedFilename GetBackupUncompressedFilenameFn, logger logr.Logger) (BackupCompressor, error) {
 	switch calg {
 	case mariadbv1alpha1.CompressNone:
@@ -27,6 +27,8 @@ func NewBackupCompressor(calg mariadbv1alpha1.CompressAlgorithm, basePath string
 		return NewGzipBackupCompressor(basePath, getUncompressedFilename, logger.WithName("gzip-compressor")), nil
 	case mariadbv1alpha1.CompressBzip2:
 		return NewBzip2BackupCompressor(basePath, getUncompressedFilename, logger.WithName("bzip2-compressor")), nil
+	case mariadbv1alpha1.CompressZstd:
+		return NewZstdBackupCompressor(threads, basePath, getUncompressedFilename, logger.WithName("zstd-compressor")), nil
 	default:
 		return nil, fmt.Errorf("unsupported compression algorithm: %v", calg)
 	}
@@ -97,6 +99,31 @@ func (c *Bzip2BackupCompressor) Compress(fileName string) error {
 }
 
 func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
+	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, c.compressor)
+}
+
+type ZstdBackupCompressor struct {
+	compressor              *ZstdCompressor
+	basePath                string
+	getUncompressedFilename GetBackupUncompressedFilenameFn
+	logger                  logr.Logger
+}
+
+func NewZstdBackupCompressor(threads int, basePath string, getUncompressedFilename GetBackupUncompressedFilenameFn,
+	logger logr.Logger) BackupCompressor {
+	return &ZstdBackupCompressor{
+		compressor:              &ZstdCompressor{concurrency: threads},
+		basePath:                basePath,
+		getUncompressedFilename: getUncompressedFilename,
+		logger:                  logger,
+	}
+}
+
+func (c *ZstdBackupCompressor) Compress(fileName string) error {
+	return compressFile(c.basePath, fileName, c.logger, c.compressor)
+}
+
+func (c *ZstdBackupCompressor) Decompress(fileName string) (string, error) {
 	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, c.compressor)
 }
 

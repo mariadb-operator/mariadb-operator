@@ -28,9 +28,15 @@ type BackupSpec struct {
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// Compression algorithm to be used in the Backup.
 	// +optional
-	// +kubebuilder:validation:Enum=none;bzip2;gzip
+	// +kubebuilder:validation:Enum=none;bzip2;gzip;zstd
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Compression CompressAlgorithm `json:"compression,omitempty"`
+	// CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.
+	// Defaults to all available CPUs.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CompressionThreads *int32 `json:"compressionThreads,omitempty"`
 	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
 	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.
 	// The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately.
