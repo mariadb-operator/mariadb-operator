@@ -54,7 +54,8 @@ var (
 	absCACertPath string
 	absPrefix     string
 
-	compression string
+	compression        string
+	compressionThreads int
 
 	pullBackoff = wait.Backoff{
 		Steps:    10,
@@ -92,7 +93,9 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&absPrefix, "abs-prefix", "", "ABS container prefix to use.")
 
 	RootCmd.Flags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
-		"Compression algorithm: none, gzip or bzip2.")
+		"Compression algorithm: none, bzip2, gzip or zstd.")
+	RootCmd.Flags().IntVar(&compressionThreads, "compression-threads", 0,
+		"Number of CPU threads to use for zstd compression. Defaults to all available CPUs when set to 0.")
 }
 
 var RootCmd = &cobra.Command{
@@ -316,7 +319,7 @@ func pullBinlog(ctx context.Context, binlog string, calg mariadbv1alpha1.Compres
 	}
 	defer plainFile.Close()
 
-	compressor, err := mariadbcompression.NewCompressor(calg)
+	compressor, err := mariadbcompression.NewCompressor(calg, compressionThreads)
 	if err != nil {
 		return fmt.Errorf("error getting compressor: %v", err)
 	}

@@ -252,6 +252,7 @@ The supported compression algorithms are:
 - `bzip2`: Good compression ratio, but slower compression/decompression speed compared to gzip.
 - `gzip`: Good compression/decompression speed, but worse compression ratio compared to bzip2.
 - `none`: No compression.
+- `zstd`: Excellent compression/decompression speed with good compression ratio. Uses multiple threads by default.
 
 Compression is disabled by default, and the are some important considerations before enabling it:
 - Compression is immutable, which means that once configured and binary logs have been archived with a specific algorithm, it cannot be changed. This also applies to restoration, the same compression algorithm should be configured as the one used for archival.

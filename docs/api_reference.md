@@ -193,7 +193,8 @@ _Appears in:_
 | `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
-| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip zstd] <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[BackupStorage](#backupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
@@ -331,6 +332,7 @@ _Appears in:_
 | `none` | No compression<br /> |
 | `bzip2` | Bzip2 compression. Good compression ratio, but slower compression/decompression speed compared to gzip.<br /> |
 | `gzip` | Gzip compression. Good compression/decompression speed, but worse compression ratio compared to bzip2.<br /> |
+| `zstd` | Zstd compression. Excellent compression/decompression speed with good compression ratio.<br /> |
 
 
 #### ConfigMapKeySelector
@@ -2289,7 +2291,8 @@ _Appears in:_
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `target` _[PhysicalBackupTarget](#physicalbackuptarget)_ | Target defines in which Pod the physical backups will be taken. It defaults to "Replica", meaning that the physical backups will only be taken in ready replicas. |  | Enum: [Replica PreferReplica] <br /> |
-| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip zstd] <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the PhysicalBackup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[PhysicalBackupStorage](#physicalbackupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[PhysicalBackupSchedule](#physicalbackupschedule)_ | Schedule defines when the PhysicalBackup will be taken. |  |  |
@@ -2479,7 +2482,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `physicalBackupRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupRef is a reference to a PhysicalBackup object that will be used as base backup. |  | Required: \{\} <br /> |
 | `storage` _[PointInTimeRecoveryStorage](#pointintimerecoverystorage)_ | PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored |  | Required: \{\} <br /> |
-| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs.<br />This field is immutable, it cannot be updated after creation. |  | Enum: [none bzip2 gzip] <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs.<br />This field is immutable, it cannot be updated after creation. |  | Enum: [none bzip2 gzip zstd] <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
 | `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival.<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
 | `strictMode` _boolean_ | StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:<br />When enabled: Returns an error and avoids replaying binary logs if target time is not reached.<br />When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached. |  |  |
 
