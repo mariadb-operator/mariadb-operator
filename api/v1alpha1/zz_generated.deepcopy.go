@@ -5246,6 +5246,11 @@ func (in *StorageVolumeSource) DeepCopyInto(out *StorageVolumeSource) {
 		*out = new(EmptyDirVolumeSource)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Ephemeral != nil {
+		in, out := &in.Ephemeral, &out.Ephemeral
+		*out = new(EphemeralVolumeSource)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.NFS != nil {
 		in, out := &in.NFS, &out.NFS
 		*out = new(NFSVolumeSource)
