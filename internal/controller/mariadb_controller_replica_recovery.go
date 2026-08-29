@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -116,6 +117,9 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	if handled, err := r.completeReplicaRecoveryIfDone(ctx, mariadb, replicasToRecover, pvcUIDs); handled || err != nil {
 		return ctrl.Result{}, err
 	}
+	if err := r.reconcileRecoveryPrimaryDrift(ctx, mariadb, podStates, replicasToRecover, logger); err != nil {
+		return ctrl.Result{}, err
+	}
 	if len(activeRecoveryReplicas) == 0 {
 		if err := r.setReplicaToRecover(ctx, mariadb, replicasToRecover[0]); err != nil {
 			return ctrl.Result{}, err
@@ -150,6 +154,36 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	}
 
 	return r.reconcileReplicasToRecover(ctx, replicasToRecover, mariadb, physicalBackup, snapshotKey, logger)
+}
+
+// reconcileRecoveryPrimaryDrift unwedges a primary that is replicating from a Pod under recovery.
+// Every step below requeues until the recovery artifacts complete, which returns from the reconcile loop
+// before the replication phase runs. A primary that drifted into a replica configuration would therefore
+// never be repaired, would never pass its readiness probe, and would leave the recovery PhysicalBackup
+// without a single eligible target Pod. The repair is only attempted for a running but unready primary,
+// which is the sole state where this deadlock can occur.
+func (r *MariaDBReconciler) reconcileRecoveryPrimaryDrift(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	podStates map[int]podLifecycleState, replicasToRecover []string, logger logr.Logger) error {
+	if r.ReplicationReconciler == nil || !shouldRepairRecoveryPrimaryDrift(mariadb, podStates, replicasToRecover) {
+		return nil
+	}
+	return r.ReplicationReconciler.ReconcilePrimaryDrift(ctx, mariadb, logger.WithName("primary-drift"))
+}
+
+func shouldRepairRecoveryPrimaryDrift(mariadb *mariadbv1alpha1.MariaDB, podStates map[int]podLifecycleState,
+	replicasToRecover []string) bool {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return false
+	}
+	primaryIndex := *mariadb.Status.CurrentPrimaryPodIndex
+	if slices.Contains(replicasToRecover, stsobj.PodName(mariadb.ObjectMeta, primaryIndex)) {
+		return false
+	}
+	primaryState, ok := podStates[primaryIndex]
+	if !ok {
+		return false
+	}
+	return primaryState.Running && !primaryState.Ready
 }
 
 func (r *MariaDBReconciler) getPVCRecoveryReplicas(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

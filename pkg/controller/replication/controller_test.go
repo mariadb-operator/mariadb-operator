@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
@@ -316,6 +317,76 @@ func TestChooseBackupGtid(t *testing.T) {
 			}
 			if mismatch != tc.wantMismatch {
 				t.Errorf("mismatch flag: want=%v got=%v", tc.wantMismatch, mismatch)
+			}
+		})
+	}
+}
+
+func TestShouldReconcilePrimaryDrift(t *testing.T) {
+	replicationConfiguredCondition := metav1.Condition{
+		Type:   mariadbv1alpha1.ConditionTypeReplicationConfigured,
+		Status: metav1.ConditionTrue,
+		Reason: mariadbv1alpha1.ConditionReasonReplicationConfigured,
+	}
+	switchingPrimaryCondition := metav1.Condition{
+		Type:   mariadbv1alpha1.ConditionTypePrimarySwitched,
+		Status: metav1.ConditionFalse,
+		Reason: mariadbv1alpha1.ConditionReasonSwitchPrimary,
+	}
+	tests := []struct {
+		name       string
+		replicated bool
+		conditions []metav1.Condition
+		primary    *int
+		want       bool
+	}{
+		{
+			name:       "configured replication with a known primary is repaired",
+			replicated: true,
+			conditions: []metav1.Condition{replicationConfiguredCondition},
+			primary:    ptr.To(1),
+			want:       true,
+		},
+		{
+			name:       "replication disabled is skipped",
+			conditions: []metav1.Condition{replicationConfiguredCondition},
+			primary:    ptr.To(1),
+		},
+		{
+			name:       "replication never configured is skipped",
+			replicated: true,
+			primary:    ptr.To(1),
+		},
+		{
+			name:       "unknown primary is skipped",
+			replicated: true,
+			conditions: []metav1.Condition{replicationConfiguredCondition},
+		},
+		{
+			name:       "switchover in progress is skipped",
+			replicated: true,
+			conditions: []metav1.Condition{replicationConfiguredCondition, switchingPrimaryCondition},
+			primary:    ptr.To(1),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mdb := &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					Conditions:             tt.conditions,
+					CurrentPrimaryPodIndex: tt.primary,
+				},
+			}
+			if tt.replicated {
+				mdb.Spec.Replication = &mariadbv1alpha1.Replication{
+					Enabled: true,
+				}
+			}
+
+			got := shouldReconcilePrimaryDrift(mdb)
+			if got != tt.want {
+				t.Fatalf("unexpected drift reconcile decision: got %t, want %t", got, tt.want)
 			}
 		})
 	}

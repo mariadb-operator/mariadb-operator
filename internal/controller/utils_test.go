@@ -13,6 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
@@ -1378,6 +1379,67 @@ func readOnlyInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int) (bool, err
 		return false, fmt.Errorf("could not query read_only: %v", err)
 	}
 	return readOnly, nil
+}
+
+func podReadyByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int) (bool, error) {
+	var pod corev1.Pod
+	podKey := types.NamespacedName{
+		Name:      stsobj.PodName(mdb.ObjectMeta, podIndex),
+		Namespace: mdb.Namespace,
+	}
+	if err := k8sClient.Get(testCtx, podKey, &pod); err != nil {
+		return false, fmt.Errorf("could not get Pod: %v", err)
+	}
+	return mdbpod.PodReady(&pod), nil
+}
+
+func replicaInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int) (bool, error) {
+	clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
+	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)
+	if err != nil {
+		return false, fmt.Errorf("could not create an internal client: %v", err)
+	}
+	defer sqlClient.Close()
+
+	isReplica, err := sqlClient.IsReplicationReplica(testCtx)
+	if err != nil {
+		return false, fmt.Errorf("could not query replica status: %v", err)
+	}
+	return isReplica, nil
+}
+
+func execSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query string) error {
+	clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
+	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)
+	if err != nil {
+		return fmt.Errorf("could not create an internal client: %v", err)
+	}
+	defer sqlClient.Close()
+
+	if err := sqlClient.Exec(testCtx, query); err != nil {
+		return fmt.Errorf("could not execute query: %v", err)
+	}
+	return nil
+}
+
+func tableExistsInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, schema, table string) (bool, error) {
+	clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
+	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)
+	if err != nil {
+		return false, fmt.Errorf("could not create an internal client: %v", err)
+	}
+	defer sqlClient.Close()
+
+	exists, err := sqlClient.Exists(
+		testCtx,
+		"SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?;",
+		schema,
+		table,
+	)
+	if err != nil {
+		return false, fmt.Errorf("could not query table: %v", err)
+	}
+	return exists, nil
 }
 
 func deletePhysicalBackup(key types.NamespacedName) {

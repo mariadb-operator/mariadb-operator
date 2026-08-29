@@ -294,6 +294,59 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	return ctrl.Result{}, nil
 }
 
+// ReconcilePrimaryDrift repairs a current primary that drifted into a replica configuration.
+// Replica recovery blocks the reconcile loop until its PhysicalBackup completes, so the replication
+// phase never runs while a recovery is in flight. A primary left replicating from the very Pod being
+// recovered keeps failing its readiness probe on replica lag, and an unready primary leaves the recovery
+// PhysicalBackup with no eligible target: neither a ready replica nor a ready primary. Both sides then
+// wait for each other indefinitely, so this drift is repaired independently of the replication phase.
+func (r *ReplicationReconciler) ReconcilePrimaryDrift(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) error {
+	if !shouldReconcilePrimaryDrift(mdb) {
+		return nil
+	}
+	req, err := r.NewReconcileRequest(ctx, mdb)
+	if err != nil {
+		return fmt.Errorf("error creating reconcile request: %v", err)
+	}
+	defer req.Close()
+
+	if result, err := r.shouldReconcileReplication(ctx, req, logger); err != nil || !result.IsZero() {
+		return err
+	}
+
+	client, err := req.replClientSet.currentPrimaryClient(ctx)
+	if err != nil {
+		logger.V(1).Info("error getting current primary client", "err", err)
+		return nil
+	}
+	isReplica, err := client.IsReplicationReplica(ctx)
+	if err != nil {
+		logger.V(1).Info("error checking whether primary is configured as replica", "err", err)
+		return nil
+	}
+	if !isReplica {
+		return nil
+	}
+
+	pod := statefulset.PodName(mdb.ObjectMeta, *mdb.Status.CurrentPrimaryPodIndex)
+	logger.Info("Primary configured as replica, reconfiguring primary", "pod", pod)
+	if err := r.replConfigClient.ConfigurePrimary(ctx, mdb, client); err != nil {
+		return fmt.Errorf("error configuring primary: %v", err)
+	}
+	return nil
+}
+
+func shouldReconcilePrimaryDrift(mdb *mariadbv1alpha1.MariaDB) bool {
+	if !mdb.IsReplicationEnabled() || !mdb.HasConfiguredReplication() {
+		return false
+	}
+	if mdb.Status.CurrentPrimaryPodIndex == nil {
+		return false
+	}
+	return !mdb.IsSwitchingPrimary()
+}
+
 type replicationPodStateClient interface {
 	IsSystemVariableEnabled(ctx context.Context, variable string) (bool, error)
 	IsReplicationReplica(ctx context.Context) (bool, error)

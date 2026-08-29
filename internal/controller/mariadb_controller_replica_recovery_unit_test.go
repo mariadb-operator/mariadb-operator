@@ -2929,3 +2929,72 @@ func TestReconcileReplicaRecoveryErrorResumesWhenArtifactsGone(t *testing.T) {
 		}
 	})
 }
+
+func TestShouldRepairRecoveryPrimaryDrift(t *testing.T) {
+	objMeta := metav1.ObjectMeta{
+		Name:      "db-cluster",
+		Namespace: "test",
+	}
+	mariadb := func(primaryIndex *int) *mariadbv1alpha1.MariaDB {
+		return &mariadbv1alpha1.MariaDB{
+			ObjectMeta: objMeta,
+			Status: mariadbv1alpha1.MariaDBStatus{
+				CurrentPrimaryPodIndex: primaryIndex,
+			},
+		}
+	}
+	tests := []struct {
+		name              string
+		mariadb           *mariadbv1alpha1.MariaDB
+		podStates         map[int]podLifecycleState
+		replicasToRecover []string
+		want              bool
+	}{
+		{
+			name:              "running unready primary is repaired",
+			mariadb:           mariadb(ptr.To(1)),
+			podStates:         map[int]podLifecycleState{1: {Running: true}},
+			replicasToRecover: []string{"db-cluster-0"},
+			want:              true,
+		},
+		{
+			name:              "ready primary is left alone",
+			mariadb:           mariadb(ptr.To(1)),
+			podStates:         map[int]podLifecycleState{1: {Running: true, Ready: true}},
+			replicasToRecover: []string{"db-cluster-0"},
+		},
+		{
+			name:              "primary that is not running is left alone",
+			mariadb:           mariadb(ptr.To(1)),
+			podStates:         map[int]podLifecycleState{1: {}},
+			replicasToRecover: []string{"db-cluster-0"},
+		},
+		{
+			name:              "missing primary Pod state is left alone",
+			mariadb:           mariadb(ptr.To(1)),
+			podStates:         map[int]podLifecycleState{0: {Running: true}},
+			replicasToRecover: []string{"db-cluster-0"},
+		},
+		{
+			name:              "primary under recovery is left alone",
+			mariadb:           mariadb(ptr.To(1)),
+			podStates:         map[int]podLifecycleState{1: {Running: true}},
+			replicasToRecover: []string{"db-cluster-1"},
+		},
+		{
+			name:              "unknown primary is left alone",
+			mariadb:           mariadb(nil),
+			podStates:         map[int]podLifecycleState{1: {Running: true}},
+			replicasToRecover: []string{"db-cluster-0"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldRepairRecoveryPrimaryDrift(tt.mariadb, tt.podStates, tt.replicasToRecover)
+			if got != tt.want {
+				t.Fatalf("unexpected drift repair decision: got %t, want %t", got, tt.want)
+			}
+		})
+	}
+}
