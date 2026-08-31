@@ -607,6 +607,12 @@ func mariadbReplEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 				Value: waitPoint,
 			})
 		}
+		if replication.SemiSyncWaitNoSlave != nil {
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_NO_SLAVE",
+				Value: strconv.FormatBool(*replication.SemiSyncWaitNoSlave),
+			})
+		}
 	}
 	if replication.SyncBinlog != nil {
 		env = append(env, corev1.EnvVar{

@@ -68,14 +68,15 @@ type PodEnvironment struct {
 	MariadbRootPassword string `env:"MARIADB_ROOT_PASSWORD,required"`
 	MariadbPort         string `env:"MYSQL_TCP_PORT,required"`
 
-	MariaDBReplEnabled                 string `env:"MARIADB_REPL_ENABLED"`
-	MariaDBReplGtidStrictMode          string `env:"MARIADB_REPL_GTID_STRICT_MODE"`
-	MariaDBReplGtidDomainID            string `env:"MARIADB_REPL_GTID_DOMAIN_ID"`
-	MariaDBReplServerIDStartIndex      string `env:"MARIADB_REPL_SERVER_ID_START_INDEX"`
-	MariaDBReplSemiSyncEnabled         string `env:"MARIADB_REPL_SEMI_SYNC_ENABLED"`
-	MariaDBReplSemiSyncMasterTimeout   string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT"`
-	MariaDBReplSemiSyncMasterWaitPoint string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT"`
-	MariaDBReplMasterSyncBinlog        string `env:"MARIADB_REPL_SYNC_BINLOG"`
+	MariaDBReplEnabled                   string `env:"MARIADB_REPL_ENABLED"`
+	MariaDBReplGtidStrictMode            string `env:"MARIADB_REPL_GTID_STRICT_MODE"`
+	MariaDBReplGtidDomainID              string `env:"MARIADB_REPL_GTID_DOMAIN_ID"`
+	MariaDBReplServerIDStartIndex        string `env:"MARIADB_REPL_SERVER_ID_START_INDEX"`
+	MariaDBReplSemiSyncEnabled           string `env:"MARIADB_REPL_SEMI_SYNC_ENABLED"`
+	MariaDBReplSemiSyncMasterTimeout     string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT"`
+	MariaDBReplSemiSyncMasterWaitPoint   string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT"`
+	MariaDBReplSemiSyncMasterWaitNoSlave string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_NO_SLAVE"`
+	MariaDBReplMasterSyncBinlog          string `env:"MARIADB_REPL_SYNC_BINLOG"`
 
 	TLSEnabled        string `env:"TLS_ENABLED"`
 	TLSCACertPath     string `env:"TLS_CA_CERT_PATH"`
@@ -144,6 +145,25 @@ func (e *PodEnvironment) ReplSemiSyncMasterTimeout() (*int64, error) {
 		return nil, fmt.Errorf("invalid replication master timeout: %w", err)
 	}
 	return &timeout, nil
+}
+
+func (e *PodEnvironment) ReplSemiSyncMasterWaitNoSlave() (*bool, error) {
+	replEnabled, err := e.IsReplEnabled()
+	if err != nil {
+		return nil, err
+	}
+	if !replEnabled {
+		return nil, errors.New("replication must be enabled")
+	}
+
+	if e.MariaDBReplSemiSyncMasterWaitNoSlave == "" {
+		return nil, nil
+	}
+	waitNoSlave, err := strconv.ParseBool(e.MariaDBReplSemiSyncMasterWaitNoSlave)
+	if err != nil {
+		return nil, fmt.Errorf("invalid replication master wait no slave: %w", err)
+	}
+	return &waitNoSlave, nil
 }
 
 func (e *PodEnvironment) ReplSyncBinlog() (*int, error) {

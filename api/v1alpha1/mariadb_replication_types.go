@@ -283,6 +283,16 @@ type ReplicationSpec struct {
 	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SemiSyncWaitPoint *WaitPoint `json:"semiSyncWaitPoint,omitempty"`
+	// SemiSyncWaitNoSlave determines whether the primary waits for the semi-synchronous ACK timeout to expire when it has
+	// no semi-synchronous replicas connected. Since the operator configures every node as a semi-synchronous primary, replicas
+	// with log_slave_updates enabled also hit this wait when applying transactions. Disabling it makes them fall back to
+	// asynchronous commit immediately instead of stalling for the whole semiSyncAckTimeout.
+	// It requires semi-synchronous replication to be enabled.
+	// It is enabled by default by the server.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_no_slave
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SemiSyncWaitNoSlave *bool `json:"semiSyncWaitNoSlave,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
 	// +optional
