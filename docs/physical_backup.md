@@ -148,6 +148,20 @@ spec:
 
 `compression` is defaulted to `none` by the operator.
 
+When using `zstd`, you can limit the number of CPU threads used for compression via `spec.compressionThreads`. This is useful on shared nodes where the backup job should not starve other workloads. By default all available CPUs are used.
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  compression: zstd
+  compressionThreads: 2
+```
+
 ## Server-Side Encryption with Customer-Provided Keys (SSE-C) For S3
 
 You can enable server-side encryption using your own encryption key (SSE-C) by providing a reference to a `Secret` containing a 32-byte (256-bit) key encoded in base64:
