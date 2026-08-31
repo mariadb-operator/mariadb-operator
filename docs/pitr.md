@@ -254,6 +254,18 @@ The supported compression algorithms are:
 - `none`: No compression.
 - `zstd`: Excellent compression/decompression speed with good compression ratio. Uses multiple threads by default.
 
+When using `zstd`, you can limit the number of CPU threads used for compression via `spec.compressionThreads`. This controls the parallelism of the binlog archival process. By default all available CPUs are used.
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PointInTimeRecovery
+metadata:
+  name: pitr
+spec:
+  compression: zstd
+  compressionThreads: 2
+```
+
 Compression is disabled by default, and the are some important considerations before enabling it:
 - Compression is immutable, which means that once configured and binary logs have been archived with a specific algorithm, it cannot be changed. This also applies to restoration, the same compression algorithm should be configured as the one used for archival.
 - Although it saves storage space and bandwidth, the restoration process may take longer when compression is enabled, leading to an increased RTO.
