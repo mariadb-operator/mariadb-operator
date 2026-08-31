@@ -131,7 +131,6 @@ When using physical backups based on `mariadb-backup`, you are able to choose th
 - `bzip2`: Good compression ratio, but slower compression/decompression speed compared to gzip.
 - `gzip`: Good compression/decompression speed, but worse compression ratio compared to bzip2.
 - `none`: No compression.
-- `zstd`: Excellent compression/decompression speed with good compression ratio. Uses multiple threads by default.
 
 To specify the compression algorithm, you can use the `compression` field in the `PhysicalBackup` resource:
 
@@ -147,20 +146,6 @@ spec:
 ```
 
 `compression` is defaulted to `none` by the operator.
-
-When using `zstd`, you can limit the number of CPU threads used for compression via `spec.compressionThreads`. This is useful on shared nodes where the backup job should not starve other workloads. By default all available CPUs are used.
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: PhysicalBackup
-metadata:
-  name: physicalbackup
-spec:
-  mariaDbRef:
-    name: mariadb
-  compression: zstd
-  compressionThreads: 2
-```
 
 ## Server-Side Encryption with Customer-Provided Keys (SSE-C) For S3
 
