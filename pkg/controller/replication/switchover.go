@@ -432,6 +432,19 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	)
 }
 
+// configureReplicaOpts returns the options used to configure the replicas as part of a switchover.
+//
+// Synced replicas are configured with the new primary's gtid_binlog_pos, i.e. the tip of the binary log they are about
+// to stream from. It must be the new primary's, and not the position the replicas were synced to: log_slave_updates is
+// only enabled in multi-cluster topologies (see 'defaultConfig' in the MariaDB controller), so a promoted primary's
+// binary log has no history prior to its promotion, and a replica requesting an earlier GTID is rejected by it:
+//
+//	Got fatal error 1236 from master when reading data from binary log: 'Error: connecting slave requested to start
+//	from GTID 0-10-9, which is not in the master's binlog. Since the master's binlog contains GTIDs with higher
+//	sequence numbers, it probably means that the slave has diverged due to executing extra erroneous transactions'
+//
+// This relies on 'ConfigurePrimary' having advanced the new primary's gtid_binlog_pos past any binary log left over
+// from a previous primary term of its own.
 func (r *ReplicationReconciler) configureReplicaOpts(ctx context.Context, req *ReconcileRequest, primaryClient *sql.Client,
 	logger logr.Logger) ([]ConfigureReplicaOpt, error) {
 	var replicaOpts []ConfigureReplicaOpt
