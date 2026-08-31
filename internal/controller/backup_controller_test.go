@@ -65,6 +65,22 @@ var _ = Describe("Backup", Label("basic"), func() {
 			),
 			testS3Backup,
 		),
+		Entry("should reconcile a Job with Volume storage and zstd compression",
+			"backup-volume-zstd-test",
+			applyDecoratorChain(
+				getBackupWithVolumeStorage,
+				decorateBackupWithZstdCompression,
+			),
+			testBackup,
+		),
+		Entry("should reconcile a Job with S3 storage and zstd compression with threads",
+			"backup-s3-zstd-threads-test",
+			applyDecoratorChain(
+				buildBackupWithS3Storage("test-backup", ""),
+				decorateBackupWithZstdCompressionAndThreads,
+			),
+			testS3Backup,
+		),
 		Entry("should reconcile a Job with S3 storage and SSEC",
 			"backup-s3-ssec-test",
 			applyDecoratorChain(
@@ -454,6 +470,17 @@ func decorateBackupWithGzipCompression(backup *mariadbv1alpha1.Backup) *mariadbv
 
 func decorateBackupWithBzip2Compression(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
 	backup.Spec.Compression = mariadbv1alpha1.CompressBzip2
+	return backup
+}
+
+func decorateBackupWithZstdCompression(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+	backup.Spec.Compression = mariadbv1alpha1.CompressZstd
+	return backup
+}
+
+func decorateBackupWithZstdCompressionAndThreads(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+	backup.Spec.Compression = mariadbv1alpha1.CompressZstd
+	backup.Spec.CompressionThreads = ptr.To(int32(2))
 	return backup
 }
 
