@@ -35,6 +35,10 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting semi-sync master timeout: %v", err)
 	}
+	semiSyncMasterWaitNoSlave, err := env.ReplSemiSyncMasterWaitNoSlave()
+	if err != nil {
+		return nil, fmt.Errorf("error getting semi-sync master wait no slave: %v", err)
+	}
 	serverIDStartIndex, err := serverIDStartIndex(env.MariaDBReplServerIDStartIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting server ID start index: %v", err)
@@ -68,6 +72,9 @@ rpl_semi_sync_master_timeout={{ . }}
 {{- with .SemiSyncMasterWaitPoint }}
 rpl_semi_sync_master_wait_point={{ . }}
 {{- end }}
+{{- with .SemiSyncMasterWaitNoSlave }}
+rpl_semi_sync_master_wait_no_slave={{ . }}
+{{- end }}
 {{- end }}
 server_id={{ .ServerID }}
 {{- with .SyncBinlog }}
@@ -76,28 +83,42 @@ sync_binlog={{ . }}
 `)
 	buf := new(bytes.Buffer)
 	err = tpl.Execute(buf, struct {
-		LogName                 string
-		GtidStrictMode          bool
-		GtidDomainID            *int
-		SemiSyncEnabled         bool
-		SemiSyncMasterTimeout   *int64
-		SemiSyncMasterWaitPoint string
-		SyncBinlog              *int
-		ServerID                int
+		LogName                   string
+		GtidStrictMode            bool
+		GtidDomainID              *int
+		SemiSyncEnabled           bool
+		SemiSyncMasterTimeout     *int64
+		SemiSyncMasterWaitPoint   string
+		SemiSyncMasterWaitNoSlave string
+		SyncBinlog                *int
+		ServerID                  int
 	}{
-		LogName:                 env.MariadbName,
-		GtidStrictMode:          gtidStrictMode,
-		GtidDomainID:            gtidDomainID,
-		SemiSyncEnabled:         semiSyncEnabled,
-		SemiSyncMasterTimeout:   semiSyncMasterTimeout,
-		SemiSyncMasterWaitPoint: env.MariaDBReplSemiSyncMasterWaitPoint,
-		ServerID:                serverID,
-		SyncBinlog:              syncBinlog,
+		LogName:                   env.MariadbName,
+		GtidStrictMode:            gtidStrictMode,
+		GtidDomainID:              gtidDomainID,
+		SemiSyncEnabled:           semiSyncEnabled,
+		SemiSyncMasterTimeout:     semiSyncMasterTimeout,
+		SemiSyncMasterWaitPoint:   env.MariaDBReplSemiSyncMasterWaitPoint,
+		SemiSyncMasterWaitNoSlave: onOff(semiSyncMasterWaitNoSlave),
+		ServerID:                  serverID,
+		SyncBinlog:                syncBinlog,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// onOff renders an optional boolean as a MariaDB ON/OFF value, keeping unset values empty
+// so they are omitted from the config and the server default applies.
+func onOff(b *bool) string {
+	if b == nil {
+		return ""
+	}
+	if *b {
+		return "ON"
+	}
+	return "OFF"
 }
 
 func gtidDomainID(rawGtidDomainID string) (*int, error) {

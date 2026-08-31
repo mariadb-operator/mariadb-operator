@@ -117,6 +117,7 @@ spec:
     semiSyncEnabled: true
     semiSyncAckTimeout: 10s
     semiSyncWaitPoint: AfterCommit
+    semiSyncWaitNoSlave: true
     syncBinlog: 1
     standaloneProbes: false
 ```
@@ -125,6 +126,7 @@ spec:
 - `semiSyncEnabled`: Determines whether semi-synchronous replication should be enabled. It is enabled by default. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication).
 - `semiSyncAckTimeout`: ACK timeout for the replicas to acknowledge transactions to the primary. It requires semi-synchronous replication. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout).
 - `semiSyncWaitPoint`: Determines whether the transaction should wait for an ACK after having synced the binlog (`AfterSync`) or after having committed to the storage engine (`AfterCommit`, the default). It requires semi-synchronous replication. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_point).
+- `semiSyncWaitNoSlave`: Determines whether the primary waits for the `semiSyncAckTimeout` to expire when it has no semi-synchronous replicas connected. It is enabled by default by the server. Because the operator configures every node as a semi-synchronous primary, replicas that binlog the transactions they apply also hit this wait, stalling for the whole `semiSyncAckTimeout`: setting this to `false` makes them commit asynchronously instead. It requires semi-synchronous replication. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_no_slave).
 - `syncBinlog`: Number of events after which the binary log is synchronized to disk. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog).
 - `standaloneProbes`: Determines whether to use regular non-HA startup and liveness probes. It is disabled by default.
 

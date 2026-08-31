@@ -1461,6 +1461,51 @@ func TestMariadbEnv(t *testing.T) {
 				}...),
 		},
 		{
+			// The "MariaDB replication" test case above leaves SemiSyncWaitNoSlave unset and asserts that no
+			// MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_NO_SLAVE env var is emitted, so upgrading the operator does not
+			// change the Pod template of existing MariaDB resources.
+			name: "MariaDB replication semi-sync wait no slave",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-repl",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							SemiSyncEnabled:     ptr.To(true),
+							SemiSyncWaitNoSlave: ptr.To(false),
+						},
+					},
+				},
+			},
+			wantEnv: append(
+				defaultEnv([]corev1.EnvVar{
+					{
+						Name:  "MARIADB_NAME",
+						Value: "mariadb-repl",
+					},
+				}),
+				[]corev1.EnvVar{
+					{
+						Name:  "MARIADB_REPL_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_GTID_STRICT_MODE",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_NO_SLAVE",
+						Value: strconv.FormatBool(false),
+					},
+				}...),
+		},
+		{
 			name: "MariaDB Galera TLS",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
