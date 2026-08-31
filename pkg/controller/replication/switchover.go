@@ -459,11 +459,6 @@ func (r *ReplicationReconciler) configureReplicaOpts(ctx context.Context, req *R
 	} else {
 		replicaOpts = append(replicaOpts, WithResetGtidSlavePos())
 	}
-
-	// avoid deleting binary logs during archival to prevent drifting from object storage
-	if req.mariadb.IsPointInTimeRecoveryEnabled() {
-		replicaOpts = append(replicaOpts, WithResetMaster(false))
-	}
 	return replicaOpts, nil
 }
 
