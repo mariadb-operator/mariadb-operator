@@ -193,7 +193,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 		return fmt.Errorf("error resetting binary logs: %v", err)
 	}
 
-	compressor, err := a.getCompressor(pitr.Spec.Compression)
+	compressor, err := a.getCompressor(pitr.Spec.Compression, pitr.Spec.CompressionThreads)
 	if err != nil {
 		return err
 	}
@@ -310,14 +310,15 @@ func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvir
 	return client, nil
 }
 
-func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariadbcompression.Compressor, error) {
+func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm,
+	threads *int32) (mariadbcompression.Compressor, error) {
 	if calg == mariadbv1alpha1.CompressAlgorithm("") {
 		calg = mariadbv1alpha1.CompressNone
 	}
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mariadbcompression.NewCompressor(calg, 0)
+	return mariadbcompression.NewCompressor(calg, int(ptr.Deref(threads, 0)))
 }
 
 func (a *Archiver) checkStorageReadyForArchival(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
