@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -25,7 +24,6 @@ type ConfigureReplicaOpts struct {
 	GtidSlavePos      *string
 	ResetGtidSlavePos bool
 	ChangeMasterOpts  []sql.ChangeMasterOpt
-	ResetMaster       bool
 }
 
 type ConfigureReplicaOpt func(*ConfigureReplicaOpts)
@@ -45,12 +43,6 @@ func WithResetGtidSlavePos() ConfigureReplicaOpt {
 func WithChangeMasterOpts(opts ...sql.ChangeMasterOpt) ConfigureReplicaOpt {
 	return func(cro *ConfigureReplicaOpts) {
 		cro.ChangeMasterOpts = opts
-	}
-}
-
-func WithResetMaster(resetMaster bool) ConfigureReplicaOpt {
-	return func(cro *ConfigureReplicaOpts) {
-		cro.ResetMaster = resetMaster
 	}
 }
 
@@ -173,18 +165,11 @@ func (r *singleClusterTopology) ConfigureReplica(ctx context.Context, client *sq
 	primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error {
 	r.logger.Info("Configuring replica")
 
-	opts := ConfigureReplicaOpts{
-		ResetMaster: true,
-	}
+	opts := ConfigureReplicaOpts{}
 	for _, setOpt := range replicaOpts {
 		setOpt(&opts)
 	}
 
-	if opts.ResetMaster {
-		if err := client.ResetMaster(ctx); err != nil {
-			return fmt.Errorf("error resetting master: %v", err)
-		}
-	}
 	if err := client.StopSlave(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
@@ -308,18 +293,14 @@ func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql
 
 func (m *multiClusterTopology) ConfigureReplica(ctx context.Context, client *sql.Client, primaryPodIndex int,
 	replicaOpts ...ConfigureReplicaOpt) error {
-	opts := slices.Clone(replicaOpts)
-	// keep binary logs in replicas: when promoted to new primary, they will have binary logs to dump to the replica cluster
-	opts = append(opts, WithResetMaster(false))
-
 	if m.mariadb.IsMultiClusterPrimary() {
 		if m.mariadb.IsReplicationEnabled() {
-			return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, opts...)
+			return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, replicaOpts...)
 		} else if m.mariadb.IsGaleraEnabled() {
 			return nil // noop: clustering managed by Galera
 		}
 	} else if m.mariadb.IsMultiClusterReplica() {
-		return m.configureSecondaryReplica(ctx, client, primaryPodIndex, opts...)
+		return m.configureSecondaryReplica(ctx, client, primaryPodIndex, replicaOpts...)
 	}
 
 	err := fmt.Errorf("error configuring replica: %w", errTopologyNotSupported)
