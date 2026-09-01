@@ -16,6 +16,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	galeraclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/client"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	appsv1 "k8s.io/api/apps/v1"
@@ -126,6 +127,12 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	}
 
 	if !mariadb.HasGaleraReadyCondition() && sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
+		if err := r.ensureGaleraUUIDCoherent(ctx, mariadb, logger); err != nil {
+			logger.Info("Waiting for Galera cluster state UUID coherence", "err", err)
+			r.recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraClusterNotHealthy,
+				mariadbv1alpha1.ReasonGaleraClusterNotHealthy, "Galera cluster state UUID not coherent: %v", err)
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
 		if err := r.disableBootstrap(ctx, mariadb, logger); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -188,6 +195,31 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 			return fmt.Errorf("error disabling bootstrap in Pod %d: %v", i, err)
 		}
 	}
+	return nil
+}
+
+func (r *GaleraReconciler) ensureGaleraUUIDCoherent(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+	clientSet := sql.NewClientSet(mariadb, r.refResolver)
+	defer clientSet.Close()
+
+	uuids := make([]string, 0, int(mariadb.Spec.Replicas))
+	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
+		sqlClient, err := clientSet.ClientForIndex(ctx, i, sql.WithTimeout(5*time.Second))
+		if err != nil {
+			return fmt.Errorf("error getting SQL client for Pod %d: %v", i, err)
+		}
+		uuid, err := sqlClient.GaleraClusterStateUUID(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting cluster state UUID from Pod %d: %v", i, err)
+		}
+		uuids = append(uuids, uuid)
+	}
+
+	coherentUUID, err := galeraclient.CoherentClusterStateUUID(uuids)
+	if err != nil {
+		return err
+	}
+	logger.V(1).Info("Galera cluster state UUID is coherent", "uuid", coherentUUID)
 	return nil
 }
 
