@@ -160,7 +160,7 @@ func (rs *recoveryStatus) isComplete(mdb *mariadbv1alpha1.MariaDB, logger logr.L
 		state := rs.inner.State[p]
 		recovered := rs.inner.Recovered[p]
 
-		if state != nil && state.SafeToBootstrap && validSeqno(state) && !shouldSkipRecoverer(state) {
+		if state != nil && state.SafeToBootstrap && validSeqno(state) {
 			return true
 		}
 		if shouldSkipRecoverer(recovered) {
