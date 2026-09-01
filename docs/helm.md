@@ -138,9 +138,11 @@ helm install mariadb-operator \
 
 The operator logs the namespaces it ends up watching on startup:
 
+```json
+{"level":"info","ts":1756742400.123,"logger":"setup","msg":"Watching namespaces","namespaces":["app-a","app-b"]}
 ```
-Watching namespaces {"namespaces": ["app-a", "app-b"]}
-```
+
+The timestamp and encoding follow the `--log-time-encoder` and `--log-dev` flags, so grep for `Watching namespaces` rather than the whole line.
 
 Setting `currentNamespaceOnly=true` is equivalent to setting `WATCH_NAMESPACE` to the release namespace.
 
