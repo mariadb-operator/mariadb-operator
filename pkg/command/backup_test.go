@@ -599,6 +599,47 @@ func TestMariadbBackupArgs(t *testing.T) {
 			},
 		},
 		{
+			// mariadb-backup also accepts the flag and value as two separate argv
+			// elements. That form must be merged too, otherwise the bare user flag would
+			// last-win and silently drop the built-in lost+found exclusion.
+			name: "two-element databases-exclude merged with lost+found",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					ExtraOpts: []string{"--databases-exclude", "mysql", "--compress"},
+				},
+			},
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			targetPodIndex: 0,
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found mysql'",
+				"--compress",
+			},
+		},
+		{
+			// Duplicate database names across forms collapse to a single entry, preserving
+			// first-seen order for a deterministic command.
+			name: "duplicate databases-exclude names are deduplicated",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					ExtraOpts: []string{
+						"--databases-exclude=mysql sys",
+						"--databases-exclude",
+						"mysql",
+						"--databases-exclude=lost+found",
+					},
+				},
+			},
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			targetPodIndex: 0,
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found mysql sys'",
+			},
+		},
+		{
 			// A single quote in a user-supplied value must not break out of the
 			// single-quoted shell fragment that reaches bash -c.
 			name: "databases-exclude value with single quote is shell-escaped",

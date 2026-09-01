@@ -669,18 +669,43 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 
 	// mariadb-backup's --databases-exclude takes a single space-separated value and is
 	// last-wins (not repeatable), so a user-supplied --databases-exclude would silently
-	// drop the built-in lost+found exclusion. Merge both into a single flag instead (#1758).
-	// The ext4 filesystem creates a lost+found directory by default, which causes
-	// mariadb-backup to include it in the backup file as a database.
-	databasesExclude := []string{"lost+found"}
-	for _, opt := range backupOpts {
-		if isDatabasesExcludeOpt(opt) {
-			if value := databasesExcludeValue(opt); value != "" {
-				databasesExclude = append(databasesExclude, value)
+	// drop the built-in lost+found exclusion. Collect every excluded database (the built-in
+	// lost+found plus any from spec.args, in all supported forms) and emit them as a single
+	// flag instead (#1758). The ext4 filesystem creates a lost+found directory by default,
+	// which mariadb-backup would otherwise include as a database.
+	seen := make(map[string]bool)
+	var databasesExclude []string
+	addDatabasesExclude := func(value string) {
+		// A value may itself be a space-separated list; split it and dedupe database names,
+		// preserving first-seen order for a deterministic command.
+		for _, name := range strings.Fields(value) {
+			if !seen[name] {
+				seen[name] = true
+				databasesExclude = append(databasesExclude, name)
 			}
 		}
 	}
-	backupOpts = ds.Remove(backupOpts, isDatabasesExcludeOpt)
+	addDatabasesExclude("lost+found")
+
+	var remainingOpts []string
+	for i := 0; i < len(backupOpts); i++ {
+		opt := backupOpts[i]
+		// Single-element forms: --databases-exclude=<value> or --databases-exclude <value>.
+		if isDatabasesExcludeOpt(opt) {
+			addDatabasesExclude(databasesExcludeValue(opt))
+			continue
+		}
+		// Two-element form: a bare --databases-exclude with its value as the next entry.
+		if strings.TrimSpace(opt) == "--databases-exclude" {
+			if i+1 < len(backupOpts) {
+				addDatabasesExclude(trimQuotes(backupOpts[i+1]))
+				i++ // consume the value entry
+			}
+			continue
+		}
+		remainingOpts = append(remainingOpts, opt)
+	}
+	backupOpts = remainingOpts
 
 	args := []string{
 		"--backup",
@@ -701,23 +726,29 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 	return ds.UniqueArgs(ds.Merge(args, backupOpts)...)
 }
 
-// isDatabasesExcludeOpt reports whether opt is a --databases-exclude flag carrying a
-// value, in either the --databases-exclude=<value> or space-separated
-// --databases-exclude <value> form (mariadb-backup accepts both). A bare
-// --databases-exclude with the value in a separate argv element is intentionally not
-// matched, so it is left untouched rather than orphaning its value.
+// isDatabasesExcludeOpt reports whether opt is a single-element --databases-exclude flag
+// carrying a value, in either the --databases-exclude=<value> or space-separated
+// --databases-exclude <value> form (mariadb-backup accepts both). The bare
+// --databases-exclude form, with the value in a separate argv element, is handled
+// directly in mariadbBackupArgs, which needs the following element.
 func isDatabasesExcludeOpt(opt string) bool {
 	opt = strings.TrimSpace(opt)
 	return strings.HasPrefix(opt, "--databases-exclude=") || strings.HasPrefix(opt, "--databases-exclude ")
 }
 
-// databasesExcludeValue extracts the value of a --databases-exclude option, supporting
-// both the --databases-exclude=<value> and space-separated --databases-exclude <value>
-// forms and stripping any surrounding single or double quotes.
+// databasesExcludeValue extracts the value of a single-element --databases-exclude option,
+// supporting both the --databases-exclude=<value> and space-separated
+// --databases-exclude <value> forms and stripping any surrounding quotes.
 func databasesExcludeValue(opt string) string {
 	rest := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(opt), "--databases-exclude"))
-	rest = strings.TrimSpace(strings.TrimPrefix(rest, "="))
-	return strings.Trim(rest, `'"`)
+	rest = strings.TrimPrefix(rest, "=")
+	return trimQuotes(rest)
+}
+
+// trimQuotes strips surrounding whitespace and a single layer of surrounding single or
+// double quotes from s.
+func trimQuotes(s string) string {
+	return strings.Trim(strings.TrimSpace(s), `'"`)
 }
 
 // shellSingleQuote wraps s in single quotes safe for a POSIX shell, escaping any embedded
