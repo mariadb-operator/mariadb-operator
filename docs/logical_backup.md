@@ -557,6 +557,9 @@ ERROR 1142 (42000) at line 2646: DROP command denied to user 'root'@'...' for ta
 
 This makes disaster recovery from a default logical backup of a Galera cluster impossible. To address this, when backing up `MariaDB` instances with Galera enabled, the operator automatically excludes these tables from the dump using the `--ignore-table` option with `mariadb-dump`. Since Galera recreates them on bootstrap, no cluster state is lost.
 
+> [!IMPORTANT]
+> Galera logical backups taken *before* this fix still contain the `mysql.wsrep_*` tables and remain unrestorable. Retake them once the operator includes this change.
+
 #### `LOCK TABLES` 
 
 Galera is not compatible with the `LOCK TABLES` statement:
