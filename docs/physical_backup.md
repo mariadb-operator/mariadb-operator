@@ -614,7 +614,7 @@ spec:
 This configuration may be suitable when using the `ReadWriteMany` access mode, which allows multiple `Pods` across different nodes to mount the volume simultaneously.
 
 ### SELinux Enforcement
-`Physicalbackup` `Jobs` must mount the data PVC used by a `MariaDB` `Pod`, this is typically a replica however that can be configured via `.spec.target`. In order to allow these `Jobs` to run on nodes with SELinux being enforced, the MCS labels must match. Currently, the only way to achieve this is to manually set the MCS labels via `.spec.podSecurityContext.seLinuxOptions.level` ensuring that the values either match between the `PhysicalBackup`  and `MariaDB` config, or only configuring via `MariaDB` config. Previously this needed to be manually configured in both the `PhysicalBackup` `Job` as well as the `MariaDB`.
+`PhysicalBackup` `Jobs` must mount the data PVC used by a `MariaDB` `Pod`, this is typically a replica however that can be configured via `.spec.target`. In order to allow these `Jobs` to run on nodes with SELinux being enforced, the MCS labels must match. Currently, the only way to achieve this is to manually set the MCS labels via `.spec.podSecurityContext.seLinuxOptions.level` ensuring that the values either match between the `PhysicalBackup`  and `MariaDB` config, or only configuring via `MariaDB` config. Previously this needed to be manually configured in both the `PhysicalBackup` `Job` as well as the `MariaDB`.
 
 ## Troubleshooting
 
