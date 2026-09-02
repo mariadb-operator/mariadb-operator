@@ -21,6 +21,7 @@ GO_LICENSES = $(LOCALBIN)/go-licenses
 CRD_REF_DOCS = $(LOCALBIN)/crd-ref-docs
 FLUX ?= $(LOCALBIN)/flux
 YQ ?= $(LOCALBIN)/yq
+HELM_DOCS ?= $(LOCALBIN)/helm-docs
 
 ## Tool Versions
 KUBERNETES_VERSION ?= 1.36.x
@@ -37,6 +38,7 @@ CRD_REF_DOCS_VERSION ?= v0.2.0
 FLUX_VERSION ?= 0.40.1
 JQ_VERSION ?= jq-1.7
 YQ_VERSION ?= v4.18.1
+HELM_DOCS_VERSION ?= v1.14.2
 
 .PHONY: kind
 kind: $(KIND) ## Download kind locally if necessary.
@@ -98,6 +100,9 @@ $(GO_LICENSES): $(LOCALBIN)
 crd-ref-docs: $(CRD_REF_DOCS) ## Download crd-ref-docs locally if necessary.
 $(CRD_REF_DOCS): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(GO) install github.com/elastic/crd-ref-docs@$(CRD_REF_DOCS_VERSION)
+
+$(HELM_DOCS): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) $(GO) install github.com/norwoodj/helm-docs/cmd/helm-docs@$(HELM_DOCS_VERSION)
 
 .PHONY: flux
 flux: ## Download flux locally if necessary.
