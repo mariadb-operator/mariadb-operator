@@ -317,7 +317,9 @@ func (b *BootstrapFrom) validateMutuallyExclusive() error {
 func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 	if b.PointInTimeRecoveryRef != nil {
 		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
-		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.BootstrapFromStagingPVCKey()))
+		if b.Volume == nil {
+			b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.BootstrapFromStagingPVCKey()))
+		}
 		return
 	}
 
@@ -337,7 +339,9 @@ func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 	}
 	if b.BackupContentType == BackupContentTypePhysical && (b.S3 != nil || b.AzureBlob != nil) {
 		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
-		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.BootstrapFromStagingPVCKey()))
+		if b.Volume == nil {
+			b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.BootstrapFromStagingPVCKey()))
+		}
 	}
 }
 
@@ -346,18 +350,26 @@ func (b *BootstrapFrom) SetDefaultsWithPhysicalBackup(physicalBackup *PhysicalBa
 	if physicalBackup.Spec.Storage.VolumeSnapshot != nil {
 		return nil
 	}
-	volume, err := physicalBackup.Volume()
-	if err != nil {
-		return fmt.Errorf("error getting BackupSource volume: %v", err)
+	if b.Volume == nil {
+		volume, err := physicalBackup.Volume()
+		if err != nil {
+			return fmt.Errorf("error getting BackupSource volume: %v", err)
+		}
+		b.Volume = &volume
 	}
-	b.Volume = &volume
-	b.S3 = physicalBackup.Spec.Storage.S3
-	b.AzureBlob = physicalBackup.Spec.Storage.AzureBlob
+	if b.S3 == nil {
+		b.S3 = physicalBackup.Spec.Storage.S3
+	}
+	if b.AzureBlob == nil {
+		b.AzureBlob = physicalBackup.Spec.Storage.AzureBlob
+	}
 	return nil
 }
 
 func (b *BootstrapFrom) SetDefaultsWithVolumeSnapshotRef(ref *LocalObjectReference) {
-	b.VolumeSnapshotRef = ref
+	if b.VolumeSnapshotRef == nil {
+		b.VolumeSnapshotRef = ref
+	}
 }
 
 func (b *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
