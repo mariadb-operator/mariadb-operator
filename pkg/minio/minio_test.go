@@ -1,8 +1,14 @@
 package minio
 
 import (
+	"context"
 	"encoding/base64"
+	"errors"
+	"io"
+	"strings"
 	"testing"
+
+	miniogo "github.com/minio/minio-go/v7"
 )
 
 func TestPrefixedFile(t *testing.T) {
@@ -185,6 +191,105 @@ func TestUnprefixedFile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPutObjectMultipartStreamCompletesUnknownSize(t *testing.T) {
+	uploader := &fakeMultipartUploader{}
+	err := putObjectMultipartStream(
+		context.Background(),
+		uploader,
+		"bucket",
+		"backup.xb.gz",
+		strings.NewReader("backup payload"),
+		5*1024*1024,
+		miniogo.PutObjectOptions{},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if uploader.aborted {
+		t.Fatal("expected successful upload not to be aborted")
+	}
+	if !uploader.completed {
+		t.Fatal("expected multipart upload to be completed")
+	}
+	if len(uploader.uploadedParts) != 1 {
+		t.Fatalf("unexpected uploaded parts: got %d want 1", len(uploader.uploadedParts))
+	}
+	if string(uploader.uploadedParts[0]) != "backup payload" {
+		t.Fatalf("unexpected uploaded payload: %q", string(uploader.uploadedParts[0]))
+	}
+}
+
+func TestPutObjectMultipartStreamAbortsWithFreshContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	putPartErr := errors.New("upload part failed")
+	uploader := &fakeMultipartUploader{
+		putPartErr: putPartErr,
+	}
+	err := putObjectMultipartStream(
+		ctx,
+		uploader,
+		"bucket",
+		"backup.xb.gz",
+		strings.NewReader("backup payload"),
+		5*1024*1024,
+		miniogo.PutObjectOptions{},
+	)
+	if !errors.Is(err, putPartErr) {
+		t.Fatalf("expected put part error, got: %v", err)
+	}
+	if !uploader.aborted {
+		t.Fatal("expected multipart upload to be aborted")
+	}
+	if uploader.abortContextErr != nil {
+		t.Fatalf("expected abort to use a fresh context, got: %v", uploader.abortContextErr)
+	}
+}
+
+type fakeMultipartUploader struct {
+	uploadedParts   [][]byte
+	completed       bool
+	aborted         bool
+	abortContextErr error
+	putPartErr      error
+}
+
+func (f *fakeMultipartUploader) NewMultipartUpload(_ context.Context, _, _ string, _ miniogo.PutObjectOptions) (string, error) {
+	return "upload-id", nil
+}
+
+func (f *fakeMultipartUploader) PutObjectPart(_ context.Context, _, _, _ string, partID int, data io.Reader, size int64,
+	_ miniogo.PutObjectPartOptions) (miniogo.ObjectPart, error) {
+	if f.putPartErr != nil {
+		return miniogo.ObjectPart{}, f.putPartErr
+	}
+	part, err := io.ReadAll(data)
+	if err != nil {
+		return miniogo.ObjectPart{}, err
+	}
+	if int64(len(part)) != size {
+		return miniogo.ObjectPart{}, errors.New("part size mismatch")
+	}
+	f.uploadedParts = append(f.uploadedParts, part)
+	return miniogo.ObjectPart{
+		ETag:       "etag",
+		PartNumber: partID,
+	}, nil
+}
+
+func (f *fakeMultipartUploader) CompleteMultipartUpload(_ context.Context, _, _, _ string, _ []miniogo.CompletePart,
+	_ miniogo.PutObjectOptions) (miniogo.UploadInfo, error) {
+	f.completed = true
+	return miniogo.UploadInfo{}, nil
+}
+
+func (f *fakeMultipartUploader) AbortMultipartUpload(ctx context.Context, _, _, _ string) error {
+	f.aborted = true
+	f.abortContextErr = ctx.Err()
+	return nil
 }
 
 func TestPrefix(t *testing.T) {

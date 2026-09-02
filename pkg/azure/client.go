@@ -156,6 +156,10 @@ func (c *AzBlobClient) PutObjectWithOptions(ctx context.Context, fileName string
 	return err
 }
 
+func (c *AzBlobClient) PutObjectStreamWithOptions(ctx context.Context, fileName string, reader io.Reader, _ uint64) error {
+	return c.PutObjectWithOptions(ctx, fileName, reader, 0)
+}
+
 func (c *AzBlobClient) FPutObjectWithOptions(ctx context.Context, fileName string) error {
 	file, err := os.Open(c.getFilePath(fileName))
 	if err != nil {

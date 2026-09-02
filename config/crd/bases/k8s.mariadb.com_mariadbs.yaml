@@ -733,6 +733,18 @@ spec:
                           type: object
                         type: array
                     type: object
+                  restoreOnlyPrimary:
+                    description: |-
+                      RestoreOnlyPrimary indicates that only the primary Pod (index 0) should be restored from the physical backup.
+                      Secondary Pods will join the cluster via Galera State Snapshot Transfer (SST).
+                      Only applicable for physical backups with Galera enabled. Mutually exclusive with RestoreParallel.
+                    type: boolean
+                  restoreParallel:
+                    description: |-
+                      RestoreParallel indicates that all Pods should restore from the physical backup in parallel.
+                      Each Pod downloads and restores the backup independently. This is the fastest mode but uses the most bandwidth.
+                      Only applicable for physical backups. Mutually exclusive with RestoreOnlyPrimary.
+                    type: boolean
                   s3:
                     description: |-
                       S3 defines the configuration to restore backups from a S3 compatible storage.
@@ -841,6 +853,11 @@ spec:
                     - bucket
                     - endpoint
                     type: object
+                  secondarySSTParallel:
+                    description: |-
+                      SecondarySSTParallel indicates that secondary Pods should be allowed to join via Galera SST in parallel
+                      after the primary Pod has been restored. This only applies together with RestoreOnlyPrimary.
+                    type: boolean
                   stagingStorage:
                     description: |-
                       StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.
