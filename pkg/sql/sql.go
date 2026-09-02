@@ -918,6 +918,19 @@ func (c Client) IsReplicationRunning(ctx context.Context, logger logr.Logger, re
 		replicaStatus.SlaveSQLRunning != nil && *replicaStatus.SlaveSQLRunning, nil
 }
 
+// Returns the replication source host, or an empty string when replication is not configured.
+func (c Client) ReplicaMasterHost(ctx context.Context, replOpts ...ReplicationOpt) (string, error) {
+	opts := getReplOpts(replOpts...)
+	rows, err := c.QueryColumnMaps(ctx, fmt.Sprintf("SHOW REPLICA %s STATUS", opts.ConnectionName))
+	if err != nil {
+		return "", err
+	}
+	if len(rows) == 0 {
+		return "", nil
+	}
+	return rows[0]["Master_Host"], nil
+}
+
 // See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/show/show-replica-status
 func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger,
 	replOpts ...ReplicationOpt) (*mariadbv1alpha1.ReplicaStatusVars, error) {
