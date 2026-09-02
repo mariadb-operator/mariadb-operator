@@ -139,7 +139,7 @@ func Unique[T comparable](elements ...T) []T {
 // Only flags documented as repeatable by mariadb-dump are listed here. Options
 // that take a single space-separated value and are last-wins (e.g. mariadb-backup
 // --databases-exclude) must NOT be added: keeping several occurrences would not
-// merge them, the tool would still honour only the last one.
+// merge them, the tool would still honor only the last one.
 var repeatableFlags = map[string]struct{}{
 	"--ignore-table":      {},
 	"--ignore-table-data": {},
