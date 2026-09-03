@@ -249,7 +249,7 @@ dump:  ## Dump cluster state for debugging purposes
 	@for pod in $$($(KUBECTL) get pods -n $(DUMP_NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
 		if [[ "$$pod" == csi* ]]; then continue; fi; \
 		printf "\n---- Logs for $$pod ----\n\n"; \
-		$(KUBECTL) logs $$pod -n $(DUMP_NAMESPACE) --all-containers=true; \
+		$(KUBECTL) logs $$pod -n $(DUMP_NAMESPACE) --all-containers=true || true; \
 	done
 
 ##@ Profile

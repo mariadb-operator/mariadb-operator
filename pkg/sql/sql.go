@@ -1020,6 +1020,7 @@ type ChangeMasterOpts struct {
 	Password string
 	Gtid     string
 	Retries  int
+	Demote   bool
 
 	SSLEnabled  bool
 	SSLCertPath string
@@ -1063,6 +1064,12 @@ func WithChangeMasterGtid(gtid string) ChangeMasterOpt {
 func WithChangeMasterRetries(retries int) ChangeMasterOpt {
 	return func(cmo *ChangeMasterOpts) {
 		cmo.Retries = retries
+	}
+}
+
+func WithChangeMasterDemote(demote bool) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Demote = demote
 	}
 }
 
@@ -1119,7 +1126,11 @@ MASTER_PASSWORD='{{ .Password }}',
 {{- with .Retries }}
 MASTER_CONNECT_RETRY={{ . }},
 {{- end }}
+{{- if .Demote }}
+MASTER_DEMOTE_TO_SLAVE=1;
+{{- else }}
 MASTER_USE_GTID={{ .Gtid }};
+{{- end }}
 `)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, opts)
