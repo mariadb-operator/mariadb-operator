@@ -375,13 +375,18 @@ func (r *MariaDBReconciler) cleanupPITRJob(ctx context.Context, mariadb *mariadb
 func (r *MariaDBReconciler) getStorageClient(ctx context.Context,
 	pitr *mariadbv1alpha1.PointInTimeRecovery) (interfaces.BlobStorage, error) {
 	storage := pitr.Spec.PointInTimeRecoveryStorage
+	return r.getBlobStorageClient(ctx, storage.S3, storage.AzureBlob, pitr.Namespace)
+}
 
-	if storage.AzureBlob != nil {
-		return r.getABSClient(ctx, pitr)
+// getBlobStorageClient retrieves a configured blob storage client for the storage configuration provided.
+func (r *MariaDBReconciler) getBlobStorageClient(ctx context.Context, s3 *mariadbv1alpha1.S3,
+	abs *mariadbv1alpha1.AzureBlob, namespace string) (interfaces.BlobStorage, error) {
+	if abs != nil {
+		return r.getABSClient(ctx, abs, namespace)
 	}
 
-	if storage.S3 != nil {
-		return r.getS3Client(ctx, pitr)
+	if s3 != nil {
+		return r.getS3Client(ctx, s3, namespace)
 	}
 
 	return nil, fmt.Errorf("error getting a storage client, none configured. Either abs or s3 must be configure")
@@ -389,9 +394,9 @@ func (r *MariaDBReconciler) getStorageClient(ctx context.Context,
 }
 
 // getABSClient retrieves a configured Azure Blob Storage client
-// This should not be used directly, see `getStorageClient`
-func (r *MariaDBReconciler) getABSClient(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*azure.AzBlobClient, error) {
-	abs := pitr.Spec.PointInTimeRecoveryStorage.AzureBlob
+// This should not be used directly, see `getBlobStorageClient`
+func (r *MariaDBReconciler) getABSClient(ctx context.Context, abs *mariadbv1alpha1.AzureBlob,
+	namespace string) (*azure.AzBlobClient, error) {
 	if abs == nil {
 		return nil, fmt.Errorf("error getting azure blob storage client. No abs config found")
 	}
@@ -403,7 +408,7 @@ func (r *MariaDBReconciler) getABSClient(ctx context.Context, pitr *mariadbv1alp
 
 	// If `storageAccountKey` is not set, we rely on DefaultAzureCredential
 	if abs.StorageAccountKey != nil {
-		accountKey, err := r.RefResolver.SecretKeyRef(ctx, *abs.StorageAccountKey, pitr.Namespace)
+		accountKey, err := r.RefResolver.SecretKeyRef(ctx, *abs.StorageAccountKey, namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error getting CA cert: %v", err)
 		}
@@ -413,7 +418,7 @@ func (r *MariaDBReconciler) getABSClient(ctx context.Context, pitr *mariadbv1alp
 	tls := ptr.Deref(abs.TLS, mariadbv1alpha1.TLSConfig{})
 	if tls.Enabled {
 		opts = append(opts, azure.WithTLSEnabled(true))
-		caCertBytes, err := r.RefResolver.SecretKeyRef(ctx, *abs.TLS.CASecretKeyRef, pitr.Namespace)
+		caCertBytes, err := r.RefResolver.SecretKeyRef(ctx, *abs.TLS.CASecretKeyRef, namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error getting CA cert: %v", err)
 		}
@@ -429,9 +434,9 @@ func (r *MariaDBReconciler) getABSClient(ctx context.Context, pitr *mariadbv1alp
 }
 
 // getS3Client retrieves a configured S3 client
-// @WARN: This should not be used directly, see `getStorageClient`
-func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
-	s3 := pitr.Spec.PointInTimeRecoveryStorage.S3
+// @WARN: This should not be used directly, see `getBlobStorageClient`
+func (r *MariaDBReconciler) getS3Client(ctx context.Context, s3 *mariadbv1alpha1.S3,
+	namespace string) (*minio.Client, error) {
 	if s3 == nil {
 		return nil, errors.New("error getting s3 client. No s3 config found")
 	}
@@ -441,7 +446,7 @@ func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alph
 		*r.RefResolver,
 		*s3,
 		"",
-		pitr.Namespace,
+		namespace,
 	)
 }
 

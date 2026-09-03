@@ -40,7 +40,7 @@ func TestBuildReplicaRecoveryPhysicalBackupRewritesObjectStorePrefix(t *testing.
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if got, want := backup.Spec.Storage.S3.Prefix, "mariadb/yacodedev-internal/testing-db-cluster"; got != want {
+	if got, want := backup.Spec.Storage.S3.Prefix, "mariadb/yacodedev-internal/testing-db-cluster/replica-recovery"; got != want {
 		t.Fatalf("unexpected recovery S3 prefix, want %q got %q", want, got)
 	}
 	if got, want := tpl.Spec.Storage.S3.Prefix, "mariadb/yacodedev-internal/db-cluster"; got != want {
@@ -86,7 +86,62 @@ func TestBuildReplicaRecoveryPhysicalBackupPreservesSharedPrefix(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if got, want := backup.Spec.Storage.S3.Prefix, "mariadb/shared"; got != want {
+	if got, want := backup.Spec.Storage.S3.Prefix, "mariadb/shared/replica-recovery"; got != want {
 		t.Fatalf("unexpected recovery S3 prefix, want %q got %q", want, got)
+	}
+}
+
+func TestReplicaRecoveryPrefix(t *testing.T) {
+	testCases := map[string]struct {
+		prefix              string
+		templateMariaDBName string
+		mariadbName         string
+		want                string
+	}{
+		"shared prefix keeps its folder": {
+			prefix:              "mariadb/shared",
+			templateMariaDBName: "db-cluster",
+			mariadbName:         "testing-db-cluster",
+			want:                "mariadb/shared/replica-recovery",
+		},
+		"prefix ending in the template MariaDB name is rewritten": {
+			prefix:              "mariadb/yacodedev-internal/db-cluster",
+			templateMariaDBName: "db-cluster",
+			mariadbName:         "testing-db-cluster",
+			want:                "mariadb/yacodedev-internal/testing-db-cluster/replica-recovery",
+		},
+		"same MariaDB keeps the prefix": {
+			prefix:              "mariadb/yacodedev-internal/db-cluster",
+			templateMariaDBName: "db-cluster",
+			mariadbName:         "db-cluster",
+			want:                "mariadb/yacodedev-internal/db-cluster/replica-recovery",
+		},
+		"trailing slash is normalized": {
+			prefix:              "mariadb/shared/",
+			templateMariaDBName: "db-cluster",
+			mariadbName:         "db-cluster",
+			want:                "mariadb/shared/replica-recovery",
+		},
+		"empty prefix": {
+			prefix:              "",
+			templateMariaDBName: "db-cluster",
+			mariadbName:         "testing-db-cluster",
+			want:                "replica-recovery",
+		},
+		"root prefix": {
+			prefix:              "/",
+			templateMariaDBName: "db-cluster",
+			mariadbName:         "db-cluster",
+			want:                "replica-recovery",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got := replicaRecoveryPrefix(tc.prefix, tc.templateMariaDBName, tc.mariadbName)
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
+			}
+		})
 	}
 }

@@ -1231,6 +1231,9 @@ func (r *MariaDBReconciler) setReplicaRecoveredAndCleanup(ctx context.Context, m
 
 func (r *MariaDBReconciler) cleanupReplicaRecoveryArtifacts(ctx context.Context,
 	mariadb *mariadbv1alpha1.MariaDB) error {
+	if err := r.cleanupReplicaRecoveryBackupStorage(ctx, mariadb); err != nil {
+		return err
+	}
 	if err := r.cleanupPhysicalBackup(ctx, mariadb.PhysicalBackupReplicaRecoveryKey()); err != nil {
 		return err
 	}

@@ -11,6 +11,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// ReplicaRecoveryStorageFolder is the storage folder that holds the backups taken for a replica recovery.
+// It keeps them apart from the regular backups, so they can carry their own retention policy.
+const ReplicaRecoveryStorageFolder = "replica-recovery"
+
 func (b *Builder) BuildReplicaRecoveryPhysicalBackup(key types.NamespacedName, tpl *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.PhysicalBackup, error) {
 	physicalBackup := mariadbv1alpha1.PhysicalBackup{
@@ -38,11 +42,25 @@ func (b *Builder) BuildReplicaRecoveryPhysicalBackup(key types.NamespacedName, t
 
 func rewriteReplicaRecoveryStoragePrefix(spec *mariadbv1alpha1.PhysicalBackupSpec, templateMariaDBName, mariadbName string) {
 	if spec.Storage.S3 != nil {
-		spec.Storage.S3.Prefix = rewriteReplicaRecoveryPrefix(spec.Storage.S3.Prefix, templateMariaDBName, mariadbName)
+		spec.Storage.S3.Prefix = replicaRecoveryPrefix(spec.Storage.S3.Prefix, templateMariaDBName, mariadbName)
 	}
 	if spec.Storage.AzureBlob != nil {
-		spec.Storage.AzureBlob.Prefix = rewriteReplicaRecoveryPrefix(spec.Storage.AzureBlob.Prefix, templateMariaDBName, mariadbName)
+		spec.Storage.AzureBlob.Prefix = replicaRecoveryPrefix(spec.Storage.AzureBlob.Prefix, templateMariaDBName, mariadbName)
 	}
+}
+
+// replicaRecoveryPrefix keeps the transient backups taken for a replica recovery in a folder of their
+// own. Sharing the folder of the regular backups makes a recovery artifact indistinguishable from a
+// retained one, so it inherits the retention of the regular backups and a full extra copy of the dataset
+// stays in the bucket until that retention expires it.
+func replicaRecoveryPrefix(prefix, templateMariaDBName, mariadbName string) string {
+	prefix = rewriteReplicaRecoveryPrefix(prefix, templateMariaDBName, mariadbName)
+
+	trimmedPrefix := strings.Trim(prefix, "/")
+	if trimmedPrefix == "" {
+		return ReplicaRecoveryStorageFolder
+	}
+	return trimmedPrefix + "/" + ReplicaRecoveryStorageFolder
 }
 
 func rewriteReplicaRecoveryPrefix(prefix, templateMariaDBName, mariadbName string) string {
