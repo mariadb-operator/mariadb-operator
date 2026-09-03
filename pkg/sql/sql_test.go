@@ -51,6 +51,24 @@ MASTER_USE_GTID=CurrentPos;
 			wantErr: false,
 		},
 		{
+			name: "valid without SSL and demoted to slave",
+			options: []ChangeMasterOpt{
+				WithChangeMasterHost("127.0.0.1"),
+				WithChangeMasterPort(3306),
+				WithChangeMasterCredentials("repl", "password"),
+				WithChangeMasterGtid("CurrentPos"),
+				WithChangeMasterDemote(true),
+			},
+			wantQuery: `CHANGE MASTER  TO
+MASTER_HOST='127.0.0.1',
+MASTER_PORT=3306,
+MASTER_USER='repl',
+MASTER_PASSWORD='password',
+MASTER_DEMOTE_TO_SLAVE=1;
+`,
+			wantErr: false,
+		},
+		{
 			name: "missing SSL paths",
 			options: []ChangeMasterOpt{
 				WithChangeMasterHost("127.0.0.1"),
