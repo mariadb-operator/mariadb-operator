@@ -56,13 +56,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+const (
+	// defaultLeaderElectLeaseDuration mirrors the controller-runtime default lease duration.
+	defaultLeaderElectLeaseDuration = 15 * time.Second
+	// defaultLeaderElectRenewDeadline mirrors the controller-runtime default renew deadline.
+	defaultLeaderElectRenewDeadline = 10 * time.Second
+	// defaultLeaderElectRetryPeriod mirrors the controller-runtime default retry period.
+	defaultLeaderElectRetryPeriod = 2 * time.Second
+)
+
 var (
 	scheme      = runtime.NewScheme()
 	setupLog    = ctrl.Log.WithName("setup")
 	metricsAddr string
 	healthAddr  string
 
-	leaderElect bool
+	leaderElect              bool
+	leaderElectLeaseDuration time.Duration
+	leaderElectRenewDeadline time.Duration
+	leaderElectRetryPeriod   time.Duration
 
 	logLevel           string
 	logLevelName       = "log-level"
@@ -118,6 +130,14 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&healthAddr, "health-addr", ":8081", "The address the probe endpoint binds to.")
 
 	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
+	rootCmd.PersistentFlags().DurationVar(&leaderElectLeaseDuration, "leader-elect-lease-duration",
+		defaultLeaderElectLeaseDuration, "Duration that non-leader candidates will wait before attempting to acquire leadership.")
+	rootCmd.PersistentFlags().DurationVar(&leaderElectRenewDeadline, "leader-elect-renew-deadline",
+		defaultLeaderElectRenewDeadline,
+		"Duration that the acting leader will retry refreshing leadership before giving up. "+
+			"Raise it to tolerate a slow Kubernetes API server without losing leadership.")
+	rootCmd.PersistentFlags().DurationVar(&leaderElectRetryPeriod, "leader-elect-retry-period",
+		defaultLeaderElectRetryPeriod, "Duration the clients should wait between attempting acquisition and renewal of leadership.")
 
 	rootCmd.PersistentFlags().StringVar(&logLevel, logLevelName, "info", "Log level to use, one of: "+
 		"debug, info, warn, error, dpanic, panic, fatal.")
@@ -218,6 +238,9 @@ var rootCmd = &cobra.Command{
 			HealthProbeBindAddress: healthAddr,
 			LeaderElection:         leaderElect,
 			LeaderElectionID:       "mariadb-operator.mariadb.com",
+			LeaseDuration:          &leaderElectLeaseDuration,
+			RenewDeadline:          &leaderElectRenewDeadline,
+			RetryPeriod:            &leaderElectRetryPeriod,
 			Controller: config.Controller{
 				MaxConcurrentReconciles: maxConcurrentReconciles,
 				CacheSyncTimeout:        cacheSyncTimeout,

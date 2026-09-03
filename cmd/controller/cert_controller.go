@@ -76,6 +76,9 @@ var certControllerCmd = &cobra.Command{
 			HealthProbeBindAddress: healthAddr,
 			LeaderElection:         leaderElect,
 			LeaderElectionID:       "cert-controller.mariadb-operator.mariadb.com",
+			LeaseDuration:          &leaderElectLeaseDuration,
+			RenewDeadline:          &leaderElectRenewDeadline,
+			RetryPeriod:            &leaderElectRetryPeriod,
 		})
 		if err != nil {
 			setupLog.Error(err, "Unable to start manager")
