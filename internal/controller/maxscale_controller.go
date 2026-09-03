@@ -1087,9 +1087,17 @@ func (r *MaxScaleReconciler) ensurePrimaryServer(ctx context.Context, req *reque
 		return ctrl.Result{}, nil
 	}
 	if req.mxs.Status.GetPrimaryServer() != nil {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, r.clearNoPrimaryServer(ctx, req.mxs)
 	}
-	log.FromContext(ctx).V(1).Info("No primary servers were found. Requeuing.")
+	logger := log.FromContext(ctx)
+	logger.V(1).Info("No primary servers were found. Requeuing.")
+
+	if err := r.recordNoPrimaryServer(ctx, req.mxs); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error recording missing primary server: %v", err)
+	}
+	if result, err := r.recoverStaleMonitorTopology(ctx, req, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
@@ -1210,6 +1218,13 @@ func effectiveMaxScaleServer(srv mariadbv1alpha1.MaxScaleServer, mariadb *mariad
 
 func autoMaintenanceRequired(serverName string, mariadb *mariadbv1alpha1.MariaDB) bool {
 	if mariadb == nil || !mariadb.IsReplicationEnabled() {
+		return false
+	}
+
+	// status.currentPrimary can name a node that is no longer the primary. Trusting it on its own put the
+	// only writable node into maintenance and left the pool unable to route writes at all, so a node that
+	// is observed to be acting as primary is never taken out of the pool.
+	if serverName == mariadb.ObservedPrimary() {
 		return false
 	}
 

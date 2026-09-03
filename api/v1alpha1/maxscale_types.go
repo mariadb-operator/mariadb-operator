@@ -823,6 +823,12 @@ type MaxScaleStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ServersSpec string `json:"serversSpec,omitempty"`
+	// NoPrimaryServerSince is the first time the MaxScale API reported no primary server in the pool.
+	// A pool without a primary cannot route writes, so this bounds how long that state may persist
+	// before the operator recovers the monitor.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	NoPrimaryServerSince *metav1.Time `json:"noPrimaryServerSince,omitempty"`
 	// ServicesSpec is a hashed version of spec.services to be able to track changes during reconciliation.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status

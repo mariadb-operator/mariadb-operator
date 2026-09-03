@@ -456,6 +456,26 @@ func (m *MariaDB) isReplicaDivergedAt(podName string, now time.Time) bool {
 	return now.Sub(status.DivergedSince.Time) >= m.MaxGtidDeltaDuration()
 }
 
+// ObservedPrimary returns the Pod observed to be acting as primary. It may differ from
+// status.currentPrimary while the operator's own view of the topology is stale, which is exactly
+// the case where trusting status.currentPrimary takes the writable node out of the read pool.
+func (m *MariaDB) ObservedPrimary() string {
+	if m.Status.Replication == nil {
+		return ""
+	}
+	var observed string
+	for pod, role := range m.Status.Replication.Roles {
+		if role != ReplicationRolePrimary {
+			continue
+		}
+		if observed != "" {
+			return ""
+		}
+		observed = pod
+	}
+	return observed
+}
+
 // IsReplicaRecoveryEnabled indicates if the replica recovery is enabled
 func (m *MariaDB) IsReplicaRecoveryEnabled() bool {
 	if !m.IsReplicationEnabled() {

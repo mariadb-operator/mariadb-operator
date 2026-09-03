@@ -237,3 +237,54 @@ func TestReplicaReplicationGtidDivergenceDefaults(t *testing.T) {
 		t.Errorf("expected max GTID delta duration %s, got %s", DefaultMaxGtidDeltaDuration, duration.Duration)
 	}
 }
+
+func TestMariaDBObservedPrimary(t *testing.T) {
+	newMariaDB := func(roles map[string]ReplicationRole) *MariaDB {
+		mdb := &MariaDB{}
+		if roles != nil {
+			mdb.Status.Replication = &ReplicationStatus{Roles: roles}
+		}
+		return mdb
+	}
+
+	tests := []struct {
+		name    string
+		mariadb *MariaDB
+		want    string
+	}{
+		{
+			name:    "no replication status",
+			mariadb: newMariaDB(nil),
+		},
+		{
+			name: "single primary",
+			mariadb: newMariaDB(map[string]ReplicationRole{
+				"db-0": ReplicationRolePrimary,
+				"db-1": ReplicationRoleReplica,
+			}),
+			want: "db-0",
+		},
+		{
+			name: "no primary",
+			mariadb: newMariaDB(map[string]ReplicationRole{
+				"db-0": ReplicationRoleUnknown,
+				"db-1": ReplicationRoleReplica,
+			}),
+		},
+		{
+			name: "ambiguous primary",
+			mariadb: newMariaDB(map[string]ReplicationRole{
+				"db-0": ReplicationRolePrimary,
+				"db-1": ReplicationRolePrimary,
+			}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.mariadb.ObservedPrimary(); got != tt.want {
+				t.Errorf("expected %q, got %q", tt.want, got)
+			}
+		})
+	}
+}

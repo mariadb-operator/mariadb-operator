@@ -11006,6 +11006,13 @@ spec:
                 description: MonitorSpec is a hashed version of spec.monitor to be
                   able to track changes during reconciliation.
                 type: string
+              noPrimaryServerSince:
+                description: |-
+                  NoPrimaryServerSince is the first time the MaxScale API reported no primary server in the pool.
+                  A pool without a primary cannot route writes, so this bounds how long that state may persist
+                  before the operator recovers the monitor.
+                format: date-time
+                type: string
               primaryServer:
                 description: PrimaryServer is the primary server in the MaxScale API.
                 type: string

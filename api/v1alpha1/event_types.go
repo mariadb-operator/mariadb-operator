@@ -50,6 +50,12 @@ const (
 
 	// ReasonMaxScalePrimaryServerChanged indicates that the primary server managed by MaxScale has changed.
 	ReasonMaxScalePrimaryServerChanged = "MaxScalePrimaryServerChanged"
+	// ReasonMaxScaleNoPrimaryServer indicates that no server in the MaxScale pool holds the Master state,
+	// so the pool is unable to route writes.
+	ReasonMaxScaleNoPrimaryServer = "MaxScaleNoPrimaryServer"
+	// ReasonMaxScaleMonitorRestarted indicates that a MaxScale Pod has been restarted to discard a stale
+	// monitor topology that prevented any server from being promoted to Master.
+	ReasonMaxScaleMonitorRestarted = "MaxScaleMonitorRestarted"
 
 	// ReasonWebhookUpdateFailed indicates that the webhook configuration update failed.
 	ReasonWebhookUpdateFailed = "WebhookUpdateFailed"

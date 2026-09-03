@@ -88,6 +88,26 @@ func TestAutoMaintenanceRequired(t *testing.T) {
 			mariadb:    &mariadbv1alpha1.MariaDB{},
 			want:       false,
 		},
+		"observed primary is never taken out of the pool": {
+			serverName: "db-0",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimary: ptr.To("db-1"),
+					Replication: &mariadbv1alpha1.ReplicationStatus{
+						Roles: map[string]mariadbv1alpha1.ReplicationRole{
+							"db-0": mariadbv1alpha1.ReplicationRolePrimary,
+							"db-1": mariadbv1alpha1.ReplicationRoleReplica,
+						},
+					},
+				},
+			},
+			want: false,
+		},
 		"diverged replica is taken out of the read pool": {
 			serverName: "db-1",
 			mariadb:    divergedMariaDB(metav1.NewTime(time.Now().Add(-10 * time.Minute))),
