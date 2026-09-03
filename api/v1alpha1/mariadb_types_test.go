@@ -1311,6 +1311,8 @@ var _ = Describe("MariaDB types", func() {
 									Gtid:                   ptr.To(GtidCurrentPos),
 									ConnectionRetrySeconds: nil,
 									SyncTimeout:            ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+									MaxGtidDelta:           ptr.To(DefaultMaxGtidDelta),
+									MaxGtidDeltaDuration:   ptr.To(metav1.Duration{Duration: DefaultMaxGtidDeltaDuration}),
 								},
 								Primary: PrimaryReplication{
 									PodIndex:          ptr.To(0),
@@ -1409,6 +1411,8 @@ var _ = Describe("MariaDB types", func() {
 									Gtid:                   ptr.To(GtidCurrentPos),
 									ConnectionRetrySeconds: nil,
 									SyncTimeout:            ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+									MaxGtidDelta:           ptr.To(DefaultMaxGtidDelta),
+									MaxGtidDeltaDuration:   ptr.To(metav1.Duration{Duration: DefaultMaxGtidDeltaDuration}),
 								},
 								Primary: PrimaryReplication{
 									PodIndex:          ptr.To(0),

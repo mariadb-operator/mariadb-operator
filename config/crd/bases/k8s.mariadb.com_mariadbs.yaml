@@ -4815,6 +4815,25 @@ spec:
                         - CurrentPos
                         - SlavePos
                         type: string
+                      maxGtidDelta:
+                        description: |-
+                          MaxGtidDelta is the maximum number of transactions that a replica is allowed to be behind the primary
+                          in the replication GTID domain before being considered diverged.
+                          Unlike MaxLagSeconds, this is derived from GTID positions rather than from Seconds_Behind_Master:
+                          a replica whose relay log is empty because the primary rejects its GTID reports zero lag and healthy
+                          threads while serving arbitrarily stale reads, so GTID delta is the only trustworthy staleness signal.
+                          A diverged replica is put in maintenance in MaxScale, so read queries are no longer routed to it,
+                          and it leaves maintenance once it catches up.
+                          It defaults to 1000 transactions. Setting it to 0 disables divergence detection.
+                        format: int64
+                        type: integer
+                      maxGtidDeltaDuration:
+                        description: |-
+                          MaxGtidDeltaDuration is the time that a replica must continuously exceed MaxGtidDelta before being
+                          considered diverged. It prevents a replica that is legitimately catching up from being taken out of
+                          the read pool by a transient delta.
+                          It defaults to 5 minutes.
+                        type: string
                       maxLagSeconds:
                         description: |-
                           MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.
@@ -6230,6 +6249,11 @@ spec:
                 description: Replication is the replication current status per each
                   Pod.
                 properties:
+                  primaryGtidCurrentPos:
+                    description: |-
+                      PrimaryGtidCurrentPos is the last GTID position executed by the current primary.
+                      It is the reference against which the GTID delta of each replica is computed.
+                    type: string
                   replicaToRecover:
                     description: ReplicaToRecover is the replica that is being recovered
                       by the operator.
@@ -6238,10 +6262,22 @@ spec:
                     additionalProperties:
                       description: ReplicaStatus is the observed replica status.
                       properties:
+                        divergedSince:
+                          description: |-
+                            DivergedSince is the first time GtidDelta was observed above the configured threshold.
+                            It is cleared as soon as the replica catches up.
+                          format: date-time
+                          type: string
                         gtidCurrentPos:
                           description: GtidCurrentPos is the last GTID position executed
                             by the SQL thread.
                           type: string
+                        gtidDelta:
+                          description: GtidDelta is the number of transactions this
+                            replica is behind the primary in the replication GTID
+                            domain.
+                          format: int64
+                          type: integer
                         gtidIOPos:
                           description: GtidIOPos is the last GTID position received
                             by the IO thread and written to the relay log.

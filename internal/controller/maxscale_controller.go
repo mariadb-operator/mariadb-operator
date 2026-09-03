@@ -1220,7 +1220,13 @@ func autoMaintenanceRequired(serverName string, mariadb *mariadbv1alpha1.MariaDB
 	if serverName == currentPrimary {
 		return false
 	}
-	return !mariadb.IsConfiguredReplica(serverName)
+	if !mariadb.IsConfiguredReplica(serverName) {
+		return true
+	}
+	// A replica that is configured and reports healthy threads can still be arbitrarily stale: when the
+	// primary rejects its GTID the relay log stays empty, so Seconds_Behind_Master is 0 and no slave error
+	// is ever populated. The GTID delta is the only signal that catches it.
+	return mariadb.IsReplicaDiverged(serverName)
 }
 
 func (r *MaxScaleReconciler) reconcileChangedMonitor(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {

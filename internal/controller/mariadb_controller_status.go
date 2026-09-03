@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
@@ -40,10 +41,11 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	if replErr != nil {
 		logger.Info("error getting replication state", "err", replErr)
 	}
-	replStatus, replErrStatusErr := r.getReplicaStatus(ctx, mdb, logger)
+	replObservation, replErrStatusErr := r.getReplicaStatus(ctx, mdb, logger)
 	if replErrStatusErr != nil {
 		logger.Info("error getting replication status", "err", replErrStatusErr)
 	}
+	replStatus := replObservation.replicas
 
 	mxsPrimaryPodIndex, mxsErr, result, err := r.syncObservedPrimaryStatus(ctx, mdb, replRoles, statusLogger, logger)
 	if !result.IsZero() || err != nil {
@@ -72,6 +74,12 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 				status.Replication = &mariadbv1alpha1.ReplicationStatus{}
 			}
 			status.Replication.Replicas = replStatus
+		}
+		if replObservation.primaryGtid.currentPos != nil {
+			if status.Replication == nil {
+				status.Replication = &mariadbv1alpha1.ReplicationStatus{}
+			}
+			status.Replication.PrimaryGtidCurrentPos = replObservation.primaryGtid.currentPos
 		}
 
 		if tlsStatus != nil {
@@ -174,22 +182,32 @@ func observedReplicationRole(isReplica, hasConnectedReplicas bool, podIndex int,
 	return mariadbv1alpha1.ReplicationRoleUnknown
 }
 
+// replicationObservation is the replication state observed in a single status reconciliation.
+type replicationObservation struct {
+	replicas    map[string]mariadbv1alpha1.ReplicaStatus
+	primaryGtid primaryGtidState
+}
+
 func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
-	mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (map[string]mariadbv1alpha1.ReplicaStatus, error) {
+	mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (replicationObservation, error) {
 	if !mdb.IsReplicationEnabled() {
-		return nil, nil
+		return replicationObservation{}, nil
 	}
 	replStatus := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 
 	if mdb.Status.CurrentPrimaryPodIndex == nil {
-		return replStatus.Replicas, nil
+		return replicationObservation{replicas: replStatus.Replicas}, nil
 	}
 
 	clientSet, err := replication.NewReplicationClientSet(mdb, r.RefResolver)
 	if err != nil {
-		return nil, fmt.Errorf("error creating mariadb clientset: %v", err)
+		return replicationObservation{}, fmt.Errorf("error creating mariadb clientset: %v", err)
 	}
 	defer clientSet.Close()
+
+	primaryGtid := getPrimaryGtidState(ctx, clientSet, mdb, logger)
+	maxGtidDelta := mdb.MaxGtidDelta()
+	now := time.Now()
 
 	var replicaStatus map[string]mariadbv1alpha1.ReplicaStatus
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
@@ -228,13 +246,23 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 
 		mergedReplicaStatus := mergeReplicaStatus(currentReplicaStatus, newReplicaStatus)
 		if mergedReplicaStatus != nil {
+			setGtidDivergence(
+				mergedReplicaStatus,
+				gtidDelta(primaryGtid, mergedReplicaStatus.GtidCurrentPos, logger),
+				maxGtidDelta,
+				now,
+			)
+			r.recordGtidDivergenceTransition(mdb, pod, currentReplicaStatus, mergedReplicaStatus)
 			if replicaStatus == nil {
 				replicaStatus = make(map[string]mariadbv1alpha1.ReplicaStatus)
 			}
 			replicaStatus[pod] = *mergedReplicaStatus
 		}
 	}
-	return replicaStatus, nil
+	return replicationObservation{
+		replicas:    replicaStatus,
+		primaryGtid: primaryGtid,
+	}, nil
 }
 
 func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
@@ -310,12 +338,16 @@ func mergeReplicaStatus(current *mariadbv1alpha1.ReplicaStatus,
 		return &mariadbv1alpha1.ReplicaStatus{
 			ReplicaStatusVars:       *new,
 			LastErrorTransitionTime: current.LastErrorTransitionTime,
+			GtidDelta:               current.GtidDelta,
+			DivergedSince:           current.DivergedSince,
 		}
 	}
 	// Transition: healthy <-> error or changed error type
 	return &mariadbv1alpha1.ReplicaStatus{
 		ReplicaStatusVars:       *new,
 		LastErrorTransitionTime: now,
+		GtidDelta:               current.GtidDelta,
+		DivergedSince:           current.DivergedSince,
 	}
 }
 

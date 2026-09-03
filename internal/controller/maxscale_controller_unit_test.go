@@ -2,10 +2,37 @@ package controller
 
 import (
 	"testing"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
+
+func divergedMariaDB(divergedSince metav1.Time) *mariadbv1alpha1.MariaDB {
+	return &mariadbv1alpha1.MariaDB{
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replication: &mariadbv1alpha1.Replication{
+				Enabled: true,
+			},
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			CurrentPrimary: ptr.To("db-0"),
+			Replication: &mariadbv1alpha1.ReplicationStatus{
+				Roles: map[string]mariadbv1alpha1.ReplicationRole{
+					"db-0": mariadbv1alpha1.ReplicationRolePrimary,
+					"db-1": mariadbv1alpha1.ReplicationRoleReplica,
+				},
+				Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+					"db-1": {
+						GtidDelta:     ptr.To(uint64(7070355)),
+						DivergedSince: ptr.To(divergedSince),
+					},
+				},
+			},
+		},
+	}
+}
 
 func TestAutoMaintenanceRequired(t *testing.T) {
 	mariadb := &mariadbv1alpha1.MariaDB{
@@ -59,6 +86,21 @@ func TestAutoMaintenanceRequired(t *testing.T) {
 		"non replication leaves maintenance unchanged": {
 			serverName: "db-0",
 			mariadb:    &mariadbv1alpha1.MariaDB{},
+			want:       false,
+		},
+		"diverged replica is taken out of the read pool": {
+			serverName: "db-1",
+			mariadb:    divergedMariaDB(metav1.NewTime(time.Now().Add(-10 * time.Minute))),
+			want:       true,
+		},
+		"recently diverged replica stays online until the duration elapses": {
+			serverName: "db-1",
+			mariadb:    divergedMariaDB(metav1.NewTime(time.Now())),
+			want:       false,
+		},
+		"diverged primary is never taken out of the pool": {
+			serverName: "db-0",
+			mariadb:    divergedMariaDB(metav1.NewTime(time.Now().Add(-10 * time.Minute))),
 			want:       false,
 		},
 	}

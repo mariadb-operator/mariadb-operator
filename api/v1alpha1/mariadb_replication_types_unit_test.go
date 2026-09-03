@@ -2,7 +2,9 @@ package v1alpha1
 
 import (
 	"testing"
+	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
@@ -130,5 +132,108 @@ func TestReplicaStatusVarsEqualErrorsThreadTransitions(t *testing.T) {
 				t.Errorf("EqualErrors mismatch: want=%v got=%v", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestMariaDBIsReplicaDiverged(t *testing.T) {
+	now := time.Date(2026, time.September, 3, 7, 47, 0, 0, time.UTC)
+
+	newMariaDB := func(replication *Replication, status *ReplicaStatus) *MariaDB {
+		mdb := &MariaDB{
+			Spec: MariaDBSpec{
+				Replication: replication,
+			},
+		}
+		if status != nil {
+			mdb.Status.Replication = &ReplicationStatus{
+				Replicas: map[string]ReplicaStatus{
+					"db-1": *status,
+				},
+			}
+		}
+		return mdb
+	}
+	enabled := &Replication{Enabled: true}
+
+	tests := []struct {
+		name    string
+		mariadb *MariaDB
+		podName string
+		want    bool
+	}{
+		{
+			name:    "replication disabled",
+			mariadb: newMariaDB(nil, &ReplicaStatus{DivergedSince: ptr.To(metav1.NewTime(now.Add(-1 * time.Hour)))}),
+			podName: "db-1",
+		},
+		{
+			name:    "no replication status",
+			mariadb: newMariaDB(enabled, nil),
+			podName: "db-1",
+		},
+		{
+			name:    "replica not diverged",
+			mariadb: newMariaDB(enabled, &ReplicaStatus{GtidDelta: ptr.To(uint64(3))}),
+			podName: "db-1",
+		},
+		{
+			name:    "divergence below the duration threshold",
+			mariadb: newMariaDB(enabled, &ReplicaStatus{DivergedSince: ptr.To(metav1.NewTime(now.Add(-1 * time.Minute)))}),
+			podName: "db-1",
+		},
+		{
+			name:    "divergence above the duration threshold",
+			mariadb: newMariaDB(enabled, &ReplicaStatus{DivergedSince: ptr.To(metav1.NewTime(now.Add(-1 * time.Hour)))}),
+			podName: "db-1",
+			want:    true,
+		},
+		{
+			name:    "unknown replica",
+			mariadb: newMariaDB(enabled, &ReplicaStatus{DivergedSince: ptr.To(metav1.NewTime(now.Add(-1 * time.Hour)))}),
+			podName: "db-2",
+		},
+		{
+			name: "detection disabled by a zero threshold",
+			mariadb: newMariaDB(
+				&Replication{
+					Enabled: true,
+					ReplicationSpec: ReplicationSpec{
+						Replica: ReplicaReplication{
+							MaxGtidDelta: ptr.To(uint64(0)),
+						},
+					},
+				},
+				&ReplicaStatus{DivergedSince: ptr.To(metav1.NewTime(now.Add(-1 * time.Hour)))},
+			),
+			podName: "db-1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.mariadb.isReplicaDivergedAt(tt.podName, now); got != tt.want {
+				t.Errorf("expected %v, got %v", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestReplicaReplicationGtidDivergenceDefaults(t *testing.T) {
+	mdb := &MariaDB{
+		Spec: MariaDBSpec{
+			Replication: &Replication{
+				Enabled: true,
+			},
+		},
+	}
+	replica := ReplicaReplication{}
+	replica.SetDefaults(mdb)
+
+	if ptr.Deref(replica.MaxGtidDelta, 0) != DefaultMaxGtidDelta {
+		t.Errorf("expected max GTID delta %d, got %d", DefaultMaxGtidDelta, ptr.Deref(replica.MaxGtidDelta, 0))
+	}
+	duration := ptr.Deref(replica.MaxGtidDeltaDuration, metav1.Duration{})
+	if duration.Duration != DefaultMaxGtidDeltaDuration {
+		t.Errorf("expected max GTID delta duration %s, got %s", DefaultMaxGtidDeltaDuration, duration.Duration)
 	}
 }

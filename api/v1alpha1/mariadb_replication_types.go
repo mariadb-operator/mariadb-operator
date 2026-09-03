@@ -13,6 +13,15 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+const (
+	// DefaultMaxGtidDelta defines the default number of transactions a replica may be behind the primary
+	// in the replication GTID domain before being considered diverged.
+	DefaultMaxGtidDelta uint64 = 1000
+	// DefaultMaxGtidDeltaDuration defines the default time a replica must continuously exceed the
+	// GTID delta threshold before being considered diverged.
+	DefaultMaxGtidDeltaDuration = 5 * time.Minute
+)
+
 // WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
 // More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
 type WaitPoint string
@@ -171,6 +180,24 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	MaxLagSeconds *int `json:"maxLagSeconds,omitempty"`
+	// MaxGtidDelta is the maximum number of transactions that a replica is allowed to be behind the primary
+	// in the replication GTID domain before being considered diverged.
+	// Unlike MaxLagSeconds, this is derived from GTID positions rather than from Seconds_Behind_Master:
+	// a replica whose relay log is empty because the primary rejects its GTID reports zero lag and healthy
+	// threads while serving arbitrarily stale reads, so GTID delta is the only trustworthy staleness signal.
+	// A diverged replica is put in maintenance in MaxScale, so read queries are no longer routed to it,
+	// and it leaves maintenance once it catches up.
+	// It defaults to 1000 transactions. Setting it to 0 disables divergence detection.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	MaxGtidDelta *uint64 `json:"maxGtidDelta,omitempty"`
+	// MaxGtidDeltaDuration is the time that a replica must continuously exceed MaxGtidDelta before being
+	// considered diverged. It prevents a replica that is legitimately catching up from being taken out of
+	// the read pool by a transient delta.
+	// It defaults to 5 minutes.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MaxGtidDeltaDuration *metav1.Duration `json:"maxGtidDeltaDuration,omitempty"`
 	// SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.
 	// During switchover, all replicas must be synced with the current primary before promoting the new primary.
 	// During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.
@@ -205,6 +232,12 @@ func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
 	}
 	if r.SyncTimeout == nil {
 		r.SyncTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
+	}
+	if r.MaxGtidDelta == nil {
+		r.MaxGtidDelta = ptr.To(DefaultMaxGtidDelta)
+	}
+	if r.MaxGtidDeltaDuration == nil {
+		r.MaxGtidDeltaDuration = ptr.To(metav1.Duration{Duration: DefaultMaxGtidDeltaDuration})
 	}
 }
 
@@ -387,6 +420,42 @@ func (m *MariaDB) IsConfiguredReplica(podName string) bool {
 	return false
 }
 
+// MaxGtidDelta returns the number of transactions a replica may be behind the primary in the
+// replication GTID domain before being considered diverged. Zero disables divergence detection.
+func (m *MariaDB) MaxGtidDelta() uint64 {
+	if !m.IsReplicationEnabled() {
+		return 0
+	}
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	return ptr.Deref(replication.Replica.MaxGtidDelta, DefaultMaxGtidDelta)
+}
+
+// MaxGtidDeltaDuration returns the time a replica must continuously exceed the GTID delta threshold
+// before being considered diverged.
+func (m *MariaDB) MaxGtidDeltaDuration() time.Duration {
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	duration := ptr.Deref(replication.Replica.MaxGtidDeltaDuration, metav1.Duration{Duration: DefaultMaxGtidDeltaDuration})
+	return duration.Duration
+}
+
+// IsReplicaDiverged indicates whether a replica has been reporting a GTID delta above the configured
+// threshold for longer than the configured duration. Every other replication signal reported by MariaDB
+// stays healthy in this state, so the GTID delta is the only condition considered here.
+func (m *MariaDB) IsReplicaDiverged(podName string) bool {
+	return m.isReplicaDivergedAt(podName, time.Now())
+}
+
+func (m *MariaDB) isReplicaDivergedAt(podName string, now time.Time) bool {
+	if m.MaxGtidDelta() == 0 || m.Status.Replication == nil {
+		return false
+	}
+	status, ok := m.Status.Replication.Replicas[podName]
+	if !ok || status.DivergedSince == nil {
+		return false
+	}
+	return now.Sub(status.DivergedSince.Time) >= m.MaxGtidDeltaDuration()
+}
+
 // IsReplicaRecoveryEnabled indicates if the replica recovery is enabled
 func (m *MariaDB) IsReplicaRecoveryEnabled() bool {
 	if !m.IsReplicationEnabled() {
@@ -567,6 +636,15 @@ type ReplicaStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastErrorTransitionTime metav1.Time `json:"lastErrorTransitionTime,omitempty"`
+	// GtidDelta is the number of transactions this replica is behind the primary in the replication GTID domain.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	GtidDelta *uint64 `json:"gtidDelta,omitempty"`
+	// DivergedSince is the first time GtidDelta was observed above the configured threshold.
+	// It is cleared as soon as the replica catches up.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	DivergedSince *metav1.Time `json:"divergedSince,omitempty"`
 }
 
 // ReplicationStatus is the replication current state.
@@ -583,6 +661,11 @@ type ReplicationStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicaToRecover *string `json:"replicaToRecover,omitempty"`
+	// PrimaryGtidCurrentPos is the last GTID position executed by the current primary.
+	// It is the reference against which the GTID delta of each replica is computed.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	PrimaryGtidCurrentPos *string `json:"primaryGtidCurrentPos,omitempty"`
 }
 
 // UseStandaloneProbes indicates whether to use the default non-HA startup and liveness probes.

@@ -21,6 +21,10 @@ const (
 	ReasonReplicationReplicaConn = "ReplicaConn"
 	// ReasonReplicationPrimaryToReplica indicates that current primary is being unlocked to become a replica.
 	ReasonReplicationPrimaryToReplica = "PrimaryToReplica"
+	// ReasonReplicationReplicaDiverged indicates that a replica is further behind the primary than the configured GTID delta.
+	ReasonReplicationReplicaDiverged = "ReplicaDiverged"
+	// ReasonReplicationReplicaCaughtUp indicates that a previously diverged replica has caught up with the primary.
+	ReasonReplicationReplicaCaughtUp = "ReplicaCaughtUp"
 
 	// ReasonGaleraClusterHealthy indicates that the cluster is healthy,
 	ReasonGaleraClusterHealthy = "GaleraClusterHealthy"
