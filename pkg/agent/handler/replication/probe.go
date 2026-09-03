@@ -72,8 +72,10 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 
 		replicaIORunning := ptr.Deref(status.SlaveIORunning, false)
 		if !replicaIORunning {
-			p.livenessLogger.Error(nil, "Replica IO thread not running")
-			p.responseWriter.WriteError(w, "Replica IO thread not running")
+			p.livenessLogger.Error(nil, "Replica IO thread not running",
+				"Last_IO_Errno", ptr.Deref(status.LastIOErrno, 0),
+				"Last_IO_Error", ptr.Deref(status.LastIOError, ""))
+			p.responseWriter.WriteErrorf(w, "Replica IO thread not running (Last_IO_Errno: %d)", ptr.Deref(status.LastIOErrno, 0))
 			return
 		}
 		replicaSQLRunning := ptr.Deref(status.SlaveSQLRunning, false)
