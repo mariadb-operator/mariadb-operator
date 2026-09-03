@@ -83,7 +83,7 @@ func TestReplicaRecoveryBackupFileNames(t *testing.T) {
 			jobList: nil,
 			want:    nil,
 		},
-		"unparseable job name": {
+		"unparsable job name": {
 			backup:  newBackup(mariadbv1alpha1.CompressNone),
 			jobList: newJobList("db-cluster-pb-recovery-nope"),
 			wantErr: true,
