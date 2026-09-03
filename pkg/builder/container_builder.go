@@ -133,7 +133,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	}
 	if mariadb.Spec.SidecarContainers != nil && mariadbOpts.includeSidecarContainers {
 		for index, container := range mariadb.Spec.SidecarContainers {
-			sidecarContainer, err := b.buildContainer(mariadb, &container)
+			sidecarContainer, err := b.buildContainer(mariadb, &container, opts...)
 			if err != nil {
 				return nil, err
 			}
@@ -292,7 +292,7 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 	initContainers := []corev1.Container{}
 	if mariadb.Spec.InitContainers != nil && mariadbOpts.includeInitContainers {
 		for index, container := range mariadb.Spec.InitContainers {
-			initContainer, err := b.buildContainer(mariadb, &container)
+			initContainer, err := b.buildContainer(mariadb, &container, opts...)
 			if err != nil {
 				return nil, err
 			}
@@ -378,21 +378,54 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 	return &container, nil
 }
 
-func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mariadbv1alpha1.Container) (*corev1.Container, error) {
-	env, err := mariadbEnv(mdb)
-	if err != nil {
-		return nil, err
-	}
-	if mdbContainer.Env != nil {
-		env = append(env, kadapter.ToKubernetesSlice(mdbContainer.Env)...)
-	}
-	volumeMounts, err := mariadbVolumeMounts(mdb)
+func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mariadbv1alpha1.Container,
+	opts ...mariadbPodOpt) (*corev1.Container, error) {
+	policy, err := validateContainerInheritance(mdbContainer)
 	if err != nil {
 		return nil, err
 	}
 
-	if mdbContainer.VolumeMounts != nil {
-		volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(mdbContainer.VolumeMounts)...)
+	var env []corev1.EnvVar
+	var volumeMounts []corev1.VolumeMount
+	switch policy {
+	case mariadbv1alpha1.ContainerInheritanceLegacy:
+		env, err = mariadbEnv(mdb)
+		if err != nil {
+			return nil, err
+		}
+		// Preserve the exact historical custom-container output. Pod options were
+		// not propagated to legacy custom containers before inheritance policies
+		// were introduced.
+		volumeMounts, err = mariadbVolumeMounts(mdb)
+		if err != nil {
+			return nil, err
+		}
+	case mariadbv1alpha1.ContainerInheritanceIsolated:
+	case mariadbv1alpha1.ContainerInheritanceSelected:
+		env, err = selectedContainerEnv(mdb, mdbContainer.Inheritance.Env)
+		if err != nil {
+			return nil, err
+		}
+		volumeMounts, err = selectedContainerVolumeMounts(mdb, mdbContainer.Inheritance.VolumeMounts, opts...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	env = append(env, kadapter.ToKubernetesSlice(mdbContainer.Env)...)
+	volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(mdbContainer.VolumeMounts)...)
+	if policy != mariadbv1alpha1.ContainerInheritanceLegacy {
+		if err := validateContainerEnvAndMounts(env, volumeMounts); err != nil {
+			return nil, err
+		}
+	}
+
+	var securityContext *corev1.SecurityContext
+	if mdbContainer.SecurityContext != nil {
+		securityContext, err = b.buildContainerSecurityContext(mdbContainer.SecurityContext)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	container := corev1.Container{
@@ -403,6 +436,7 @@ func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mar
 		Args:            mdbContainer.Args,
 		Env:             env,
 		VolumeMounts:    volumeMounts,
+		SecurityContext: securityContext,
 	}
 	if mdbContainer.Resources != nil {
 		container.Resources = mdbContainer.Resources.ToKubernetesType()

@@ -464,6 +464,65 @@ _Appears in:_
 | `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
 | `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
+| `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to the container. |  |  |
+| `inheritance` _[ContainerInheritance](#containerinheritance)_ | Inheritance controls which MariaDB environment variables and volume mounts are inherited by this container.<br />When omitted, the historical Legacy behavior is preserved. |  |  |
+
+
+#### ContainerEnvGroup
+
+_Underlying type:_ _string_
+
+ContainerEnvGroup identifies a stable semantic group of MariaDB environment variables.
+
+_Validation:_
+- Enum: [Runtime TLS Replication RootPassword User]
+
+_Appears in:_
+- [ContainerInheritance](#containerinheritance)
+
+| Field | Description |
+| --- | --- |
+| `Runtime` | ContainerEnvGroupRuntime includes non-secret MariaDB and Pod runtime metadata.<br /> |
+| `TLS` | ContainerEnvGroupTLS includes MariaDB TLS paths and settings.<br /> |
+| `Replication` | ContainerEnvGroupReplication includes MariaDB replication settings.<br /> |
+| `RootPassword` | ContainerEnvGroupRootPassword includes the MariaDB root password Secret reference or empty-password setting.<br /> |
+| `User` | ContainerEnvGroupUser includes environment variables authored in spec.env.<br /> |
+
+
+#### ContainerInheritance
+
+
+
+ContainerInheritance configures MariaDB environment-variable and volume-mount inheritance for a custom container.
+
+
+
+_Appears in:_
+- [Container](#container)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `policy` _[ContainerInheritancePolicy](#containerinheritancepolicy)_ | Policy controls inheritance. When omitted, Legacy is used without persisting a default. |  | Enum: [Legacy Isolated Selected] <br /> |
+| `env` _[ContainerEnvGroup](#containerenvgroup) array_ | Env selects environment-variable groups when policy is Selected. |  | Enum: [Runtime TLS Replication RootPassword User] <br />MaxItems: 5 <br />MinItems: 1 <br /> |
+| `volumeMounts` _[ContainerVolumeMountGroup](#containervolumemountgroup) array_ | VolumeMounts selects volume-mount groups when policy is Selected. |  | Enum: [Config TLS Storage Replication AgentAuth ServiceAccount Galera PointInTimeRecovery User] <br />MaxItems: 9 <br />MinItems: 1 <br /> |
+
+
+#### ContainerInheritancePolicy
+
+_Underlying type:_ _string_
+
+ContainerInheritancePolicy controls which MariaDB environment variables and volume mounts are inherited by a custom container.
+
+
+
+_Appears in:_
+- [ContainerInheritance](#containerinheritance)
+
+| Field | Description |
+| --- | --- |
+| `Legacy` | ContainerInheritanceLegacy preserves the historical behavior by inheriting all MariaDB environment variables and volume mounts.<br /> |
+| `Isolated` | ContainerInheritanceIsolated starts with no inherited environment variables or volume mounts.<br /> |
+| `Selected` | ContainerInheritanceSelected inherits only the explicitly selected semantic groups.<br /> |
 
 
 #### ContainerTemplate
@@ -493,6 +552,31 @@ _Appears in:_
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
+
+
+#### ContainerVolumeMountGroup
+
+_Underlying type:_ _string_
+
+ContainerVolumeMountGroup identifies a stable semantic group of MariaDB volume mounts.
+
+_Validation:_
+- Enum: [Config TLS Storage Replication AgentAuth ServiceAccount Galera PointInTimeRecovery User]
+
+_Appears in:_
+- [ContainerInheritance](#containerinheritance)
+
+| Field | Description |
+| --- | --- |
+| `Config` | ContainerVolumeMountGroupConfig includes the MariaDB configuration mount.<br /> |
+| `TLS` | ContainerVolumeMountGroupTLS includes MariaDB TLS certificate and key mounts.<br /> |
+| `Storage` | ContainerVolumeMountGroupStorage includes the MariaDB data directory.<br /> |
+| `Replication` | ContainerVolumeMountGroupReplication includes the generated replication configuration mount.<br /> |
+| `AgentAuth` | ContainerVolumeMountGroupAgentAuth includes the data-plane agent authentication mount.<br /> |
+| `ServiceAccount` | ContainerVolumeMountGroupServiceAccount includes the projected data-plane service account mount.<br /> |
+| `Galera` | ContainerVolumeMountGroupGalera includes the generated Galera configuration mount.<br /> |
+| `PointInTimeRecovery` | ContainerVolumeMountGroupPointInTimeRecovery includes point-in-time recovery storage TLS CA mounts.<br /> |
+| `User` | ContainerVolumeMountGroupUser includes volume mounts authored in spec.volumeMounts.<br /> |
 
 
 #### CooperativeMonitoring
@@ -3004,6 +3088,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 _Appears in:_
 - [Agent](#agent)
 - [BackupSpec](#backupspec)
+- [Container](#container)
 - [ContainerTemplate](#containertemplate)
 - [Exporter](#exporter)
 - [InitContainer](#initcontainer)
@@ -3023,6 +3108,7 @@ _Appears in:_
 | `runAsNonRoot` _boolean_ |  |  |  |
 | `readOnlyRootFilesystem` _boolean_ |  |  |  |
 | `allowPrivilegeEscalation` _boolean_ |  |  |  |
+| `seccompProfile` _[SeccompProfile](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#seccompprofile-v1-core)_ |  |  |  |
 
 
 #### ServiceMonitor

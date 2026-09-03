@@ -11,10 +11,22 @@ spec:
         - /bin/sh
         - -c
         - 'echo "MY_ENV: $MY_ENV"'
-      # Additional env added to the container. By default, all the MariaDB container environment is included.
+      # Isolated containers receive only their explicitly authored env and volume mounts.
+      inheritance:
+        policy: Isolated
       env:
         - name: MY_ENV
           value: "foo"
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        privileged: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
 
   # Additional sidecar containers to be added to the MariaDB Pod.
   sidecarContainers:
@@ -23,7 +35,11 @@ spec:
       args:
         - sleep
         - infinity
-      # Additional env added to the container. By default, all the MariaDB container environment is included.
+      # Selected inheritance includes only the named semantic groups.
+      inheritance:
+        policy: Selected
+        env:
+          - Runtime
       env:
         - name: INSTANCE_NAME
           valueFrom:
@@ -34,6 +50,16 @@ spec:
             secretKeyRef:
               name: mariadb
               key: password
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        privileged: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+        seccompProfile:
+          type: RuntimeDefault
 
   # Additional volumes to be mounted by containers.
   volumes: 
@@ -46,7 +72,7 @@ spec:
     - name: mariadb-configmap
       configMap:
         name: mariadb
-  # Additional volumeMounts to be used by all containers. By default, all the MariaDB container volumeMounts are included.
+  # Additional volumeMounts used by MariaDB and Legacy containers. Selected containers may opt into the User group.
   volumeMounts: 
     - name: tmp
       mountPath: /tmp

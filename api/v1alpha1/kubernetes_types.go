@@ -334,6 +334,8 @@ type SecurityContext struct {
 	ReadOnlyRootFilesystem *bool `json:"readOnlyRootFilesystem,omitempty"`
 	// +optional
 	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty"`
+	// +optional
+	SeccompProfile *corev1.SeccompProfile `json:"seccompProfile,omitempty"`
 }
 
 func (s SecurityContext) ToKubernetesType() corev1.SecurityContext {
@@ -345,6 +347,7 @@ func (s SecurityContext) ToKubernetesType() corev1.SecurityContext {
 		RunAsNonRoot:             s.RunAsNonRoot,
 		ReadOnlyRootFilesystem:   s.ReadOnlyRootFilesystem,
 		AllowPrivilegeEscalation: s.AllowPrivilegeEscalation,
+		SeccompProfile:           s.SeccompProfile,
 	}
 }
 
