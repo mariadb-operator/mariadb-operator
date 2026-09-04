@@ -7,6 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -318,6 +319,50 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 				return false
 			}
 			return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(mdb.ObjectMeta, podIndex)
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should not recover a healthy Galera cluster", Label("basic"), func() {
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.HasGaleraReadyCondition()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting all StatefulSet replicas to be ready")
+		Eventually(func(g Gomega) bool {
+			var sts appsv1.StatefulSet
+			g.Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
+			g.Expect(sts.Status.ReadyReplicas).To(BeEquivalentTo(mdb.Spec.Replicas))
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Setting a stale GaleraReady=False condition")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			patch := client.MergeFrom(mdb.DeepCopy())
+			mdb.Status.GaleraRecovery = nil
+			condition.SetGaleraNotReady(&mdb.Status)
+			g.Expect(k8sClient.Status().Patch(testCtx, mdb, patch)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting the StatefulSet to never be downscaled")
+		Consistently(func(g Gomega) bool {
+			var sts appsv1.StatefulSet
+			g.Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
+			g.Expect(ptr.Deref(sts.Spec.Replicas, 0)).To(BeEquivalentTo(mdb.Spec.Replicas))
+			return true
+		}, 30*time.Second, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to be Galera ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.HasGaleraReadyCondition()
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
