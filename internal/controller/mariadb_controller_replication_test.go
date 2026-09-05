@@ -117,54 +117,34 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		Expect(k8sClient.Get(testCtx, key, &pdb)).To(Succeed())
 	})
 
-	It("should fail and switch over primary", func() {
-		By("Expecting MariaDB primary to be set")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-				return false
-			}
-			return mdb.Status.CurrentPrimary != nil
-		}, testTimeout, testInterval).Should(BeTrue())
-
-		var currentPrimary string
-		By("Tearing down primary Pod")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-				return false
-			}
-			currentPrimary = *mdb.Status.CurrentPrimary
-			primaryPodKey := types.NamespacedName{
-				Name:      *mdb.Status.CurrentPrimary,
-				Namespace: mdb.Namespace,
-			}
-			var primaryPod corev1.Pod
-			if err := k8sClient.Get(testCtx, primaryPodKey, &primaryPod); err != nil {
-				return apierrors.IsNotFound(err)
-			}
-			return k8sClient.Delete(testCtx, &primaryPod, &client.DeleteOptions{
-				GracePeriodSeconds: ptr.To(int64(0)),
-				PropagationPolicy:  ptr.To(metav1.DeletePropagationForeground),
-			}) == nil
-		}, testTimeout, testInterval).Should(BeTrue())
-
+	// Consecutive switchovers promote nodes that may have retained binary logs from a previous primary.
+	// This spec discovers the current primary, switches over to another node and then back to the original one.
+	It("should switch over primary consecutively", func() {
 		By("Expecting MariaDB to be ready eventually")
 		Eventually(func() bool {
 			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 				return false
 			}
-			return mdb.IsReady()
+			return mdb.IsReady() && mdb.Status.CurrentPrimaryPodIndex != nil
 		}, testHighTimeout, testInterval).Should(BeTrue())
 
-		By("Expecting MariaDB to eventually change primary")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-				return false
+		originalPrimary := *mdb.Status.CurrentPrimaryPodIndex
+		var newPrimary int
+		for i := 0; i < int(mdb.Spec.Replicas); i++ {
+			if i != originalPrimary {
+				newPrimary = i
+				break
 			}
-			if !mdb.IsReady() || mdb.Status.CurrentPrimary == nil {
-				return false
-			}
-			return *mdb.Status.CurrentPrimary != currentPrimary
-		}, testHighTimeout, testInterval).Should(BeTrue())
+		}
+
+		switchPrimaryTo(mdb, newPrimary)
+		// The original primary was serving as primary until the switchover above, so it may have retained binary logs
+		// from its own primary term: promoting it back exercises the Error 1948 path in 'ConfigurePrimary'.
+		switchPrimaryTo(mdb, originalPrimary)
+	})
+
+	It("should fail and switch over primary", func() {
+		failoverPrimary(mdb)
 
 		By("Expecting Connection to be ready eventually")
 		Eventually(func() bool {
@@ -185,6 +165,8 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting MariaDB to eventually update primary")
+		Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+		Expect(mdb.Status.CurrentPrimaryPodIndex).ToNot(BeNil())
 		var podIndex int
 		for i := 0; i < int(mdb.Spec.Replicas); i++ {
 			if i != *mdb.Status.CurrentPrimaryPodIndex {
@@ -192,31 +174,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 				break
 			}
 		}
-		Eventually(func(g Gomega) bool {
-			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
-			mdb.Spec.Replication.Primary.PodIndex = &podIndex
-			g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
-			return true
-		}, testTimeout, testInterval).Should(BeTrue())
-
-		By("Expecting MariaDB to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-				return false
-			}
-			return mdb.IsReady()
-		}, testHighTimeout, testInterval).Should(BeTrue())
-
-		By("Expecting MariaDB to eventually change primary")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-				return false
-			}
-			if !mdb.IsReady() || mdb.Status.CurrentPrimaryPodIndex == nil {
-				return false
-			}
-			return *mdb.Status.CurrentPrimaryPodIndex == podIndex
-		}, testTimeout, testInterval).Should(BeTrue())
+		switchPrimaryTo(mdb, podIndex)
 
 		By("Expecting primary Service to eventually change primary")
 		Eventually(func() bool {
@@ -228,62 +186,22 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
-	// Consecutive switchovers promote nodes that may have retained binary logs from a previous primary term of their
-	// own, e.g. whenever 'RESET MASTER;' is skipped as part of the replica configuration to keep the binary logs
-	// around (see 'configureReplicaOpts' in the replication controller): clearing gtid_slave_pos in
-	// 'ConfigurePrimary' fails with Error 1948 for such nodes, and that path must still leave the primary fully
-	// configured, i.e. read_only disabled and the replication user SQL reconciled, so that gtid_binlog_pos advances
-	// past the leftover binary logs.
-	//
-	// Regression test for the switchover wedge where the promoted primary was left half configured on Error 1948:
-	// its stale gtid_binlog_pos was then set as the demoted primary's gtid_slave_pos, rejected with Error 1947, and
-	// the switchover was aborted for good, leaving every node in read_only.
-	//
-	// This spec is self-contained: it discovers the current primary, switches over to another node and then back to
-	// the original one, regardless of the state left by other specs.
-	It("should switch over primary consecutively", func() {
+	// Consecutive failovers promote nodes that may have retained binary logs from a previous primary.
+	// This spec tears down the current primary, waits for the failover, and then tears
+	// down the new primary, waiting for the cluster to converge again.
+	It("should fail and switch over primary consecutively", func() {
 		By("Expecting MariaDB to be ready eventually")
 		Eventually(func() bool {
 			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 				return false
 			}
-			return mdb.IsReady() && mdb.Status.CurrentPrimaryPodIndex != nil
+			return mdb.IsReady()
 		}, testHighTimeout, testInterval).Should(BeTrue())
 
-		switchPrimaryTo := func(podIndex int) {
-			By(fmt.Sprintf("Expecting MariaDB to eventually update primary to index '%d'", podIndex))
-			Eventually(func(g Gomega) bool {
-				g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
-				mdb.Spec.Replication.Primary.PodIndex = &podIndex
-				g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
-				return true
-			}, testTimeout, testInterval).Should(BeTrue())
-
-			By(fmt.Sprintf("Expecting MariaDB to eventually change primary to index '%d'", podIndex))
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-					return false
-				}
-				if !mdb.IsReady() || mdb.Status.CurrentPrimaryPodIndex == nil {
-					return false
-				}
-				return *mdb.Status.CurrentPrimaryPodIndex == podIndex
-			}, testHighTimeout, testInterval).Should(BeTrue())
-		}
-
-		originalPrimary := *mdb.Status.CurrentPrimaryPodIndex
-		var newPrimary int
-		for i := 0; i < int(mdb.Spec.Replicas); i++ {
-			if i != originalPrimary {
-				newPrimary = i
-				break
-			}
-		}
-
-		switchPrimaryTo(newPrimary)
-		// The original primary was serving as primary until the switchover above, so it may have retained binary logs
-		// from its own primary term: promoting it back exercises the Error 1948 path in 'ConfigurePrimary'.
-		switchPrimaryTo(originalPrimary)
+		failoverPrimary(mdb)
+		// A previously demoted primary may be promoted again on the second failover, exercising the Error 1948
+		// path in 'ConfigurePrimary' for nodes that retained binary logs from their own primary term.
+		failoverPrimary(mdb)
 	})
 
 	It("should update", func() {
@@ -685,3 +603,63 @@ var _ = Describe("MariaDB replication with password", Ordered, func() {
 		executeSqlInPodByIndex(&mdb, 0, "SELECT 1")
 	})
 })
+
+// switchPrimaryTo switches the primary to the given Pod index and waits for the switchover to complete.
+func switchPrimaryTo(mdb *mariadbv1alpha1.MariaDB, podIndex int) {
+	key := client.ObjectKeyFromObject(mdb)
+
+	By(fmt.Sprintf("Expecting MariaDB to eventually update primary to index '%d'", podIndex))
+	Eventually(func(g Gomega) bool {
+		g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+		mdb.Spec.Replication.Primary.PodIndex = ptr.To(podIndex)
+		g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+		return true
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By(fmt.Sprintf("Expecting MariaDB to eventually change primary to index '%d'", podIndex))
+	expectMariadbFn(testCtx, k8sClient, key, func(m *mariadbv1alpha1.MariaDB) bool {
+		return m.IsReady() && m.Status.CurrentPrimaryPodIndex != nil && *m.Status.CurrentPrimaryPodIndex == podIndex
+	})
+}
+
+// failoverPrimary tears down the current primary Pod and waits for the cluster to fail over to a new primary.
+// It returns the name of the primary Pod that was torn down.
+func failoverPrimary(mdb *mariadbv1alpha1.MariaDB) string {
+	key := client.ObjectKeyFromObject(mdb)
+
+	By("Expecting MariaDB primary to be set")
+	expectMariadbFn(testCtx, k8sClient, key, func(m *mariadbv1alpha1.MariaDB) bool {
+		return m.Status.CurrentPrimary != nil
+	})
+
+	var currentPrimary string
+	By("Tearing down primary Pod")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+			return false
+		}
+		currentPrimary = *mdb.Status.CurrentPrimary
+		primaryPodKey := types.NamespacedName{
+			Name:      *mdb.Status.CurrentPrimary,
+			Namespace: mdb.Namespace,
+		}
+		var primaryPod corev1.Pod
+		if err := k8sClient.Get(testCtx, primaryPodKey, &primaryPod); err != nil {
+			return apierrors.IsNotFound(err)
+		}
+		return k8sClient.Delete(testCtx, &primaryPod, &client.DeleteOptions{
+			GracePeriodSeconds: ptr.To(int64(0)),
+			PropagationPolicy:  ptr.To(metav1.DeletePropagationForeground),
+		}) == nil
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	By("Expecting MariaDB to be ready eventually")
+	expectMariadbReady(testCtx, k8sClient, key)
+
+	By("Expecting MariaDB to eventually change primary")
+	expectMariadbFn(testCtx, k8sClient, key, func(m *mariadbv1alpha1.MariaDB) bool {
+		return m.IsReady() && m.Status.CurrentPrimary != nil && *m.Status.CurrentPrimary != currentPrimary
+	})
+
+	return currentPrimary
+}

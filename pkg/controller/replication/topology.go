@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -12,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/version"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -25,7 +25,6 @@ type ConfigureReplicaOpts struct {
 	GtidSlavePos      *string
 	ResetGtidSlavePos bool
 	ChangeMasterOpts  []sql.ChangeMasterOpt
-	ResetMaster       bool
 }
 
 type ConfigureReplicaOpt func(*ConfigureReplicaOpts)
@@ -45,12 +44,6 @@ func WithResetGtidSlavePos() ConfigureReplicaOpt {
 func WithChangeMasterOpts(opts ...sql.ChangeMasterOpt) ConfigureReplicaOpt {
 	return func(cro *ConfigureReplicaOpts) {
 		cro.ChangeMasterOpts = opts
-	}
-}
-
-func WithResetMaster(resetMaster bool) ConfigureReplicaOpt {
-	return func(cro *ConfigureReplicaOpts) {
-		cro.ResetMaster = resetMaster
 	}
 }
 
@@ -173,18 +166,11 @@ func (r *singleClusterTopology) ConfigureReplica(ctx context.Context, client *sq
 	primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error {
 	r.logger.Info("Configuring replica")
 
-	opts := ConfigureReplicaOpts{
-		ResetMaster: true,
-	}
+	opts := ConfigureReplicaOpts{}
 	for _, setOpt := range replicaOpts {
 		setOpt(&opts)
 	}
 
-	if opts.ResetMaster {
-		if err := client.ResetMaster(ctx); err != nil {
-			return fmt.Errorf("error resetting master: %v", err)
-		}
-	}
 	if err := client.StopSlave(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
@@ -253,12 +239,47 @@ func (r *singleClusterTopology) changeMaster(ctx context.Context, mariadb *maria
 		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterRetries(*replication.Replica.ConnectionRetrySeconds))
 	}
 
+	// A node that retained self-originated GTIDs from a previous primary term (a
+	// non-empty gtid_binlog_pos) is being demoted to a replica, not freshly
+	// configured. MASTER_USE_GTID cannot reconcile those self-owned GTIDs, so
+	// emit MASTER_DEMOTE_TO_SLAVE=1 instead, which merges gtid_binlog_pos in gtid_slave_pos.
+	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_demote_to_slave
+	gtidBinlogPos, err := client.GtidBinlogPos(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting gtid_binlog_pos: %v", err)
+	}
+	if gtidBinlogPos != "" {
+		demote, derr := demoteToSlaveSupported(mariadb.Spec.Image)
+		if derr != nil {
+			r.logger.Info("Falling back to MASTER_USE_GTID: unable to infer MariaDB version from image",
+				"image", mariadb.Spec.Image, "error", derr)
+		} else if demote {
+			changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterDemote(true))
+		} else {
+			r.logger.Info("Falling back to MASTER_USE_GTID: MASTER_DEMOTE_TO_SLAVE requires MariaDB 10.10 or later",
+				"image", mariadb.Spec.Image)
+		}
+	}
+
 	changeMasterOpts = append(changeMasterOpts, opts...)
 
 	if err := client.ChangeMaster(ctx, changeMasterOpts...); err != nil {
 		return fmt.Errorf("error changing master: %v", err)
 	}
 	return nil
+}
+
+// demoteToSlaveSupported reports whether the MariaDB version of the given image
+// supports MASTER_DEMOTE_TO_SLAVE (available from MariaDB 10.10 onwards).
+// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_demote_to_slave
+// The error is non-nil when the version cannot be inferred from the image (e.g. a
+// sha256 digest), in which case the caller falls back to MASTER_USE_GTID.
+func demoteToSlaveSupported(image string) (bool, error) {
+	v, err := version.NewVersion(image)
+	if err != nil {
+		return false, err
+	}
+	return v.GreaterThanOrEqual("10.10.0")
 }
 
 type multiClusterTopology struct {
@@ -308,18 +329,14 @@ func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql
 
 func (m *multiClusterTopology) ConfigureReplica(ctx context.Context, client *sql.Client, primaryPodIndex int,
 	replicaOpts ...ConfigureReplicaOpt) error {
-	opts := slices.Clone(replicaOpts)
-	// keep binary logs in replicas: when promoted to new primary, they will have binary logs to dump to the replica cluster
-	opts = append(opts, WithResetMaster(false))
-
 	if m.mariadb.IsMultiClusterPrimary() {
 		if m.mariadb.IsReplicationEnabled() {
-			return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, opts...)
+			return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, replicaOpts...)
 		} else if m.mariadb.IsGaleraEnabled() {
 			return nil // noop: clustering managed by Galera
 		}
 	} else if m.mariadb.IsMultiClusterReplica() {
-		return m.configureSecondaryReplica(ctx, client, primaryPodIndex, opts...)
+		return m.configureSecondaryReplica(ctx, client, primaryPodIndex, replicaOpts...)
 	}
 
 	err := fmt.Errorf("error configuring replica: %w", errTopologyNotSupported)
