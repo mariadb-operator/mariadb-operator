@@ -117,19 +117,8 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		Expect(k8sClient.Get(testCtx, key, &pdb)).To(Succeed())
 	})
 
-	// Consecutive switchovers promote nodes that may have retained binary logs from a previous primary term of their
-	// own, e.g. whenever 'RESET MASTER;' is skipped as part of the replica configuration to keep the binary logs
-	// around (see 'configureReplicaOpts' in the replication controller): clearing gtid_slave_pos in
-	// 'ConfigurePrimary' fails with Error 1948 for such nodes, and that path must still leave the primary fully
-	// configured, i.e. read_only disabled and the replication user SQL reconciled, so that gtid_binlog_pos advances
-	// past the leftover binary logs.
-	//
-	// Regression test for the switchover wedge where the promoted primary was left half configured on Error 1948:
-	// its stale gtid_binlog_pos was then set as the demoted primary's gtid_slave_pos, rejected with Error 1947, and
-	// the switchover was aborted for good, leaving every node in read_only.
-	//
-	// This spec is self-contained: it discovers the current primary, switches over to another node and then back to
-	// the original one, regardless of the state left by other specs.
+	// Consecutive switchovers promote nodes that may have retained binary logs from a previous primary.
+	// This spec discovers the current primary, switches over to another node and then back to the original one.
 	It("should switch over primary consecutively", func() {
 		By("Expecting MariaDB to be ready eventually")
 		Eventually(func() bool {
@@ -197,14 +186,8 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
-	// Consecutive failovers promote nodes that may have retained binary logs from a previous primary term of
-	// their own, e.g. whenever 'RESET MASTER;' is skipped as part of the replica configuration to keep the
-	// binary logs around (see 'configureReplicaOpts' in the replication controller): clearing gtid_slave_pos
-	// in 'ConfigurePrimary' fails with Error 1948 for such nodes, and that path must still leave the primary
-	// fully configured, i.e. read_only disabled and the replication user SQL reconciled, so that
-	// gtid_binlog_pos advances past the leftover binary logs.
-	//
-	// This spec is self-contained: it tears down the current primary, waits for the failover, and then tears
+	// Consecutive failovers promote nodes that may have retained binary logs from a previous primary.
+	// This spec tears down the current primary, waits for the failover, and then tears
 	// down the new primary, waiting for the cluster to converge again.
 	It("should fail and switch over primary consecutively", func() {
 		By("Expecting MariaDB to be ready eventually")
