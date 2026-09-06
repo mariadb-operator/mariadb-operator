@@ -176,6 +176,7 @@ spec:
 This should only be used in exceptional circumstances:
 - You are absolutely certain that the chosen `Pod` has the highest sequence number.
 - The operator has not yet selected a `Pod` to bootstrap from.
+- Every recovered Galera position is empty (`00000000-0000-0000-0000-000000000000` / `seqno: -1`), for example when all PVCs are fresh datadirs. In that case recovery never completes automatically (there is no valid bootstrap source), and you must set `forceClusterBootstrapInPod` deliberately, then unset it after the cluster is up.
 
 You can verify this with the following command:
 
@@ -432,7 +433,7 @@ kubectl get events --field-selector involvedObject.name=mariadb-galera
 ```
 - If you have `Pods` named `<mariadb-name>-<ordinal>-recovery-<suffix>` running for a long time, check its logs to understand if something is wrong.
 
-One of the reasons could be misconfigured Galera recovery `Jobs`, please make sure you read [this section](#galera-recovery-job). If after checking all the points above, there are still no clear symptoms of what could be wrong, continue reading.
+One of the reasons could be misconfigured Galera recovery `Jobs`, please make sure you read [this section](#galera-recovery-job). If every recovered position is empty (`00000000-0000-0000-0000-000000000000` / `seqno: -1`), recovery will not complete until you force a bootstrap as described in [this section](#force-cluster-bootstrap). If after checking all the points above, there are still no clear symptoms of what could be wrong, continue reading.
 
 First af all, you could attempt to forcefully bootstrap a new cluster as it is described in [this section](#force-cluster-bootstrap). Please, refrain from doing so if the conditions described in the docs are not met.
 
@@ -516,7 +517,7 @@ Increase this timeout if you consider that your `Pod` may take longer to recover
 ```bash
 Galera cluster bootstrap timed out. Resetting recovery status
 ```
-This is error is returned by the `mariadb-operator` after exceeding the `spec.galera.recovery.clusterBootstrapTimeout` when recovering the cluster. At this point, the operator will reset the recovered sequence numbers and start again from a clean state.
+This is error is returned by the `mariadb-operator` after exceeding the `spec.galera.recovery.clusterBootstrapTimeout` when recovering the cluster. At this point, the operator clears the bootstrap selection and pod-restart markers, but keeps the recovered Galera state (`State` / `Recovered`) so the next attempt can still choose the highest sequence number.
 
 Increase this timeout if you consider that your Galera cluster may take longer to recover.
 

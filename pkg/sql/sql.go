@@ -1157,6 +1157,10 @@ func (c *Client) GaleraClusterStatus(ctx context.Context) (string, error) {
 	return c.StatusVariable(ctx, "wsrep_cluster_status")
 }
 
+func (c *Client) GaleraClusterStateUUID(ctx context.Context) (string, error) {
+	return c.StatusVariable(ctx, "wsrep_cluster_state_uuid")
+}
+
 func (c *Client) GaleraLocalState(ctx context.Context) (string, error) {
 	return c.StatusVariable(ctx, "wsrep_local_state_comment")
 }

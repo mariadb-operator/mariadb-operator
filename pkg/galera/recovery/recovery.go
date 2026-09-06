@@ -16,6 +16,9 @@ const (
 	BootstrapFileName = "1-bootstrap.cnf"
 	BootstrapFile     = `[galera]
 wsrep_new_cluster="ON"`
+	// ZeroUUID is the Galera UUID for a node with no local history (needs SST).
+	// See: https://galeracluster.com/library/documentation/node-provisioning.html#node-provisioning
+	ZeroUUID = "00000000-0000-0000-0000-000000000000"
 )
 
 type GaleraRecoverer interface {
@@ -166,6 +169,12 @@ func (b *Bootstrap) Compare(other GaleraRecoverer) int {
 func (b *Bootstrap) Validate() error {
 	if _, err := guuid.Parse(b.UUID); err != nil {
 		return fmt.Errorf("invalid uuid: %v", err)
+	}
+	if b.UUID == ZeroUUID {
+		return fmt.Errorf("uuid must not be %s", ZeroUUID)
+	}
+	if b.Seqno < 0 {
+		return fmt.Errorf("invalid seqno: %d", b.Seqno)
 	}
 	return nil
 }
