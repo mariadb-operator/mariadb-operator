@@ -18,6 +18,16 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+// galeraSystemTables are the mysql.wsrep_* system tables managed by Galera. They are
+// excluded from logical dumps because Galera denies DROP on them even to root, which
+// would otherwise make a restore fail. See mariadbDumpArgs and issue #1757.
+var galeraSystemTables = []string{
+	"mysql.wsrep_cluster",
+	"mysql.wsrep_cluster_members",
+	"mysql.wsrep_streaming_log",
+	"mysql.wsrep_allowlist",
+}
+
 type BackupOpts struct {
 	CommandOpts
 	Path                 string
@@ -591,6 +601,15 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	// LOCK TABLES is not compatible with Galera: https://mariadb.com/kb/en/lock-tables/#limitations
 	if mariadb.IsGaleraEnabled() {
 		args = append(args, "--skip-add-locks")
+		// Galera manages the mysql.wsrep_* system tables and denies DROP on them even to
+		// root. A logical dump emits DROP TABLE IF EXISTS for them, so the restore aborts
+		// with "DROP command denied to user 'root'" and the MariaDB never becomes ready.
+		// Exclude them so a logical backup is restorable out of the box; Galera recreates
+		// these tables on bootstrap, so nothing is lost.
+		// See: https://github.com/mariadb-operator/mariadb-operator/issues/1757
+		for _, table := range galeraSystemTables {
+			args = append(args, fmt.Sprintf("--ignore-table=%s", table))
+		}
 	}
 	// Galera only replicates InnoDB tables and mysql.global_priv uses the MyISAM engine.
 	// Ignoring this table enables a clean restore without replicas getting restarted
@@ -648,12 +667,50 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 	backupOpts := make([]string, len(b.ExtraOpts))
 	copy(backupOpts, b.ExtraOpts)
 
+	// mariadb-backup's --databases-exclude takes a single space-separated value and is
+	// last-wins (not repeatable), so a user-supplied --databases-exclude would silently
+	// drop the built-in lost+found exclusion. Collect every excluded database (the built-in
+	// lost+found plus any from spec.args, in all supported forms) and emit them as a single
+	// flag instead (#1758). The ext4 filesystem creates a lost+found directory by default,
+	// which mariadb-backup would otherwise include as a database.
+	seen := make(map[string]bool)
+	var databasesExclude []string
+	addDatabasesExclude := func(value string) {
+		// A value may itself be a space-separated list; split it and dedupe database names,
+		// preserving first-seen order for a deterministic command.
+		for _, name := range strings.Fields(value) {
+			if !seen[name] {
+				seen[name] = true
+				databasesExclude = append(databasesExclude, name)
+			}
+		}
+	}
+	addDatabasesExclude("lost+found")
+
+	var remainingOpts []string
+	for i := 0; i < len(backupOpts); i++ {
+		opt := backupOpts[i]
+		// Single-element forms: --databases-exclude=<value> or --databases-exclude <value>.
+		if isDatabasesExcludeOpt(opt) {
+			addDatabasesExclude(databasesExcludeValue(opt))
+			continue
+		}
+		// Two-element form: a bare --databases-exclude with its value as the next entry.
+		if strings.TrimSpace(opt) == "--databases-exclude" {
+			if i+1 < len(backupOpts) {
+				addDatabasesExclude(trimQuotes(backupOpts[i+1]))
+				i++ // consume the value entry
+			}
+			continue
+		}
+		remainingOpts = append(remainingOpts, opt)
+	}
+	backupOpts = remainingOpts
+
 	args := []string{
 		"--backup",
 		"--stream=xbstream",
-		// The ext4 filesystem creates a lost+found directory by default,
-		// which causes mariadb-backup to include it in the backup file as a database.
-		"--databases-exclude='lost+found'",
+		fmt.Sprintf("--databases-exclude=%s", shellSingleQuote(strings.Join(databasesExclude, " "))),
 	}
 	if mariadb.IsTLSEnabled() {
 		args = append(args, b.tlsArgs(mariadb)...)
@@ -667,6 +724,37 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 	}
 
 	return ds.UniqueArgs(ds.Merge(args, backupOpts)...)
+}
+
+// isDatabasesExcludeOpt reports whether opt is a single-element --databases-exclude flag
+// carrying a value, in either the --databases-exclude=<value> or space-separated
+// --databases-exclude <value> form (mariadb-backup accepts both). The bare
+// --databases-exclude form, with the value in a separate argv element, is handled
+// directly in mariadbBackupArgs, which needs the following element.
+func isDatabasesExcludeOpt(opt string) bool {
+	opt = strings.TrimSpace(opt)
+	return strings.HasPrefix(opt, "--databases-exclude=") || strings.HasPrefix(opt, "--databases-exclude ")
+}
+
+// databasesExcludeValue extracts the value of a single-element --databases-exclude option,
+// supporting both the --databases-exclude=<value> and space-separated
+// --databases-exclude <value> forms and stripping any surrounding quotes.
+func databasesExcludeValue(opt string) string {
+	rest := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(opt), "--databases-exclude"))
+	rest = strings.TrimPrefix(rest, "=")
+	return trimQuotes(rest)
+}
+
+// trimQuotes strips surrounding whitespace and a single layer of surrounding single or
+// double quotes from s.
+func trimQuotes(s string) string {
+	return strings.Trim(strings.TrimSpace(s), `'"`)
+}
+
+// shellSingleQuote wraps s in single quotes safe for a POSIX shell, escaping any embedded
+// single quotes so user-provided values cannot break out of the generated bash command.
+func shellSingleQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 func (b *BackupCommand) mariadbRestoreArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSProvider) []string {
