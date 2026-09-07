@@ -193,6 +193,7 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 				primaryMariaDBAddr,
 				replicationReplicas,
 				multiCluster,
+				withMariaDBImage("mariadb:11.8.8"),
 			),
 			multiClusterReplicationDecorator(
 				primaryGtidDomainId,
@@ -205,6 +206,7 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 				replicaMariaDBAddr,
 				replicationReplicas,
 				multiCluster,
+				withMariaDBImage("mariadb:11.8.8"),
 			),
 			multiClusterReplicationDecorator(
 				replicaGtidDomainId,
@@ -361,6 +363,7 @@ var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Labe
 				primaryMariaDBAddr,
 				galeraReplicas,
 				multiCluster,
+				withMariaDBImage("mariadb:11.8.8"),
 			),
 			multiClusterGaleraDecorator(
 				primaryGaleraGtidDomainId,
@@ -373,6 +376,7 @@ var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Labe
 				replicaMariaDBAddr,
 				galeraReplicas,
 				multiCluster,
+				withMariaDBImage("mariadb:11.8.8"),
 			),
 			multiClusterReplicationDecorator(
 				replicaGaleraGtidDomainId,
@@ -683,7 +687,9 @@ func testSwitchoverReplicaMariaDBBuilder(updatePrimaryFn updatePrimaryFn) func()
 }
 
 func multiClusterMariaDBBuilder(ipAddr string, replicas int32,
-	multiCluster mariadbv1alpha1.MultiCluster) func(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
+	multiCluster mariadbv1alpha1.MultiCluster,
+	opts ...multiClusterMariaDBOption,
+) func(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
 	return func(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
 		mdb := &mariadbv1alpha1.MariaDB{
 			ObjectMeta: metav1.ObjectMeta{
@@ -727,7 +733,18 @@ func multiClusterMariaDBBuilder(ipAddr string, replicas int32,
 				MultiCluster: &multiCluster,
 			},
 		}
+		for _, opt := range opts {
+			opt(mdb)
+		}
 		return applyMariadbSmallTestConfig(mdb)
+	}
+}
+
+type multiClusterMariaDBOption func(mdb *mariadbv1alpha1.MariaDB)
+
+func withMariaDBImage(image string) multiClusterMariaDBOption {
+	return func(mdb *mariadbv1alpha1.MariaDB) {
+		mdb.Spec.Image = image
 	}
 }
 
