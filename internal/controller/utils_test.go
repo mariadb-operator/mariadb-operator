@@ -1546,6 +1546,81 @@ func buildTestMariaDBWithRepl(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 	}
 }
 
+func buildTestMariaDBMaxscale(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
+	return &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Username: &testUser,
+			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			Database: &testDatabase,
+			MyCnf: ptr.To(`[mariadb]
+				bind-address=*
+				default_storage_engine=InnoDB
+				binlog_format=row
+				innodb_autoinc_lock_mode=2
+				max_allowed_packet=256M`,
+			),
+			Image:    "mariadb:11.8.8",
+			Replicas: 2,
+			Replication: &mariadbv1alpha1.Replication{
+				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+					Primary: mariadbv1alpha1.PrimaryReplication{
+						PodIndex:     ptr.To(0),
+						AutoFailover: ptr.To(true),
+					},
+				},
+				Enabled: true,
+			},
+			Storage: mariadbv1alpha1.Storage{
+				Size:             ptr.To(resource.MustParse("300Mi")),
+				StorageClassName: "csi-hostpath-sc",
+			},
+			TLS: &mariadbv1alpha1.TLS{
+				Enabled:  true,
+				Required: ptr.To(true),
+			},
+			Service: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.219",
+					},
+				},
+			},
+			Connection: &mariadbv1alpha1.ConnectionTemplate{
+				SecretName: func() *string {
+					s := "mdb-repl-maxscale-conn"
+					return &s
+				}(),
+				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+					Key: &testConnSecretKey,
+				},
+			},
+			UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+				Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
+			},
+		},
+	}
+}
+
 // applyDecoratorChain applies a set of decorator functions that modify certain field values on the object created by the builder function.
 func applyDecoratorChain[T any](
 	builderFn func(types.NamespacedName) T,
