@@ -221,7 +221,9 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 			Namespace: testNamespace,
 		}
 		mxsMdb := buildTestMariaDBMaxscale(mxsMdbKey)
-		applyMariadbTestConfig(mxsMdb)
+		// The shared 'mariadb-repl' instance is already running while this spec provisions a dedicated MariaDB and a
+		// MaxScale, so both need the small resource profile to fit in the default GitHub runners.
+		applyMariadbSmallTestConfig(mxsMdb)
 		Expect(k8sClient.Create(testCtx, mxsMdb)).To(Succeed())
 		DeferCleanup(func() {
 			deleteMariadb(mxsMdbKey, false)
@@ -285,6 +287,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 				},
 			},
 		}
+		applyMaxscaleSmallTestConfig(mxs)
 
 		By("Waiting for dedicated MariaDB to be ready")
 		Eventually(func() bool {
