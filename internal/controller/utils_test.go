@@ -488,7 +488,9 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	mdbKey := client.ObjectKeyFromObject(mdb)
 	mxsKey := client.ObjectKeyFromObject(mxs)
 
-	applyMaxscaleTestConfig(mxs)
+	if mxs.Spec.Resources == nil {
+		applyMaxscaleTestConfig(mxs)
+	}
 
 	By("Creating MaxScale")
 	Expect(k8sClient.Create(testCtx, mxs)).To(Succeed())
@@ -1579,7 +1581,16 @@ func buildTestMariaDBMaxscale(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				max_allowed_packet=256M`,
 			),
 			Image:    "mariadb:11.8.8",
-			Replicas: 1,
+			Replicas: 2,
+			Replication: &mariadbv1alpha1.Replication{
+				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+					Primary: mariadbv1alpha1.PrimaryReplication{
+						PodIndex:     ptr.To(0),
+						AutoFailover: ptr.To(true),
+					},
+				},
+				Enabled: true,
+			},
 			Storage: mariadbv1alpha1.Storage{
 				Size:             ptr.To(resource.MustParse("300Mi")),
 				StorageClassName: "csi-hostpath-sc",
@@ -1593,6 +1604,14 @@ func buildTestMariaDBMaxscale(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
 						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.219",
+					},
+				},
+			},
+			PrimaryService: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.232",
 					},
 				},
 			},
