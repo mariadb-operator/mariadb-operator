@@ -363,7 +363,6 @@ var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Labe
 				primaryMariaDBAddr,
 				galeraReplicas,
 				multiCluster,
-				withMariaDBImage("mariadb:11.8.8"),
 			),
 			multiClusterGaleraDecorator(
 				primaryGaleraGtidDomainId,
@@ -376,7 +375,6 @@ var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Labe
 				replicaMariaDBAddr,
 				galeraReplicas,
 				multiCluster,
-				withMariaDBImage("mariadb:11.8.8"),
 			),
 			multiClusterReplicationDecorator(
 				replicaGaleraGtidDomainId,
