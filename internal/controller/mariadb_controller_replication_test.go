@@ -273,7 +273,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					VerifyPeerCertificate: ptr.To(true),
 					VerifyPeerHost:        ptr.To(false),
 					ReplicationSSLEnabled: ptr.To(true),
-				ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
+					ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
 						Name: "mariadb-repl-maxscale-ca-bundle",
 					},
 					ServerCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
