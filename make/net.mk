@@ -85,6 +85,7 @@ host-maxscale-repl: ## Add maxscale-repl hosts to /etc/hosts.
 	@./hack/add_host.sh 0 217 mariadb-repl-maxscale-2.mariadb-repl-maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 0 218 mariadb-repl-maxscale-3.mariadb-repl-maxscale-internal.default.svc.cluster.local
 	@./hack/add_host.sh 0 219 mariadb-repl-maxscale.default.svc.cluster.local
+	@./hack/add_host.sh 0 232 mariadb-repl-maxscale-primary.default.svc.cluster.local
 
 .PHONY: host-maxscale-galera
 host-maxscale-galera: ## Add maxscale-galera hosts to /etc/hosts.
