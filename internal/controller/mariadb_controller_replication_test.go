@@ -215,6 +215,18 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should reconcile with MaxScale", Label("basic"), func() {
+		By("Creating a dedicated 11.8.8 MariaDB for MaxScale")
+		mxsMdbKey := types.NamespacedName{
+			Name:      "mariadb-repl-maxscale",
+			Namespace: testNamespace,
+		}
+		mxsMdb := buildTestMariaDBMaxscale(mxsMdbKey)
+		applyMariadbTestConfig(mxsMdb)
+		Expect(k8sClient.Create(testCtx, mxsMdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(mxsMdbKey, false)
+		})
+
 		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "maxscale-repl",
@@ -261,6 +273,12 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					VerifyPeerCertificate: ptr.To(true),
 					VerifyPeerHost:        ptr.To(false),
 					ReplicationSSLEnabled: ptr.To(true),
+				ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "mariadb-repl-maxscale-ca-bundle",
+					},
+					ServerCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "mariadb-repl-maxscale-client-cert",
+					},
 				},
 				Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 					Enabled: true,
@@ -268,8 +286,16 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 			},
 		}
 
+		By("Waiting for dedicated MariaDB to be ready")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, mxsMdbKey, mxsMdb); err != nil {
+				return false
+			}
+			return mxsMdb.IsReady()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
 		By("Using MariaDB with MaxScale")
-		testMaxscale(mdb, mxs)
+		testMaxscale(mxsMdb, mxs)
 	})
 })
 
