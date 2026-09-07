@@ -1579,16 +1579,7 @@ func buildTestMariaDBMaxscale(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				max_allowed_packet=256M`,
 			),
 			Image:    "mariadb:11.8.8",
-			Replicas: 2,
-			Replication: &mariadbv1alpha1.Replication{
-				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-					Primary: mariadbv1alpha1.PrimaryReplication{
-						PodIndex:     ptr.To(0),
-						AutoFailover: ptr.To(true),
-					},
-				},
-				Enabled: true,
-			},
+			Replicas: 1,
 			Storage: mariadbv1alpha1.Storage{
 				Size:             ptr.To(resource.MustParse("300Mi")),
 				StorageClassName: "csi-hostpath-sc",
