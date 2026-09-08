@@ -1,6 +1,7 @@
 package replication
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -257,6 +258,61 @@ func TestParseRawGtidInMetaFile(t *testing.T) {
 			}
 			if got != tc.wantGtid {
 				t.Fatalf("gtid mismatch: want=%q got=%q", tc.wantGtid, got)
+			}
+		})
+	}
+}
+
+func TestMergeByDomain(t *testing.T) {
+	tests := []struct {
+		name  string
+		gtids [][]Gtid
+		want  []Gtid
+	}{
+		{
+			name:  "empty",
+			gtids: nil,
+			want:  []Gtid{},
+		},
+		{
+			name: "disjoint domains",
+			gtids: [][]Gtid{
+				{{DomainID: 0, ServerID: 1, SequenceID: 6}},
+				{{DomainID: 10, ServerID: 2, SequenceID: 8}},
+			},
+			want: []Gtid{
+				{DomainID: 0, ServerID: 1, SequenceID: 6},
+				{DomainID: 10, ServerID: 2, SequenceID: 8},
+			},
+		},
+		{
+			name: "same domain, last one wins",
+			gtids: [][]Gtid{
+				{{DomainID: 0, ServerID: 1, SequenceID: 6}},
+				{{DomainID: 0, ServerID: 1, SequenceID: 3}, {DomainID: 10, ServerID: 2, SequenceID: 8}},
+			},
+			want: []Gtid{
+				{DomainID: 0, ServerID: 1, SequenceID: 3},
+				{DomainID: 10, ServerID: 2, SequenceID: 8},
+			},
+		},
+		{
+			name: "sorted by domain",
+			gtids: [][]Gtid{
+				{{DomainID: 10, ServerID: 2, SequenceID: 8}, {DomainID: 0, ServerID: 1, SequenceID: 6}},
+			},
+			want: []Gtid{
+				{DomainID: 0, ServerID: 1, SequenceID: 6},
+				{DomainID: 10, ServerID: 2, SequenceID: 8},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			merged := MergeByDomain(tt.gtids...)
+			if !reflect.DeepEqual(merged, tt.want) {
+				t.Errorf("unexpected merge: got %v, want %v", merged, tt.want)
 			}
 		})
 	}
