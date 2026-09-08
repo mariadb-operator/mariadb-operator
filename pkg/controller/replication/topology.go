@@ -215,53 +215,28 @@ func (r *singleClusterTopology) changeMaster(ctx context.Context, mariadb *maria
 		return fmt.Errorf("error getting change master GTID: %v", err)
 	}
 
-	changeMasterOpts, err := buildChangeMasterOpts(ctx, client, mariadb.Spec.Image,
-		statefulset.PodFQDNWithService(
-			mariadb.ObjectMeta,
-			primaryPodIndex,
-			mariadb.InternalServiceKey().Name,
+	changeMasterOpts := []sql.ChangeMasterOpt{
+		sql.WithChangeMasterHost(
+			statefulset.PodFQDNWithService(
+				mariadb.ObjectMeta,
+				primaryPodIndex,
+				mariadb.InternalServiceKey().Name,
+			),
 		),
-		mariadb.Spec.Port,
-		replUser,
-		password,
-		gtidString,
-		mariadb.IsTLSEnabled(),
-		r.logger)
-	if err != nil {
-		return err
-	}
-
-	if retries := ptr.Deref(replication.Replica.ConnectionRetrySeconds, -1); retries != -1 {
-		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterRetries(*replication.Replica.ConnectionRetrySeconds))
-	}
-
-	changeMasterOpts = append(changeMasterOpts, opts...)
-
-	if err := client.ChangeMaster(ctx, changeMasterOpts...); err != nil {
-		return fmt.Errorf("error changing master: %v", err)
-	}
-	return nil
-}
-
-// buildChangeMasterOpts assembles the CHANGE MASTER options shared by every
-// topology: endpoint, credentials, GTID position and TLS. When the node being
-// configured retained self-originated GTIDs from a previous primary term, it
-// emits MASTER_DEMOTE_TO_SLAVE=1 (supported since MariaDB 10.10) instead of
-// MASTER_USE_GTID.
-func buildChangeMasterOpts(ctx context.Context, client *sql.Client, image string, host string, port int32,
-	user, password, gtidString string, tlsEnabled bool, logger logr.Logger) ([]sql.ChangeMasterOpt, error) {
-	opts := []sql.ChangeMasterOpt{
-		sql.WithChangeMasterHost(host),
-		sql.WithChangeMasterPort(port),
-		sql.WithChangeMasterCredentials(user, password),
+		sql.WithChangeMasterPort(mariadb.Spec.Port),
+		sql.WithChangeMasterCredentials(replUser, password),
 		sql.WithChangeMasterGtid(gtidString),
 	}
-	if tlsEnabled {
-		opts = append(opts, sql.WithChangeMasterSSL(
+	if mariadb.IsTLSEnabled() {
+		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterSSL(
 			builderpki.ClientCertPath,
 			builderpki.ClientKeyPath,
 			builderpki.CACertPath,
 		))
+	}
+
+	if retries := ptr.Deref(replication.Replica.ConnectionRetrySeconds, -1); retries != -1 {
+		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterRetries(*replication.Replica.ConnectionRetrySeconds))
 	}
 
 	// A node that retained self-originated GTIDs from a previous primary term (a
@@ -271,21 +246,27 @@ func buildChangeMasterOpts(ctx context.Context, client *sql.Client, image string
 	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_demote_to_slave
 	gtidBinlogPos, err := client.GtidBinlogPos(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error getting gtid_binlog_pos: %v", err)
+		return fmt.Errorf("error getting gtid_binlog_pos: %v", err)
 	}
 	if gtidBinlogPos != "" {
-		demote, derr := demoteToSlaveSupported(image)
+		demote, derr := demoteToSlaveSupported(mariadb.Spec.Image)
 		if derr != nil {
-			logger.Info("Falling back to MASTER_USE_GTID: unable to infer MariaDB version from image",
-				"image", image, "error", derr)
+			r.logger.Info("Falling back to MASTER_USE_GTID: unable to infer MariaDB version from image",
+				"image", mariadb.Spec.Image, "error", derr)
 		} else if demote {
-			opts = append(opts, sql.WithChangeMasterDemote(true))
+			changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterDemote(true))
 		} else {
-			logger.Info("Falling back to MASTER_USE_GTID: MASTER_DEMOTE_TO_SLAVE requires MariaDB 10.10 or later",
-				"image", image)
+			r.logger.Info("Falling back to MASTER_USE_GTID: MASTER_DEMOTE_TO_SLAVE requires MariaDB 10.10 or later",
+				"image", mariadb.Spec.Image)
 		}
 	}
-	return opts, nil
+
+	changeMasterOpts = append(changeMasterOpts, opts...)
+
+	if err := client.ChangeMaster(ctx, changeMasterOpts...); err != nil {
+		return fmt.Errorf("error changing master: %v", err)
+	}
+	return nil
 }
 
 // demoteToSlaveSupported reports whether the MariaDB version of the given image
@@ -419,18 +400,20 @@ func (m *multiClusterTopology) configurePrimaryReplicaConnection(ctx context.Con
 		return fmt.Errorf("error getting GTID position: %v", err)
 	}
 
-	opts, err := buildChangeMasterOpts(ctx, client, m.mariadb.Spec.Image,
-		externalMariaDB.GetHost(),
-		externalMariaDB.GetPort(),
-		externalMariaDB.GetSUName(),
-		password,
-		gtidString,
-		externalMariaDB.IsTLSEnabled(),
-		m.logger)
-	if err != nil {
-		return fmt.Errorf("error building change master options in primary replica: %v", err)
+	opts := []sql.ChangeMasterOpt{
+		sql.WithChangeMasterConnectionName(MultiClusterReplicaConnectionName),
+		sql.WithChangeMasterHost(externalMariaDB.GetHost()),
+		sql.WithChangeMasterPort(externalMariaDB.GetPort()),
+		sql.WithChangeMasterCredentials(externalMariaDB.GetSUName(), password),
+		sql.WithChangeMasterGtid(gtidString),
 	}
-	opts = append(opts, sql.WithChangeMasterConnectionName(MultiClusterReplicaConnectionName))
+	if externalMariaDB.IsTLSEnabled() {
+		opts = append(opts, sql.WithChangeMasterSSL(
+			builderpki.ClientCertPath,
+			builderpki.ClientKeyPath,
+			builderpki.CACertPath,
+		))
+	}
 	if err := client.ChangeMaster(ctx, opts...); err != nil {
 		return fmt.Errorf("error executing CHANGE MASTER in primary replica: %v", err)
 	}
