@@ -9,7 +9,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/version"
@@ -370,104 +369,25 @@ func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, clie
 	if err := m.userSqlReconciler.reconcileReplUserSql(ctx, client); err != nil {
 		return fmt.Errorf("error reconciling replication user SQL: %v", err)
 	}
-	if err := m.reconcileGaleraGtidSlavePos(ctx, client); err != nil {
-		return fmt.Errorf("error reconciling gtid_slave_pos in primary replica: %v", err)
-	}
 	if err := m.configurePrimaryReplicaConnection(ctx, client); err != nil {
 		return fmt.Errorf("error changing master in primary replica: %v", err)
 	}
 	return nil
 }
 
-// reconcileGaleraGtidSlavePos composes gtid_slave_pos in a Galera cluster that is being demoted to
-// replica cluster. Such a Pod has its own GTIDs in gtid_binlog_pos but an empty gtid_slave_pos, so
-// MASTER_USE_GTID=slave_pos makes it request the whole binary log history to the primary cluster,
-// which is unable to serve it:
-//
-//	Got fatal error 1236 from master when reading data from binary log: 'Could not find GTID state
-//	requested by slave in any binlog files. Probably the slave state is too old and required binlog
-//	files have been purged.'
-//
-// Composing gtid_slave_pos with the local and the primary cluster binary log positions makes the
-// primary replica resume from a position that the primary cluster is able to serve. The replication
-// topology does the equivalent in the MariaDB controller, see 'reconfigureReplicaClusterGtids'.
-func (m *multiClusterTopology) reconcileGaleraGtidSlavePos(ctx context.Context, client *sql.Client) error {
-	if !m.mariadb.IsGaleraEnabled() {
-		return nil // noop: the replication topology composes gtid_slave_pos in the MariaDB controller
-	}
-
-	gtidSlavePos, err := client.GtidSlavePos(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting gtid_slave_pos: %v", err)
-	}
-	if gtidSlavePos != "" {
-		return nil // noop: the primary replica already has a replication position
-	}
-	gtidBinlogPos, err := client.GtidBinlogPos(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting gtid_binlog_pos: %v", err)
-	}
-	if gtidBinlogPos == "" {
-		return nil // noop: a freshly provisioned replica cluster has no GTIDs of its own
-	}
-	localGtids, err := replication.ParseAllGtids(gtidBinlogPos)
-	if err != nil {
-		return fmt.Errorf("error parsing gtid_binlog_pos GTIDs %s: %v", gtidBinlogPos, err)
-	}
-
-	externalMariaDB, err := m.externalPrimary(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting primary cluster: %v", err)
-	}
-	externalClient, err := sql.NewClientWithMariaDB(ctx, externalMariaDB, m.refResolver)
-	if err != nil {
-		return fmt.Errorf("error creating primary cluster client: %v", err)
-	}
-	defer externalClient.Close()
-
-	externalGtidBinlogPos, err := externalClient.GtidBinlogPos(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting gtid_binlog_pos from primary cluster: %v", err)
-	}
-	var externalGtids []replication.Gtid
-	if externalGtidBinlogPos != "" {
-		externalGtids, err = replication.ParseAllGtids(externalGtidBinlogPos)
-		if err != nil {
-			return fmt.Errorf("error parsing primary cluster gtid_binlog_pos GTIDs %s: %v", externalGtidBinlogPos, err)
-		}
-	}
-
-	// The primary cluster GTIDs take precedence: it is only able to serve a position that it knows
-	// about, and the local cluster may have advanced its own domain after the primary cluster stopped
-	// replicating from it.
-	composedGtid := replication.GtidsToString(replication.MergeByDomain(localGtids, externalGtids)...)
-	m.logger.Info("Composing gtid_slave_pos in primary replica", "gtid", composedGtid)
-
-	return client.SetGtidSlavePos(ctx, composedGtid)
-}
-
-// externalPrimary returns the ExternalMariaDB that represents the primary cluster.
-func (m *multiClusterTopology) externalPrimary(ctx context.Context) (*mariadbv1alpha1.ExternalMariaDB, error) {
+func (m *multiClusterTopology) configurePrimaryReplicaConnection(ctx context.Context, client *sql.Client) error {
 	member := m.mariadb.GetMultiClusterPrimary()
 	if member == nil {
-		return nil, errors.New("unable to find multi-cluster primary member")
+		return errors.New("unable to find multi-cluster primary member")
 	}
 
 	externalMariaDBRef, err := m.mariadb.Spec.MultiCluster.GetExternalMariaDBRefForMember(*member)
 	if err != nil {
-		return nil, fmt.Errorf("error getting ExternalMariaDB reference for member %s: %v", *member, err)
+		return fmt.Errorf("error getting ExternalMariaDB reference for member %s: %v", *member, err)
 	}
 	externalMariaDB, err := m.refResolver.ExternalMariaDB(ctx, externalMariaDBRef, m.mariadb.Namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error getting ExternalMariaDB: %v", err)
-	}
-	return externalMariaDB, nil
-}
-
-func (m *multiClusterTopology) configurePrimaryReplicaConnection(ctx context.Context, client *sql.Client) error {
-	externalMariaDB, err := m.externalPrimary(ctx)
-	if err != nil {
-		return err
+		return fmt.Errorf("error getting ExternalMariaDB: %v", err)
 	}
 
 	password, err := m.refResolver.SecretKeyRef(ctx, *externalMariaDB.Spec.PasswordSecretKeyRef, externalMariaDB.Namespace)

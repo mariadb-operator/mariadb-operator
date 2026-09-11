@@ -190,7 +190,7 @@ func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, domai
 
 // reconfigureReplicaClusterGtids sets up primary replica based on its own gtid_binlog_pos and the one from the primary cluster.
 func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
-	if !mdb.IsReplicationEnabled() {
+	if !mdb.IsReplicationEnabled() && !mdb.IsGaleraEnabled() {
 		return nil
 	}
 	logger.Info("Reconfiguring replica GTIDs")
@@ -205,6 +205,10 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	if err != nil {
 		return fmt.Errorf("error getting gtid_binlog_pos: %v", err)
 	}
+	if rawBinlogPos == "" {
+		logger.Info("gtid_binlog_pos is empty, skipping reconciliation...")
+		return nil
+	}
 	binlogPosGtids, err := replication.ParseAllGtids(rawBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error parsing gtid_binlog_pos GTIDs: %v", err)
@@ -216,35 +220,55 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	}
 	defer externalPrimaryClient.Close()
 
-	externalDomainId, err := externalPrimaryClient.GtidDomainId(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting gtid_domain_id from external primary: %v", err)
-	}
-	if len(replication.FilterByDomain(binlogPosGtids, *externalDomainId)) > 0 {
-		logger.Info(
-			"External domain ID found in primary replica GTID, skipping reconciliation...",
-			"domain-id", externalDomainId,
-			"gitd", rawBinlogPos,
-		)
-		return nil
-	}
-
 	externalBinlogPos, err := externalPrimaryClient.GtidBinlogPos(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting gtid_binlog_pos from external primary: %v", err)
 	}
+	if externalBinlogPos == "" {
+		logger.Info("gtid_binlog_pos in external primary is empty, skipping reconciliation...")
+		return nil
+	}
+	externalGtids, err := replication.ParseAllGtids(externalBinlogPos)
+	if err != nil {
+		return fmt.Errorf("error parsing external gtid_binlog_pos GTIDs: %v", err)
+	}
+
+	// The domains of the primary cluster are only present in the primary replica once it has replicated from it.
+	// Unlike the replication topology, a Galera primary cluster keeps the domains of the replica clusters in its binary
+	// logs, hence all of them must be checked.
+	externalDomains := make([]uint32, len(externalGtids))
+	for i, gtid := range externalGtids {
+		externalDomains[i] = gtid.DomainID
+	}
+	if len(replication.FilterByDomain(binlogPosGtids, externalDomains...)) == len(externalDomains) {
+		logger.Info(
+			"External domains found in primary replica GTID, skipping reconciliation...",
+			"domains", externalDomains,
+			"gtid", rawBinlogPos,
+		)
+		return nil
+	}
+
 	composedGtid, err := composeGtids(rawBinlogPos, externalBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error composing GTIDs: %v", err)
 	}
 
-	if err := primaryClient.StopSlave(ctx, sql.WithConnectionName(replicationctrl.MultiClusterReplicaConnectionName)); err != nil {
+	// The multi-cluster connection doesn't exist yet in a Galera cluster being demoted: it is configured by the Galera
+	// controller in the next reconciliation cycle, once the cluster switchover has been reconciled.
+	if err := primaryClient.StopSlave(
+		ctx,
+		sql.WithConnectionName(replicationctrl.MultiClusterReplicaConnectionName),
+	); err != nil && !sql.IsConnectionNotExists(err) {
 		return fmt.Errorf("error stopping primary replica: %v", err)
 	}
 	if err := primaryClient.SetGtidSlavePos(ctx, composedGtid); err != nil {
 		return fmt.Errorf("error setting gtid_slave_pos %s in primary replica: %v", composedGtid, err)
 	}
-	if err := primaryClient.StartSlave(ctx, sql.WithConnectionName(replicationctrl.MultiClusterReplicaConnectionName)); err != nil {
+	if err := primaryClient.StartSlave(
+		ctx,
+		sql.WithConnectionName(replicationctrl.MultiClusterReplicaConnectionName),
+	); err != nil && !sql.IsConnectionNotExists(err) {
 		return fmt.Errorf("error starting primary replica: %v", err)
 	}
 	return nil
@@ -296,14 +320,17 @@ func (r *MariaDBReconciler) shouldReconcileMultiCluster(ctx context.Context, mdb
 	return true, nil
 }
 
+// composeGtids merges the GTIDs of a replica cluster with the ones of its primary cluster by replication domain.
+// The primary cluster GTIDs take precedence: it is only able to serve a replication position that it knows about, and the
+// replica cluster may have advanced its own domain after the primary cluster stopped replicating from it.
 func composeGtids(rawGtid, rawExternalGtid string) (string, error) {
-	gtid, err := replication.ParseGtid(rawGtid)
+	gtids, err := replication.ParseAllGtids(rawGtid)
 	if err != nil {
 		return "", fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
 	}
-	externalGtid, err := replication.ParseGtid(rawExternalGtid)
+	externalGtids, err := replication.ParseAllGtids(rawExternalGtid)
 	if err != nil {
 		return "", fmt.Errorf("error parsing external GTID %s: %v", rawExternalGtid, err)
 	}
-	return replication.GtidsToString(*gtid, *externalGtid), nil
+	return replication.GtidsToString(replication.MergeByDomain(gtids, externalGtids)...), nil
 }

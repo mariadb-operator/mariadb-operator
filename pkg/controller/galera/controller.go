@@ -254,6 +254,13 @@ func shouldReconcileMultiCluster(mariadb *mariadbv1alpha1.MariaDB, logger logr.L
 	if !mariadb.IsMultiClusterReplica() || !mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
 		return false
 	}
+	if mariadb.IsMultiClusterSwitchoverPending() {
+		// The MariaDB controller reconciles the GTIDs of a cluster being demoted to replica cluster in the multi-cluster phase,
+		// which is only reached when this phase doesn't requeue. Configuring the primary replica before that results in
+		// replication being unable to start, as the primary replica has no replication position to resume from.
+		logger.V(1).Info("Ongoing cluster switchover detected. Skipping Galera multi-cluster reconciliation...")
+		return false
+	}
 	if mariadb.Status.CurrentPrimary != nil && mariadb.Status.Replication != nil {
 		role, ok := mariadb.Status.Replication.Roles[*mariadb.Status.CurrentPrimary]
 		if !ok {
