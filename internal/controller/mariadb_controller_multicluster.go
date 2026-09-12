@@ -144,7 +144,7 @@ func (r *MariaDBReconciler) filterPrimaryBinlogByDomain(ctx context.Context, mdb
 		replication.FilterByDomain(binlogStateGtids, domainId)...,
 	)
 
-	if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
+	if err := client.SetBinlogState(ctx, primaryGtids); err != nil {
 		return fmt.Errorf("error resetting gtid_binlog_state in primary Pod: %v", err)
 	}
 	if err := replicationctrl.PauseGtidStrictMode(ctx, mdb, client, r.Client, logger.V(1)); err != nil {
@@ -176,7 +176,7 @@ func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, domai
 	if err := client.StopSlave(ctx); err != nil {
 		return fmt.Errorf("error stopping replica in replica Pod index %d: %v", podIndex, err)
 	}
-	if err := client.ResetBinlogState(ctx, replicaGtid); err != nil {
+	if err := client.SetBinlogState(ctx, replicaGtid); err != nil {
 		return fmt.Errorf("error resetting gtid_binlog_state in replica Pod index %d: %v", podIndex, err)
 	}
 	if err := client.SetGtidSlavePos(ctx, replicaGtid); err != nil {
@@ -321,16 +321,22 @@ func (r *MariaDBReconciler) shouldReconcileMultiCluster(ctx context.Context, mdb
 }
 
 // composeGtids merges the GTIDs of a replica cluster with the ones of its primary cluster by replication domain.
-// The primary cluster GTIDs take precedence: it is only able to serve a replication position that it knows about, and the
-// replica cluster may have advanced its own domain after the primary cluster stopped replicating from it.
+// The replica cluster GTIDs (local GTIDs) take precedence, for the following reasons:
+// - Multi-cluster switchover assumes the replica is synced at the time of doing the operation, maintenance mode is provided for achieving this.
+// - Replica cluster should never have more recent GTIDs than the primary cluster, writes are not allowed.
+// - Multi-cluster CHANGE MASTER statement uses gtid_slave_pos as initial offset.
+// In the following scenario:
+// - Replica cluster: 0-1-4
+// - Primary cluster: 0-1-7,0-10-3
+// The resulting GTID will be: 0-1-4,0-10-3. This preserves the replica position.
 func composeGtids(rawGtid, rawExternalGtid string) (string, error) {
-	gtids, err := replication.ParseAllGtids(rawGtid)
-	if err != nil {
-		return "", fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
-	}
 	externalGtids, err := replication.ParseAllGtids(rawExternalGtid)
 	if err != nil {
 		return "", fmt.Errorf("error parsing external GTID %s: %v", rawExternalGtid, err)
 	}
-	return replication.GtidsToString(replication.MergeByDomain(gtids, externalGtids)...), nil
+	gtids, err := replication.ParseAllGtids(rawGtid)
+	if err != nil {
+		return "", fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
+	}
+	return replication.GtidsToString(replication.MergeByDomain(externalGtids, gtids)...), nil
 }
