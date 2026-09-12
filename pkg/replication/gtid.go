@@ -248,8 +248,13 @@ func GtidsToString(gtids ...Gtid) string {
 	return strings.Join(gtidStrings, ",")
 }
 
-// MergeByDomain merges the given GTIDs by replication domain, the last GTID for a given domain
-// taking precedence over the previous ones. The result is sorted by domain to keep it deterministic.
+// MergeByDomain merges the given GTID lists by replication domain, keeping a single GTID per domain: the last GTID
+// encountered in the given order for that domain (later lists therefore take precedence over earlier ones). Every
+// other (domain, server) pair is dropped. The result is sorted by domain to keep it deterministic.
+// Callers using the result as a gtid_slave_pos must be aware that the dropped pairs are not claimed, so the
+// replication source re-sends their full history (deduplicated by the replica's gtid_executed), while the single kept
+// pair per domain is claimed as already applied: the source will not re-send it, so a replica that has not actually
+// executed it never receives that GTID.
 func MergeByDomain(gtids ...[]Gtid) []Gtid {
 	byDomain := make(map[uint32]Gtid)
 	for _, list := range gtids {
