@@ -99,18 +99,23 @@ metadata:
     metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.215
 spec:
   ports:
-  - name: admin
-    port: 8989
-    protocol: TCP
-    targetPort: 8989
-  - name: rw-router-listener
+  - name: mariadb
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-repl-maxscale
-    app.kubernetes.io/name: maxscale
-    statefulset.kubernetes.io/pod-name: mariadb-repl-maxscale-0  
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-repl-maxscale-0
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -122,18 +127,23 @@ metadata:
     metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.216
 spec:
   ports:
-  - name: admin
-    port: 8989
-    protocol: TCP
-    targetPort: 8989
-  - name: rw-router-listener
+  - name: mariadb
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-repl-maxscale
-    app.kubernetes.io/name: maxscale
-    statefulset.kubernetes.io/pod-name: mariadb-repl-maxscale-1  
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-repl-maxscale-1
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -145,18 +155,23 @@ metadata:
     metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.217
 spec:
   ports:
-  - name: admin
-    port: 8989
-    protocol: TCP
-    targetPort: 8989
-  - name: rw-router-listener
+  - name: mariadb
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-repl-maxscale
-    app.kubernetes.io/name: maxscale
-    statefulset.kubernetes.io/pod-name: mariadb-repl-maxscale-2  
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-repl-maxscale-2
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -168,17 +183,21 @@ metadata:
     metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.218
 spec:
   ports:
-  - name: admin
-    port: 8989
-    protocol: TCP
-    targetPort: 8989
-  - name: rw-router-listener
+  - name: mariadb
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-repl-maxscale
-    app.kubernetes.io/name: maxscale
-    statefulset.kubernetes.io/pod-name: mariadb-repl-maxscale-3  
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-repl-maxscale-3
+  publishNotReadyAddresses: true
   type: LoadBalancer
----

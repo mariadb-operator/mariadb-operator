@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -245,4 +246,24 @@ func GtidsToString(gtids ...Gtid) string {
 		gtidStrings[i] = g.String()
 	}
 	return strings.Join(gtidStrings, ",")
+}
+
+// MergeByDomain merges the given GTIDs by replication domain, the last GTID for a given domain
+// taking precedence over the previous ones. The result is sorted by domain to keep it deterministic.
+func MergeByDomain(gtids ...[]Gtid) []Gtid {
+	byDomain := make(map[uint32]Gtid)
+	for _, list := range gtids {
+		for _, gtid := range list {
+			byDomain[gtid.DomainID] = gtid
+		}
+	}
+
+	union := make([]Gtid, 0, len(byDomain))
+	for _, gtid := range byDomain {
+		union = append(union, gtid)
+	}
+	sort.Slice(union, func(i, j int) bool {
+		return union[i].DomainID < union[j].DomainID
+	})
+	return union
 }

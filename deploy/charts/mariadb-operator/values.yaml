@@ -322,11 +322,11 @@ config:
   # -- Galera library path to be used with MariaDB Galera
   galeraLibPath: /usr/lib/galera/libgalera_smm.so
   # -- Default MariaDB version to be used when unable to infer it via image tag
-  mariadbDefaultVersion: "11.8"
+  mariadbDefaultVersion: "12.3"
   # -- Default MariaDB image
   mariadbImage:
     repository: mariadb
-    tag: 11.8.8
+    tag: 12.3.3
   # -- Default MariaDB image name
   mariadbImageName: mariadb
   # -- Default MaxScale image
