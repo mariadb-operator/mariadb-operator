@@ -236,6 +236,8 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	// The domains of the primary cluster are only present in the primary replica once it has replicated from it.
 	// Unlike the replication topology, a Galera primary cluster keeps the domains of the replica clusters in its binary
 	// logs, hence all of them must be checked.
+	// The check compares the number of gtid_binlog_pos entries (one per (domain, server) pair, duplicates included)
+	// with the primary cluster entry count: it is a best-effort idempotency guard, not a GTID coverage check.
 	externalDomains := make([]uint32, len(externalGtids))
 	for i, gtid := range externalGtids {
 		externalDomains[i] = gtid.DomainID
@@ -323,6 +325,9 @@ func (r *MariaDBReconciler) shouldReconcileMultiCluster(ctx context.Context, mdb
 // composeGtids merges the GTIDs of a replica cluster with the ones of its primary cluster by replication domain.
 // The primary cluster GTIDs take precedence: it is only able to serve a replication position that it knows about, and the
 // replica cluster may have advanced its own domain after the primary cluster stopped replicating from it.
+// MergeByDomain keeps a single GTID per domain, so the composed position claims the primary cluster GTID of each of its
+// domains, including the ones the replica cluster has never executed (e.g. its own domain after a switchover): the
+// primary cluster will not re-send those GTIDs, so the replica cluster never receives them.
 func composeGtids(rawGtid, rawExternalGtid string) (string, error) {
 	gtids, err := replication.ParseAllGtids(rawGtid)
 	if err != nil {
