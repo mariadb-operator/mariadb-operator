@@ -738,10 +738,6 @@ func (c *Client) DisableReadOnly(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "read_only", "0")
 }
 
-func (c *Client) ResetMaster(ctx context.Context) error {
-	return c.Exec(ctx, "RESET MASTER;")
-}
-
 type ReplicationOpts struct {
 	ConnectionName string
 }
@@ -851,16 +847,6 @@ func (c *Client) SetBinlogState(ctx context.Context, binlogState string) error {
 		return errors.New("gtid_binlog_state must not be empty")
 	}
 	return c.Exec(ctx, fmt.Sprintf("SET @@global.gtid_binlog_state='%s';", binlogState))
-}
-
-func (c *Client) ResetBinlogState(ctx context.Context, binlogState string) error {
-	if err := c.ResetMaster(ctx); err != nil {
-		return fmt.Errorf("error resetting master: %v", err)
-	}
-	if err := c.SetBinlogState(ctx, binlogState); err != nil {
-		return fmt.Errorf("error setting gtid_binlog_state: %v", err)
-	}
-	return nil
 }
 
 func (c *Client) GtidCurrentPos(ctx context.Context) (string, error) {
