@@ -89,7 +89,7 @@ func (r *MariaDBReconciler) resetPrimaryReplicaConnection(ctx context.Context, m
 // reconfigurePrimaryClusterGtids filters primary GTIDs based on its gtid_domain_id and sets up the replicas accordingly.
 // This step is reconciled by both replication primary clusters only.
 func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) error {
+	logger logr.Logger) (err error) {
 	if !mdb.IsReplicationEnabled() {
 		return nil
 	}
@@ -99,12 +99,54 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 	defer clientSet.Close()
 	currentPrimaryPodIndex := *mdb.Status.CurrentPrimaryPodIndex
 
-	// TODO: stop all replicas before starting the process, so the RESET MASTER can succeed
-	// TODO: start all replicas in a defer statement to exit the function in the same state
-
 	podIndexes, err := mdb.OrderedPodIndexes()
 	if err != nil {
 		return fmt.Errorf("error getting ordered Pod indexes: %v", err)
+	}
+
+	// Stop all replicas before starting the process, so the RESET MASTER in filterPrimaryBinlogByDomain can succeed.
+	// Otherwise it returns 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave...'.
+	stoppedReplicaIndexes := make([]int, 0, len(podIndexes)-1)
+	defer func() {
+		// Start all stopped replicas again to exit the function in the same state.
+		for _, i := range stoppedReplicaIndexes {
+			client, clientErr := clientSet.ClientForIndex(ctx, i)
+			if clientErr != nil {
+				logger.Error(clientErr, "Error getting client to start replica", "podIndex", i)
+				continue
+			}
+			if startErr := client.StartSlave(ctx); startErr != nil {
+				logger.Error(startErr, "Error starting replica", "podIndex", i)
+				if err == nil {
+					err = fmt.Errorf("error starting replica in Pod index %d: %v", i, startErr)
+				}
+			}
+		}
+	}()
+	for _, i := range podIndexes {
+		if i == currentPrimaryPodIndex {
+			continue
+		}
+		client, stopErr := clientSet.ClientForIndex(ctx, i)
+		if stopErr != nil {
+			return fmt.Errorf("error getting client for Pod index %d: %v", i, stopErr)
+		}
+		if stopErr := client.StopSlave(ctx); stopErr != nil {
+			return fmt.Errorf("error stopping replica in Pod index %d: %v", i, stopErr)
+		}
+		stoppedReplicaIndexes = append(stoppedReplicaIndexes, i)
+	}
+
+	// Stopping the replicas above does not close the master-side 'Binlog Dump' threads in time, so the RESET MASTER
+	// in filterPrimaryBinlogByDomain would still fail with:
+	// 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave...
+	// Check SHOW PROCESSLIST for "Binlog Dump" commands and use KILL to stop such readers'.
+	primaryClient, err := clientSet.ClientForIndex(ctx, currentPrimaryPodIndex)
+	if err != nil {
+		return fmt.Errorf("error getting client for Pod index %d: %v", currentPrimaryPodIndex, err)
+	}
+	if err := killBinlogDumpers(ctx, primaryClient, currentPrimaryPodIndex); err != nil {
+		return fmt.Errorf("error killing binlog dumpers in Pod index %d: %v", currentPrimaryPodIndex, err)
 	}
 
 	for _, i := range podIndexes {
@@ -130,6 +172,27 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 	return nil
 }
 
+// killBinlogDumpers kills all the 'Binlog Dump' threads in the given Pod, so a RESET MASTER can run unblocked.
+// Ref: 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave or other
+// RESET MASTER or binlog reader. Check SHOW PROCESSLIST for "Binlog Dump" commands and use KILL to stop such
+// readers'.
+func killBinlogDumpers(ctx context.Context, client *sql.Client, podIndex int) error {
+	processes, err := client.GetProcessList(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting process list in Pod index %d: %v", podIndex, err)
+	}
+	for _, process := range processes {
+		if process.Command != "Binlog Dump" && process.Command != "Binlog Dump GTID" {
+			continue
+		}
+		if err := client.SoftKillProcess(ctx, process); err != nil {
+			return fmt.Errorf("error killing %s process %d in Pod index %d: %v", process.Command, process.ID, podIndex,
+				err)
+		}
+	}
+	return nil
+}
+
 func (r *MariaDBReconciler) filterPrimaryBinlogByDomain(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, domainId uint32,
 	client *sql.Client, logger logr.Logger) error {
 	rawBinlogState, err := client.GtidBinlogState(ctx)
@@ -148,17 +211,7 @@ func (r *MariaDBReconciler) filterPrimaryBinlogByDomain(ctx context.Context, mdb
 		replication.FilterByDomain(binlogStateGtids, domainId)...,
 	)
 
-	// TODO: all replicas need to be stopped at this point, otherwise ResetBinlogState will return the following error
-	// 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave or other RESET MASTER or binlog reader.
-	// Check SHOW PROCESSLIST for \"Binlog Dump\" commands and use KILL to stop such readers\n\n'
-	// MariaDB [(none)]> SHOW PROCESSLIST;
-	// +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
-	// | Id   | User | Host              | db   | Command     | Time | State                                                         | Info             | Progress |
-	// +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
-	// | 2602 | repl | 10.244.0.57:45688 | NULL | Binlog Dump |   28 | Master has sent all binlog to slave; waiting for more updates | NULL             |    0.000 |
-	// | 2766 | root | localhost         | NULL | Query       |    0 | starting                                                      | SHOW PROCESSLIST |    0.000 |
-	// +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
-
+	// All replicas are stopped at the top level (reconfigurePrimaryClusterGtids), where they are started again.
 	if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
 		return fmt.Errorf("error resetting gtid_binlog_state in primary Pod: %v", err)
 	}
@@ -188,19 +241,12 @@ func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, domai
 		replication.FilterByDomain(replicaGtids, domainId)...,
 	)
 
-	// TODO: skip, as this is done at the top level (reconfigurePrimaryClusterGtids)
-	if err := client.StopSlave(ctx); err != nil {
-		return fmt.Errorf("error stopping replica in replica Pod index %d: %v", podIndex, err)
-	}
+	// The replica was stopped at the top level (reconfigurePrimaryClusterGtids), where it is started again.
 	if err := client.ResetBinlogState(ctx, replicaGtid); err != nil {
 		return fmt.Errorf("error resetting gtid_binlog_state in replica Pod index %d: %v", podIndex, err)
 	}
 	if err := client.SetGtidSlavePos(ctx, replicaGtid); err != nil {
 		return fmt.Errorf("error setting gtid_slave_pos in replica Pod index %d: %v", podIndex, err)
-	}
-	// TODO: skip, as this is done at the top level (reconfigurePrimaryClusterGtids)
-	if err := client.StartSlave(ctx); err != nil {
-		return fmt.Errorf("error starting replica in replica Pod index %d: %v", podIndex, err)
 	}
 	return nil
 }
