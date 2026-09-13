@@ -24,6 +24,9 @@ import (
 type switchoverPhase struct {
 	name      string
 	reconcile func(context.Context, *ReconcileRequest, logr.Logger) error
+	// Phases running before the new primary is configured: if one fails, the current primary
+	// can be safely unlocked until the next reconciliation.
+	prePromotion bool
 }
 
 func isSwitchoverStale(mdb *mariadbv1alpha1.MariaDB) bool {
@@ -70,16 +73,19 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 
 	phases := []switchoverPhase{
 		{
-			name:      "Lock primary with read lock",
-			reconcile: r.lockPrimaryWithReadLock,
+			name:         "Lock primary with read lock",
+			reconcile:    r.lockPrimaryWithReadLock,
+			prePromotion: true,
 		},
 		{
-			name:      "Set read_only in primary",
-			reconcile: r.setPrimaryReadOnly,
+			name:         "Set read_only in primary",
+			reconcile:    r.setPrimaryReadOnly,
+			prePromotion: true,
 		},
 		{
-			name:      "Wait sync",
-			reconcile: r.waitSync,
+			name:         "Wait sync",
+			reconcile:    r.waitSync,
+			prePromotion: true,
 		},
 		{
 			name:      "Configure new primary",
@@ -99,6 +105,17 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 		if err := p.reconcile(ctx, req, logger.WithValues("phase", p.name)); err != nil {
 			if apierrors.IsNotFound(err) {
 				return err
+			}
+			// Keeping the primary locked across reconciliations would leave applications without
+			// writes indefinitely if the switchover is unable to complete.
+			if p.prePromotion && req.currentPrimaryReady {
+				if unlockErr := r.unlockPrimary(ctx, req, logger); unlockErr != nil {
+					logger.Error(unlockErr, "Error unlocking primary after switchover phase error", "phase", p.name)
+				} else {
+					r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationSwitchoverRetry,
+						mariadbv1alpha1.ReasonReplicationSwitchoverRetry,
+						"Switchover phase '%s' failed. Primary unlocked until next attempt", p.name)
+				}
 			}
 			return fmt.Errorf("error in %s switchover reconcile phase: %v", p.name, err)
 		}
@@ -126,6 +143,24 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 		logger.Info("Skipped stale switchover reconciliation due to primary's non ready status")
 		return nil
 	}
+	if err := r.unlockPrimary(ctx, req, logger); err != nil {
+		return err
+	}
+
+	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		condition.SetPrimarySwitched(&req.mariadb.Status)
+	}); err != nil {
+		return fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+
+	logger.Info("Stale switchover has been reset")
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationResetStaleSwitchover,
+		mariadbv1alpha1.ReasonReplicationResetStaleSwitchover, "Stale switchover has been reset")
+	return nil
+}
+
+// Releases the read lock and readonly mode in the current primary.
+func (r *ReplicationReconciler) unlockPrimary(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
 	currentPrimaryClient, err := req.replClientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
@@ -140,16 +175,6 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 	if err := currentPrimaryClient.DisableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling readonly in primary: %v", err)
 	}
-
-	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		condition.SetPrimarySwitched(&req.mariadb.Status)
-	}); err != nil {
-		return fmt.Errorf("error patching MariaDB status: %v", err)
-	}
-
-	logger.Info("Stale switchover has been reset")
-	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationResetStaleSwitchover,
-		mariadbv1alpha1.ReasonReplicationResetStaleSwitchover, "Stale switchover has been reset")
 	return nil
 }
 
@@ -218,11 +243,18 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *Rec
 		mariadbv1alpha1.ReasonReplicationReplicaSync, "Waiting for replicas to be synced with primary")
 	replication := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 
+	currentPrimary := *req.mariadb.Status.CurrentPrimaryPodIndex
+	currentPrimaryHost := statefulset.PodFQDNWithService(
+		req.mariadb.ObjectMeta,
+		currentPrimary,
+		req.mariadb.InternalServiceKey().Name,
+	)
+
 	g := new(errgroup.Group)
 	g.SetLimit(int(req.mariadb.Spec.Replicas))
 
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
-		if i == *req.mariadb.Status.CurrentPrimaryPodIndex {
+		if i == currentPrimary {
 			continue
 		}
 		g.Go(func() error {
@@ -230,6 +262,26 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *Rec
 			if err != nil {
 				return fmt.Errorf("error getting replica '%d' client: %v", i, err)
 			}
+
+			// A replica replicating from a host other than the current primary (e.g. the new primary
+			// before promotion, which does not relay the current primary's events) would never reach
+			// the GTID, blocking the switchover and keeping the primary locked. See #1852.
+			sourceHost, err := replClient.ReplicaMasterHost(ctx)
+			if err != nil {
+				return fmt.Errorf("error getting replication source of replica '%d': %v", i, err)
+			}
+			if sourceHost != currentPrimaryHost {
+				logger.Info("Replica is not replicating from the current primary. Reconnecting it",
+					"replica", i, "source", sourceHost)
+				r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSourceFix,
+					mariadbv1alpha1.ReasonReplicationReplicaSourceFix,
+					"Replica '%d' is replicating from '%s' instead of the current primary. Reconnecting it", i, sourceHost)
+				topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("replica", i))
+				if err := topology.ConfigureReplica(ctx, replClient, currentPrimary, WithResetMaster(false)); err != nil {
+					return fmt.Errorf("error reconnecting replica '%d' to the current primary: %v", i, err)
+				}
+			}
+
 			logger.V(1).Info("Syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
 			syncTimeout := ptr.Deref(replication.Replica.SyncTimeout, metav1.Duration{Duration: 10 * time.Second}).Duration
 
