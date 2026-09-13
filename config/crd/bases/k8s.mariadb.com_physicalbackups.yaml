@@ -74,7 +74,15 @@ spec:
                 - none
                 - bzip2
                 - gzip
+                - zstd
                 type: string
+              compressionThreads:
+                description: |-
+                  CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.
+                  Defaults to all available CPUs.
+                format: int32
+                minimum: 1
+                type: integer
               failedJobsHistoryLimit:
                 description: FailedJobsHistoryLimit defines the maximum number of
                   failed Jobs to be displayed. It defaults to 5.

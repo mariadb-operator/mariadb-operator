@@ -295,6 +295,21 @@ Because of that host-to-container split, connectivity to the pods has to be simu
 
 Implications when writing integration tests: `make net` is a hard prerequisite (connections fail without it); a new MariaDB in a spec needs a unique pinned LB IP.
 
+### Local KIND troubleshooting
+
+The integration suite runs the operator **in-process** against the existing cluster: `suite_test.go` sets `UseExistingCluster: true` (it does not bring up its own control plane) and starts the manager with `k8sManager.Start` (`internal/controller/suite_test.go:103,365`). So `make cluster`, `make install`, `make install-minio` and `make net` must all be in place before `make test-int`. A focused single-spec run still takes several minutes (BeforeSuite boots the initial fixtures and each switchover/failover spec has a 300s `Eventually` window) — don't call it hung early.
+
+Before each run, clear the two setup failures that masquerade as test regressions:
+
+- **A stray process holding `:8080` breaks BeforeSuite.** The in-process manager binds `:8080` (controller-runtime's default metrics address; the operator binary's `--metrics-addr` defaults to the same, `cmd/controller/main.go:118`). A leftover `make run`, `make webhook` or `cert-controller` — or another agent's task sharing the host — makes `k8sManager.Start` fail. Find it with `lsof -i:8080 -sTCP:LISTEN` and kill it before re-running.
+- **Interrupted runs leave orphan fixtures → `already exists` (409) on the next run.** `testCreateInitialData` (`internal/controller/suite_test.go:372`) seeds shared CRs and Secrets; a run killed mid-flight can leave a `MariaDB` (e.g. `mdb-test`) plus the Secrets it generated (`password`, SSEC, cert) behind, which the next run cannot re-create. Delete the leftover CR and Secrets, or delete and recreate the test namespace. Nuclear reset: `make cluster-delete && make cluster && make install && make install-minio && make net`.
+
+kubectl gotchas that burn cycles:
+
+- **Use the real CRD short names** — `mdb` (MariaDB), `emdb` (ExternalMariaDB), `mxs` (MaxScale), `pitr` (PointInTimeRecovery); also `umdb`, `gmdb`, `dmdb`, `bmdb`, `pbmdb`, `rmdb`, `smdb`, `cmdb`. `msx` and `ext` **do not exist**: `kubectl get mdb,msx,ext` errors on the bad name, and piping stderr to `/dev/null` hides it so it looks like "no CRs". Don't mask kubectl stderr while hunting for state.
+- **`make dump`** dumps CRs, pods, events and operator logs in one shot — the first stop when a spec is stuck.
+- **A wedged rejoin is not in the operator log.** `StartSlave` returns success while the replica SQL thread fails asynchronously, so a stuck switchover shows no operator-level error. The real signal is in the rejoining pod's `SHOW REPLICA STATUS` (`Last_Errno`/`Last_Error`), which the agent liveness probe reads (a failing probe restarts the pod and loops `Enabling readonly`). Compare `status.currentPrimary` against the expected ordinal to tell "switchover never happened" from "primary moved but the old primary won't rejoin".
+
 ## CI — what a PR must pass
 
 `.github/workflows/ci.yml` (docs/examples/markdown-only changes are skipped by a noop detector):

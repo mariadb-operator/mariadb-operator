@@ -57,7 +57,8 @@ var (
 
 	maxRetention time.Duration
 
-	compression string
+	compression        string
+	compressionThreads int
 )
 
 func init() {
@@ -97,7 +98,9 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&absPrefix, "abs-prefix", "", "ABS container prefix to use.")
 
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
-		"Compression algorithm: none, gzip or bzip2.")
+		"Compression algorithm: none, bzip2, gzip or zstd.")
+	RootCmd.PersistentFlags().IntVar(&compressionThreads, "compression-threads", 0,
+		"Number of CPU threads to use for zstd compression. Defaults to all available CPUs when set to 0.")
 
 	RootCmd.PersistentFlags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
 		"Directory path where the physical backup is located. Only considered when backup-content-type is Physical.")
@@ -270,7 +273,7 @@ func getBackupCompressor(processor backup.BackupProcessor) (mdbcompression.Backu
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mdbcompression.NewBackupCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
+	return mdbcompression.NewBackupCompressor(calg, compressionThreads, path, processor.GetUncompressedBackupFile, logger)
 }
 
 func readTargetFile() (string, error) {

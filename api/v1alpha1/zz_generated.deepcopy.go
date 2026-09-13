@@ -207,6 +207,11 @@ func (in *BackupSpec) DeepCopyInto(out *BackupSpec) {
 	in.JobPodTemplate.DeepCopyInto(&out.JobPodTemplate)
 	in.CronJobTemplate.DeepCopyInto(&out.CronJobTemplate)
 	out.MariaDBRef = in.MariaDBRef
+	if in.CompressionThreads != nil {
+		in, out := &in.CompressionThreads, &out.CompressionThreads
+		*out = new(int32)
+		**out = **in
+	}
 	if in.StagingStorage != nil {
 		in, out := &in.StagingStorage, &out.StagingStorage
 		*out = new(StagingStorage)
@@ -3690,6 +3695,11 @@ func (in *PhysicalBackupSpec) DeepCopyInto(out *PhysicalBackupSpec) {
 		*out = new(PhysicalBackupTarget)
 		**out = **in
 	}
+	if in.CompressionThreads != nil {
+		in, out := &in.CompressionThreads, &out.CompressionThreads
+		*out = new(int32)
+		**out = **in
+	}
 	if in.StagingStorage != nil {
 		in, out := &in.StagingStorage, &out.StagingStorage
 		*out = new(StagingStorage)
@@ -4036,6 +4046,11 @@ func (in *PointInTimeRecoverySpec) DeepCopyInto(out *PointInTimeRecoverySpec) {
 	*out = *in
 	out.PhysicalBackupRef = in.PhysicalBackupRef
 	in.PointInTimeRecoveryStorage.DeepCopyInto(&out.PointInTimeRecoveryStorage)
+	if in.CompressionThreads != nil {
+		in, out := &in.CompressionThreads, &out.CompressionThreads
+		*out = new(int32)
+		**out = **in
+	}
 	if in.ArchiveTimeout != nil {
 		in, out := &in.ArchiveTimeout, &out.ArchiveTimeout
 		*out = new(v1.Duration)
@@ -4437,6 +4452,11 @@ func (in *ReplicationSpec) DeepCopyInto(out *ReplicationSpec) {
 	if in.SemiSyncWaitPoint != nil {
 		in, out := &in.SemiSyncWaitPoint, &out.SemiSyncWaitPoint
 		*out = new(WaitPoint)
+		**out = **in
+	}
+	if in.SemiSyncWaitNoSlave != nil {
+		in, out := &in.SemiSyncWaitNoSlave, &out.SemiSyncWaitNoSlave
+		*out = new(bool)
 		**out = **in
 	}
 	if in.SyncBinlog != nil {

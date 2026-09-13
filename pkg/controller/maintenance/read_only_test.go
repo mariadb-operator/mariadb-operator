@@ -3,8 +3,10 @@ package maintenance
 import (
 	"testing"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
@@ -323,6 +325,116 @@ func TestGetReadOnlyDesiredPodState(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := r.getReadOnlyDesiredPodState(tt.mariadb)
 			assert.Equal(t, tt.expectedState, result, "ReadOnly state mismatch")
+		})
+	}
+}
+
+func TestShouldReconcileReadOnly(t *testing.T) {
+	maxScaleRef := &mariadbv1alpha1.ObjectReference{
+		Name: "maxscale",
+	}
+	readyCondition := func(status metav1.ConditionStatus, reason string) []metav1.Condition {
+		return []metav1.Condition{
+			{
+				Type:   mariadbv1alpha1.ConditionTypeReady,
+				Status: status,
+				Reason: reason,
+			},
+		}
+	}
+
+	tests := []struct {
+		name           string
+		mariadb        *mariadbv1alpha1.MariaDB
+		wantReconciled bool
+	}{
+		{
+			name: "MaxScale and ready",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MaxScaleRef: maxScaleRef,
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					Conditions: readyCondition(metav1.ConditionTrue, mariadbv1alpha1.ConditionReasonStatefulSetReady),
+				},
+			},
+			wantReconciled: true,
+		},
+		{
+			// The MaxScale failover runs in parallel with the MariaDB controller, so reconciling readonly
+			// while MaxScale is promoting a node could hang the failover. This guard must be preserved.
+			name: "MaxScale and not ready",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MaxScaleRef: maxScaleRef,
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					Conditions: readyCondition(metav1.ConditionFalse, mariadbv1alpha1.ConditionReasonStatefulSetNotReady),
+				},
+			},
+			wantReconciled: false,
+		},
+		{
+			name: "MaxScale and cordoned",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MaxScaleRef: maxScaleRef,
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					Conditions: readyCondition(metav1.ConditionFalse, mariadbv1alpha1.ConditionReasonCordoned),
+				},
+			},
+			wantReconciled: true,
+		},
+		{
+			name: "MaxScale without conditions",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MaxScaleRef: maxScaleRef,
+				},
+			},
+			wantReconciled: false,
+		},
+		{
+			name: "no MaxScale and ready",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					Conditions: readyCondition(metav1.ConditionTrue, mariadbv1alpha1.ConditionReasonStatefulSetReady),
+				},
+			},
+			wantReconciled: true,
+		},
+		{
+			// Without MaxScale there is no out of band actor to race with, and readonly must be reconciled
+			// so that a replica that is unable to become ready does not stay writable indefinitely.
+			name: "no MaxScale and not ready",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					Conditions: readyCondition(metav1.ConditionFalse, mariadbv1alpha1.ConditionReasonStatefulSetNotReady),
+				},
+			},
+			wantReconciled: true,
+		},
+		{
+			name: "no MaxScale and cordoned",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Status: mariadbv1alpha1.MariaDBStatus{
+					Conditions: readyCondition(metav1.ConditionFalse, mariadbv1alpha1.ConditionReasonCordoned),
+				},
+			},
+			wantReconciled: true,
+		},
+		{
+			name:           "no MaxScale without conditions",
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			wantReconciled: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := shouldReconcileReadOnly(tt.mariadb, logr.Discard())
+			assert.Equal(t, tt.wantReconciled, result, "ShouldReconcileReadOnly mismatch")
 		})
 	}
 }
