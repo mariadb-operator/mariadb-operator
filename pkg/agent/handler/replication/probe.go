@@ -72,11 +72,22 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 
 		replicaIORunning := ptr.Deref(status.SlaveIORunning, false)
 		if !replicaIORunning {
-			p.livenessLogger.Error(nil, "Replica IO thread not running",
-				"Last_IO_Errno", ptr.Deref(status.LastIOErrno, 0),
-				"Last_IO_Error", ptr.Deref(status.LastIOError, ""))
-			p.responseWriter.WriteErrorf(w, "Replica IO thread not running (Last_IO_Errno: %d)", ptr.Deref(status.LastIOErrno, 0))
-			return
+			// A stopped IO thread with no error (Last_IO_Errno == 0) is an administrative stop:
+			// the multi-cluster and cluster switchover flows stop replicas before reconfiguring GTIDs,
+			// a DBA running STOP SLAVE, maintenance, etc. Restarting the container does not remediate
+			// an intentional stop, it only disrupts whatever operation caused it, so this must not
+			// fail liveness. A stop accompanied by an error is a genuine replication failure and is
+			// still treated as fatal.
+			lastIOErrno := ptr.Deref(status.LastIOErrno, 0)
+			if lastIOErrno != 0 {
+				p.livenessLogger.Error(nil, "Replica IO thread not running",
+					"Last_IO_Errno", lastIOErrno,
+					"Last_IO_Error", ptr.Deref(status.LastIOError, ""),
+				)
+				p.responseWriter.WriteErrorf(w, "Replica IO thread not running (Last_IO_Errno: %d)", lastIOErrno)
+				return
+			}
+			p.livenessLogger.Info("Replica IO thread stopped without error, treating as administrative stop")
 		}
 		replicaSQLRunning := ptr.Deref(status.SlaveSQLRunning, false)
 		if !replicaSQLRunning {
