@@ -738,6 +738,23 @@ func (c *Client) DisableReadOnly(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "read_only", "0")
 }
 
+// From docs: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/reset-master
+// 'This statement is for use only when the master is started for the first time and should never be used if any slaves are actively replicating from the binary log.'
+//
+// Otherwise the following error will be returned:
+// 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave or other RESET MASTER or binlog reader.
+// Check SHOW PROCESSLIST for \"Binlog Dump\" commands and use KILL to stop such readers\n\n'
+// MariaDB [(none)]> SHOW PROCESSLIST;
+// +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
+// | Id   | User | Host              | db   | Command     | Time | State                                                         | Info             | Progress |
+// +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
+// | 2602 | repl | 10.244.0.57:45688 | NULL | Binlog Dump |   28 | Master has sent all binlog to slave; waiting for more updates | NULL             |    0.000 |
+// | 2766 | root | localhost         | NULL | Query       |    0 | starting                                                      | SHOW PROCESSLIST |    0.000 |
+// +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
+func (c *Client) ResetMaster(ctx context.Context) error {
+	return c.Exec(ctx, "RESET MASTER;")
+}
+
 type ReplicationOpts struct {
 	ConnectionName string
 }
@@ -847,6 +864,21 @@ func (c *Client) SetBinlogState(ctx context.Context, binlogState string) error {
 		return errors.New("gtid_binlog_state must not be empty")
 	}
 	return c.Exec(ctx, fmt.Sprintf("SET @@global.gtid_binlog_state='%s';", binlogState))
+}
+
+func (c *Client) ResetBinlogState(ctx context.Context, binlogState string) error {
+	if err := c.ResetMaster(ctx); err != nil {
+		return fmt.Errorf("error resetting master: %v", err)
+	}
+	// Previous RESET MASTER is required. Otherwise this statement fails with:
+	// 'Error reconciling MultiCluster: error reconciling primary cluster GTIDs:
+	// error filtering primary gtid_binlog_state by domain: error resetting gtid_binlog_state
+	// in primary Pod: Error 1956 (HY000): This operation is not allowed if any GTID
+	// has been logged to the binary log. Run RESET MASTER first to erase the log'
+	if err := c.SetBinlogState(ctx, binlogState); err != nil {
+		return fmt.Errorf("error setting gtid_binlog_state: %v", err)
+	}
+	return nil
 }
 
 func (c *Client) GtidCurrentPos(ctx context.Context) (string, error) {

@@ -87,6 +87,7 @@ func (r *MariaDBReconciler) resetPrimaryReplicaConnection(ctx context.Context, m
 }
 
 // reconfigurePrimaryClusterGtids filters primary GTIDs based on its gtid_domain_id and sets up the replicas accordingly.
+// This step is reconciled by both replication primary clusters only.
 func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) error {
 	if !mdb.IsReplicationEnabled() {
@@ -97,6 +98,9 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 	clientSet := sql.NewClientSet(mdb, r.RefResolver)
 	defer clientSet.Close()
 	currentPrimaryPodIndex := *mdb.Status.CurrentPrimaryPodIndex
+
+	// TODO: stop all replicas before starting the process, so the RESET MASTER can succeed
+	// TODO: start all replicas in a defer statement to exit the function in the same state
 
 	podIndexes, err := mdb.OrderedPodIndexes()
 	if err != nil {
@@ -144,7 +148,18 @@ func (r *MariaDBReconciler) filterPrimaryBinlogByDomain(ctx context.Context, mdb
 		replication.FilterByDomain(binlogStateGtids, domainId)...,
 	)
 
-	if err := client.SetBinlogState(ctx, primaryGtids); err != nil {
+	// TODO: all replicas need to be stopped at this point, otherwise ResetBinlogState will return the following error
+	// 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave or other RESET MASTER or binlog reader.
+	// Check SHOW PROCESSLIST for \"Binlog Dump\" commands and use KILL to stop such readers\n\n'
+	// MariaDB [(none)]> SHOW PROCESSLIST;
+	// +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
+	// | Id   | User | Host              | db   | Command     | Time | State                                                         | Info             | Progress |
+	// +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
+	// | 2602 | repl | 10.244.0.57:45688 | NULL | Binlog Dump |   28 | Master has sent all binlog to slave; waiting for more updates | NULL             |    0.000 |
+	// | 2766 | root | localhost         | NULL | Query       |    0 | starting                                                      | SHOW PROCESSLIST |    0.000 |
+	// +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
+
+	if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
 		return fmt.Errorf("error resetting gtid_binlog_state in primary Pod: %v", err)
 	}
 	if err := replicationctrl.PauseGtidStrictMode(ctx, mdb, client, r.Client, logger.V(1)); err != nil {
@@ -173,15 +188,17 @@ func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, domai
 		replication.FilterByDomain(replicaGtids, domainId)...,
 	)
 
+	// TODO: skip, as this is done at the top level (reconfigurePrimaryClusterGtids)
 	if err := client.StopSlave(ctx); err != nil {
 		return fmt.Errorf("error stopping replica in replica Pod index %d: %v", podIndex, err)
 	}
-	if err := client.SetBinlogState(ctx, replicaGtid); err != nil {
+	if err := client.ResetBinlogState(ctx, replicaGtid); err != nil {
 		return fmt.Errorf("error resetting gtid_binlog_state in replica Pod index %d: %v", podIndex, err)
 	}
 	if err := client.SetGtidSlavePos(ctx, replicaGtid); err != nil {
 		return fmt.Errorf("error setting gtid_slave_pos in replica Pod index %d: %v", podIndex, err)
 	}
+	// TODO: skip, as this is done at the top level (reconfigurePrimaryClusterGtids)
 	if err := client.StartSlave(ctx); err != nil {
 		return fmt.Errorf("error starting replica in replica Pod index %d: %v", podIndex, err)
 	}
@@ -189,27 +206,28 @@ func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, domai
 }
 
 // reconfigureReplicaClusterGtids sets up primary replica based on its own gtid_binlog_pos and the one from the primary cluster.
+// This step is reconciled by both replication and Galera replica clusters.
 func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	if !mdb.IsReplicationEnabled() && !mdb.IsGaleraEnabled() {
 		return nil
 	}
 	logger.Info("Reconfiguring replica GTIDs")
 
-	primaryClient, err := sql.NewInternalClientWithPodIndex(ctx, mdb, r.RefResolver, *mdb.Status.CurrentPrimaryPodIndex)
+	primaryReplicaClient, err := sql.NewInternalClientWithPodIndex(ctx, mdb, r.RefResolver, *mdb.Status.CurrentPrimaryPodIndex)
 	if err != nil {
 		return fmt.Errorf("error getting primary client: %v", err)
 	}
-	defer primaryClient.Close()
+	defer primaryReplicaClient.Close()
 
-	rawBinlogPos, err := primaryClient.GtidBinlogPos(ctx)
+	replicaBinlogPos, err := primaryReplicaClient.GtidBinlogPos(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting gtid_binlog_pos: %v", err)
 	}
-	if rawBinlogPos == "" {
+	if replicaBinlogPos == "" {
 		logger.Info("gtid_binlog_pos is empty, skipping reconciliation...")
 		return nil
 	}
-	binlogPosGtids, err := replication.ParseAllGtids(rawBinlogPos)
+	replicaBinlogPosGtids, err := replication.ParseAllGtids(replicaBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error parsing gtid_binlog_pos GTIDs: %v", err)
 	}
@@ -220,15 +238,15 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	}
 	defer externalPrimaryClient.Close()
 
-	externalBinlogPos, err := externalPrimaryClient.GtidBinlogPos(ctx)
+	primaryBinlogPos, err := externalPrimaryClient.GtidBinlogPos(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting gtid_binlog_pos from external primary: %v", err)
 	}
-	if externalBinlogPos == "" {
+	if primaryBinlogPos == "" {
 		logger.Info("gtid_binlog_pos in external primary is empty, skipping reconciliation...")
 		return nil
 	}
-	externalGtids, err := replication.ParseAllGtids(externalBinlogPos)
+	primaryGtids, err := replication.ParseAllGtids(primaryBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error parsing external gtid_binlog_pos GTIDs: %v", err)
 	}
@@ -236,36 +254,36 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	// The domains of the primary cluster are only present in the primary replica once it has replicated from it.
 	// Unlike the replication topology, a Galera primary cluster keeps the domains of the replica clusters in its binary
 	// logs, hence all of them must be checked.
-	externalDomains := make([]uint32, len(externalGtids))
-	for i, gtid := range externalGtids {
-		externalDomains[i] = gtid.DomainID
+	primaryDomains := make([]uint32, len(primaryGtids))
+	for i, gtid := range primaryGtids {
+		primaryDomains[i] = gtid.DomainID
 	}
-	if len(replication.FilterByDomain(binlogPosGtids, externalDomains...)) == len(externalDomains) {
+	if len(replication.FilterByDomain(replicaBinlogPosGtids, primaryDomains...)) == len(primaryDomains) {
 		logger.Info(
 			"External domains found in primary replica GTID, skipping reconciliation...",
-			"domains", externalDomains,
-			"gtid", rawBinlogPos,
+			"domains", primaryDomains,
+			"gtid", replicaBinlogPos,
 		)
 		return nil
 	}
 
-	composedGtid, err := composeGtids(rawBinlogPos, externalBinlogPos)
+	composedGtid, err := composeReplicaClusterGTIDs(replicaBinlogPos, primaryBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error composing GTIDs: %v", err)
 	}
 
 	// The multi-cluster connection doesn't exist yet in a Galera cluster being demoted: it is configured by the Galera
 	// controller in the next reconciliation cycle, once the cluster switchover has been reconciled.
-	if err := primaryClient.StopSlave(
+	if err := primaryReplicaClient.StopSlave(
 		ctx,
 		sql.WithConnectionName(replicationctrl.MultiClusterReplicaConnectionName),
 	); err != nil && !sql.IsConnectionNotExists(err) {
 		return fmt.Errorf("error stopping primary replica: %v", err)
 	}
-	if err := primaryClient.SetGtidSlavePos(ctx, composedGtid); err != nil {
+	if err := primaryReplicaClient.SetGtidSlavePos(ctx, composedGtid); err != nil {
 		return fmt.Errorf("error setting gtid_slave_pos %s in primary replica: %v", composedGtid, err)
 	}
-	if err := primaryClient.StartSlave(
+	if err := primaryReplicaClient.StartSlave(
 		ctx,
 		sql.WithConnectionName(replicationctrl.MultiClusterReplicaConnectionName),
 	); err != nil && !sql.IsConnectionNotExists(err) {
@@ -320,23 +338,31 @@ func (r *MariaDBReconciler) shouldReconcileMultiCluster(ctx context.Context, mdb
 	return true, nil
 }
 
-// composeGtids merges the GTIDs of a replica cluster with the ones of its primary cluster by replication domain.
+// composeReplicaClusterGTIDs merges the GTIDs of a replica cluster with the ones of its primary cluster by replication domain.
 // The replica cluster GTIDs (local GTIDs) take precedence, for the following reasons:
 // - Multi-cluster switchover assumes the replica is synced at the time of doing the operation, maintenance mode is provided for achieving this.
 // - Replica cluster should never have more recent GTIDs than the primary cluster, writes are not allowed.
 // - Multi-cluster CHANGE MASTER statement uses gtid_slave_pos as initial offset.
-// In the following scenario:
-// - Replica cluster: 0-1-4
-// - Primary cluster: 0-1-7,0-10-3
-// The resulting GTID will be: 0-1-4,0-10-3. This preserves the replica position.
-func composeGtids(rawGtid, rawExternalGtid string) (string, error) {
-	externalGtids, err := replication.ParseAllGtids(rawExternalGtid)
+// Example scenarios:
+//
+// 1) Galera
+// Replica cluster: 0-1-4
+// Primary cluster: 0-1-7,0-10-3
+// Resulting replica cluster GTID: 0-1-4,0-10-3.
+//
+// TODO: complete GTIDs once this scenario works with 12.3
+// 2) Replication
+// Replica cluster:
+// Primary cluster:
+// Resulting replica cluster GTID:
+func composeReplicaClusterGTIDs(replicaGtid, primaryGtid string) (string, error) {
+	primaryGtids, err := replication.ParseAllGtids(primaryGtid)
 	if err != nil {
-		return "", fmt.Errorf("error parsing external GTID %s: %v", rawExternalGtid, err)
+		return "", fmt.Errorf("error parsing external GTID %s: %v", primaryGtid, err)
 	}
-	gtids, err := replication.ParseAllGtids(rawGtid)
+	replicaGtids, err := replication.ParseAllGtids(replicaGtid)
 	if err != nil {
-		return "", fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
+		return "", fmt.Errorf("error parsing GTID %s: %v", replicaGtid, err)
 	}
-	return replication.GtidsToString(replication.MergeByDomain(externalGtids, gtids)...), nil
+	return replication.GtidsToString(replication.MergeByDomain(primaryGtids, replicaGtids)...), nil
 }
