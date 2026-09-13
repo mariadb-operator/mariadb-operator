@@ -277,7 +277,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *Rec
 					mariadbv1alpha1.ReasonReplicationReplicaSourceFix,
 					"Replica '%d' is replicating from '%s' instead of the current primary. Reconnecting it", i, sourceHost)
 				topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("replica", i))
-				if err := topology.ConfigureReplica(ctx, replClient, currentPrimary, WithResetMaster(false)); err != nil {
+				if err := topology.ConfigureReplica(ctx, replClient, currentPrimary); err != nil {
 					return fmt.Errorf("error reconnecting replica '%d' to the current primary: %v", i, err)
 				}
 			}
