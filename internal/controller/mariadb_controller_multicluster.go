@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	replicationctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
@@ -106,35 +107,22 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 
 	// Stop all replicas before starting the process, so the RESET MASTER in filterPrimaryBinlogByDomain can succeed.
 	// Otherwise it returns 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave...'.
-	stoppedReplicaIndexes := make([]int, 0, len(podIndexes)-1)
+	// The defer is registered before stopping, so the replicas stopped by a partially failed stopReplicas are started again.
+	var stoppedReplicaIndexes []int
 	defer func() {
-		// Start all stopped replicas again to exit the function in the same state.
-		for _, i := range stoppedReplicaIndexes {
-			client, clientErr := clientSet.ClientForIndex(ctx, i)
-			if clientErr != nil {
-				logger.Error(clientErr, "Error getting client to start replica", "podIndex", i)
-				continue
-			}
-			if startErr := client.StartSlave(ctx); startErr != nil {
-				logger.Error(startErr, "Error starting replica", "podIndex", i)
-				if err == nil {
-					err = fmt.Errorf("error starting replica in Pod index %d: %v", i, startErr)
-				}
+		// Start the stopped replicas again to exit the function in the same state.
+		if startErr := startReplicas(ctx, clientSet, stoppedReplicaIndexes); startErr != nil {
+			logger.Error(startErr, "Error starting replicas")
+			// 'err' is the named return: assigning it here makes this function fail, so the multi-cluster switchover is
+			// not marked as completed in the status and it is retried in the next reconciliation.
+			if err == nil {
+				err = startErr
 			}
 		}
 	}()
-	for _, i := range podIndexes {
-		if i == currentPrimaryPodIndex {
-			continue
-		}
-		client, stopErr := clientSet.ClientForIndex(ctx, i)
-		if stopErr != nil {
-			return fmt.Errorf("error getting client for Pod index %d: %v", i, stopErr)
-		}
-		if stopErr := client.StopSlave(ctx); stopErr != nil {
-			return fmt.Errorf("error stopping replica in Pod index %d: %v", i, stopErr)
-		}
-		stoppedReplicaIndexes = append(stoppedReplicaIndexes, i)
+	stoppedReplicaIndexes, err = stopReplicas(ctx, clientSet, podIndexes, currentPrimaryPodIndex)
+	if err != nil {
+		return fmt.Errorf("error stopping replicas: %v", err)
 	}
 
 	// Stopping the replicas above does not close the master-side 'Binlog Dump' threads in time, so the RESET MASTER
@@ -170,6 +158,44 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 		}
 	}
 	return nil
+}
+
+// stopReplicas stops the replication in all the Pods but the current primary one. It returns the indexes of the Pods
+// where the replication was effectively stopped, also when an error is returned.
+func stopReplicas(ctx context.Context, clientSet *sql.ClientSet, podIndexes []int,
+	currentPrimaryPodIndex int) ([]int, error) {
+	var stoppedIndexes []int
+	for _, i := range podIndexes {
+		if i == currentPrimaryPodIndex {
+			continue
+		}
+		client, err := clientSet.ClientForIndex(ctx, i)
+		if err != nil {
+			return stoppedIndexes, fmt.Errorf("error getting client to stop replica in Pod index %d: %v", i, err)
+		}
+		if err := client.StopSlave(ctx); err != nil {
+			return stoppedIndexes, fmt.Errorf("error stopping replica in Pod index %d: %v", i, err)
+		}
+		stoppedIndexes = append(stoppedIndexes, i)
+	}
+	return stoppedIndexes, nil
+}
+
+// startReplicas starts the replication in the given Pod indexes. All the replicas are attempted to be started, so a
+// single unreachable Pod doesn't leave the remaining ones stopped. The errors found are aggregated and returned.
+func startReplicas(ctx context.Context, clientSet *sql.ClientSet, podIndexes []int) error {
+	var startErr *multierror.Error
+	for _, i := range podIndexes {
+		client, err := clientSet.ClientForIndex(ctx, i)
+		if err != nil {
+			startErr = multierror.Append(startErr, fmt.Errorf("error getting client to start replica in Pod index %d: %v", i, err))
+			continue
+		}
+		if err := client.StartSlave(ctx); err != nil {
+			startErr = multierror.Append(startErr, fmt.Errorf("error starting replica in Pod index %d: %v", i, err))
+		}
+	}
+	return startErr.ErrorOrNil()
 }
 
 // killBinlogDumpers kills all the 'Binlog Dump' threads in the given Pod, so a RESET MASTER can run unblocked.
