@@ -1,0 +1,14 @@
+{
+  "name": "mariadb-operator",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "user": "ubuntu",
+  "install": "./.cursor/install.sh",
+  "start": "sudo ./.cursor/start.sh",
+  "ports": [
+    { "name": "prometheus", "port": 9090 },
+    { "name": "grafana", "port": 3000 },
+    { "name": "minio-console", "port": 9001 }
+  ]
+}
