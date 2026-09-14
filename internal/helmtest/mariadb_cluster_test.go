@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -44,7 +45,9 @@ func TestClusterHelmMariaDB(t *testing.T) {
 		KubectlOptions: kubectlopts,
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/mariadb.yaml"})
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/mariadb.yaml"})
 	var mariadb v1alpha1.MariaDB
 	helm.UnmarshalK8SYaml(t, renderedData, &mariadb)
 
@@ -77,7 +80,9 @@ func TestClusterHelmMariaDBNoSecretKeyRefName(t *testing.T) {
 		KubectlOptions: kubectlopts,
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/mariadb.yaml"})
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/mariadb.yaml"})
 	var mariadb v1alpha1.MariaDB
 	helm.UnmarshalK8SYaml(t, renderedData, &mariadb)
 
@@ -119,7 +124,9 @@ func TestClusterHelmDatabase(t *testing.T) {
 		KubectlOptions: kubectlopts,
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/database.yaml"})
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/database.yaml"})
 	var database v1alpha1.Database
 	helm.UnmarshalK8SYaml(t, renderedData, &database)
 
@@ -136,7 +143,9 @@ func TestClusterHelmDatabase(t *testing.T) {
 	Expect(database.Spec.RetryInterval).To(Equal(retryIntervalDuration))
 
 	delete(opts.SetValues, "databases[0].name")
-	_, err := helm.RenderTemplateE(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/database.yaml"})
+	_, err := helm.RenderTemplateContextE(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/database.yaml"})
 	Expect(err).To(HaveOccurred())
 }
 
@@ -177,7 +186,9 @@ func TestClusterHelmUser(t *testing.T) {
 		KubectlOptions: kubectlopts,
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/user.yaml"})
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/user.yaml"})
 	var user v1alpha1.User
 	helm.UnmarshalK8SYaml(t, renderedData, &user)
 
@@ -196,7 +207,9 @@ func TestClusterHelmUser(t *testing.T) {
 	Expect(user.Spec.RetryInterval).To(Equal(retryIntervalDuration))
 
 	delete(opts.SetValues, "users[0].name")
-	_, err := helm.RenderTemplateE(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/user.yaml"})
+	_, err := helm.RenderTemplateContextE(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/user.yaml"})
 	Expect(err).To(HaveOccurred())
 }
 
@@ -242,7 +255,9 @@ func TestClusterHelmGrant(t *testing.T) {
 		KubectlOptions: kubectlopts,
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/grant.yaml"})
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/grant.yaml"})
 	var grant v1alpha1.Grant
 	helm.UnmarshalK8SYaml(t, renderedData, &grant)
 
@@ -263,7 +278,9 @@ func TestClusterHelmGrant(t *testing.T) {
 	Expect(grant.Spec.Table).To(Equal(table))
 
 	delete(opts.SetValues, "grants[0].name")
-	_, err := helm.RenderTemplateE(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/grant.yaml"})
+	_, err := helm.RenderTemplateContextE(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/grant.yaml"})
 	Expect(err).To(HaveOccurred())
 }
 
@@ -310,7 +327,9 @@ func TestClusterHelmBackup(t *testing.T) {
 		KubectlOptions: kubectlopts,
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/backup.yaml"})
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/backup.yaml"})
 	var backup v1alpha1.Backup
 	helm.UnmarshalK8SYaml(t, renderedData, &backup)
 
@@ -341,7 +360,9 @@ func TestClusterHelmBackup(t *testing.T) {
 	delete(opts.SetValues, "backups[0].storage.s3.secretAccessKeySecretKeyRef.key")
 	delete(opts.SetValues, "backups[0].storage.s3.secretAccessKeySecretKeyRef.name")
 
-	_, err := helm.RenderTemplateE(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/backup.yaml"})
+	_, err := helm.RenderTemplateContextE(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/backup.yaml"})
 	Expect(err).To(HaveOccurred())
 }
 
@@ -388,7 +409,9 @@ func TestClusterHelmPhysicalBackup(t *testing.T) {
 		KubectlOptions: kubectlopts,
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/physicalbackup.yaml"})
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/physicalbackup.yaml"})
 	var backup v1alpha1.Backup
 	helm.UnmarshalK8SYaml(t, renderedData, &backup)
 
@@ -419,7 +442,9 @@ func TestClusterHelmPhysicalBackup(t *testing.T) {
 	delete(opts.SetValues, "physicalBackups[0].storage.s3.secretAccessKeySecretKeyRef.key")
 	delete(opts.SetValues, "physicalBackups[0].storage.s3.secretAccessKeySecretKeyRef.name")
 
-	_, err := helm.RenderTemplateE(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/physicalbackup.yaml"})
+	_, err := helm.RenderTemplateContextE(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/physicalbackup.yaml"})
 	Expect(err).To(HaveOccurred())
 }
 
@@ -438,7 +463,9 @@ func TestClusterHelmExtraManifests(t *testing.T) {
 		KubectlOptions: kubectlopts,
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/resources.yaml"})
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/resources.yaml"})
 	var manifestSecret corev1.Secret
 	helm.UnmarshalK8SYaml(t, renderedData, &manifestSecret)
 
@@ -461,7 +488,9 @@ func TestClusterHelmExtraTemplates(t *testing.T) {
 		KubectlOptions: kubectlopts,
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/resources.yaml"})
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/resources.yaml"})
 	var templateSecret corev1.Secret
 	helm.UnmarshalK8SYaml(t, renderedData, &templateSecret)
 
