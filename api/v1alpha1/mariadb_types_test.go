@@ -2453,10 +2453,10 @@ var _ = Describe("MariaDBVolume conversion", func() {
 			VolumeSource: VolumeSource{
 				StorageVolumeSource: StorageVolumeSource{
 					EmptyDir: &EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory},
+					Ephemeral: &EphemeralVolumeSource{VolumeClaimTemplate: vctpl},
 				},
 				Secret: &SecretVolumeSource{SecretName: "s"},
 			},
-			Ephemeral: &EphemeralVolumeSource{VolumeClaimTemplate: vctpl},
 		}
 
 		got := src.ToKubernetesType()
