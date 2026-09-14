@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -31,7 +32,7 @@ func TestOperatorHelmExtraEnvFrom(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -70,7 +71,7 @@ func TestOperatorHelmCurrentNamespaceOnly(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -117,7 +118,7 @@ func TestOperatorHelmClusterWide(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -254,7 +255,7 @@ func TestOperatorHelmHaEnabled(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -278,7 +279,9 @@ func TestOperatorHelmPDBEnabled(t *testing.T) {
 			Namespace: operatorTestNamespace,
 		},
 	}
-	pdbData := helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/pdb.yaml"})
+	pdbData := helm.RenderTemplateContext(t, context.Background(), opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/pdb.yaml"})
 	var pdb policyv1.PodDisruptionBudget
 	helm.UnmarshalK8SYaml(t, pdbData, &pdb)
 	maxUnavailable := pdb.Spec.MaxUnavailable.IntValue()
@@ -293,7 +296,9 @@ func TestOperatorHelmPDBEnabled(t *testing.T) {
 			Namespace: operatorTestNamespace,
 		},
 	}
-	pdbData = helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/pdb.yaml"})
+	pdbData = helm.RenderTemplateContext(t, context.Background(), opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/pdb.yaml"})
 	helm.UnmarshalK8SYaml(t, pdbData, &pdb)
 	maxUnavailablePercent := pdb.Spec.MaxUnavailable.String()
 	Expect(maxUnavailablePercent).To(Equal("50%"))
@@ -321,12 +326,12 @@ func TestOperatorHelmPDBEnabled(t *testing.T) {
 
 func testOperatorHelmTemplates(t *testing.T, opts *helm.Options, expectedTemplates, unexpectedTemplates []string) {
 	for _, tpl := range expectedTemplates {
-		_, err := helm.RenderTemplateE(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{tpl})
+		_, err := helm.RenderTemplateContextE(t, context.Background(), opts, operatorHelmChartPath, operatorHelmReleaseName, []string{tpl})
 		Expect(err).ToNot(HaveOccurred())
 	}
 
 	for _, tpl := range unexpectedTemplates {
-		_, err := helm.RenderTemplateE(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{tpl})
+		_, err := helm.RenderTemplateContextE(t, context.Background(), opts, operatorHelmChartPath, operatorHelmReleaseName, []string{tpl})
 		Expect(err).To(HaveOccurred())
 	}
 }
@@ -346,7 +351,7 @@ func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 		},
 	}
 
-	renderedData := helm.RenderTemplate(t, opts,
+	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -363,7 +368,9 @@ func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 		},
 	}
 
-	renderedData = helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/deployment.yaml"})
+	renderedData = helm.RenderTemplateContext(t, context.Background(), opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
 	helm.UnmarshalK8SYaml(t, renderedData, &deployment)
 
 	container = deployment.Spec.Template.Spec.Containers[0]
@@ -392,7 +399,7 @@ func TestOperatorHelmConfigMap(t *testing.T) {
 			"config.exporterMaxscaleImage.tag":        "1.0",
 		},
 	}
-	configMapData := helm.RenderTemplate(t, opts,
+	configMapData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/configmap.yaml"})
 	var configMap corev1.ConfigMap
@@ -420,7 +427,7 @@ func TestOperatorHelmPprof(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -445,7 +452,7 @@ func TestOperatorHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -465,7 +472,7 @@ func TestOperatorHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData = helm.RenderTemplate(t, opts,
+	deploymentData = helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
@@ -487,7 +494,7 @@ func TestOperatorHelmStrategy(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -510,7 +517,7 @@ func TestWebhookHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/webhook/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -531,7 +538,7 @@ func TestWebhookHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData = helm.RenderTemplate(t, opts,
+	deploymentData = helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/webhook/deployment.yaml"})
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
@@ -552,7 +559,7 @@ func TestWebhookHelmStrategy(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/webhook/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -572,7 +579,7 @@ func TestCertControllerHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/cert-controller/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -593,7 +600,7 @@ func TestCertControllerHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData = helm.RenderTemplate(t, opts,
+	deploymentData = helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/cert-controller/deployment.yaml"})
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
@@ -616,7 +623,7 @@ func TestCertControllerHelmStrategy(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts,
+	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/cert-controller/deployment.yaml"})
 	var deployment appsv1.Deployment
