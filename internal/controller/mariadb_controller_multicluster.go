@@ -160,65 +160,6 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 	return nil
 }
 
-// stopReplicas stops the replication in all the Pods but the current primary one. It returns the indexes of the Pods
-// where the replication was effectively stopped, also when an error is returned.
-func stopReplicas(ctx context.Context, clientSet *sql.ClientSet, podIndexes []int,
-	currentPrimaryPodIndex int) ([]int, error) {
-	var stoppedIndexes []int
-	for _, i := range podIndexes {
-		if i == currentPrimaryPodIndex {
-			continue
-		}
-		client, err := clientSet.ClientForIndex(ctx, i)
-		if err != nil {
-			return stoppedIndexes, fmt.Errorf("error getting client to stop replica in Pod index %d: %v", i, err)
-		}
-		if err := client.StopSlave(ctx); err != nil {
-			return stoppedIndexes, fmt.Errorf("error stopping replica in Pod index %d: %v", i, err)
-		}
-		stoppedIndexes = append(stoppedIndexes, i)
-	}
-	return stoppedIndexes, nil
-}
-
-// startReplicas starts the replication in the given Pod indexes. All the replicas are attempted to be started, so a
-// single unreachable Pod doesn't leave the remaining ones stopped. The errors found are aggregated and returned.
-func startReplicas(ctx context.Context, clientSet *sql.ClientSet, podIndexes []int) error {
-	var startErr *multierror.Error
-	for _, i := range podIndexes {
-		client, err := clientSet.ClientForIndex(ctx, i)
-		if err != nil {
-			startErr = multierror.Append(startErr, fmt.Errorf("error getting client to start replica in Pod index %d: %v", i, err))
-			continue
-		}
-		if err := client.StartSlave(ctx); err != nil {
-			startErr = multierror.Append(startErr, fmt.Errorf("error starting replica in Pod index %d: %v", i, err))
-		}
-	}
-	return startErr.ErrorOrNil()
-}
-
-// killBinlogDumpers kills all the 'Binlog Dump' threads in the given Pod, so a RESET MASTER can run unblocked.
-// Ref: 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave or other
-// RESET MASTER or binlog reader. Check SHOW PROCESSLIST for "Binlog Dump" commands and use KILL to stop such
-// readers'.
-func killBinlogDumpers(ctx context.Context, client *sql.Client, podIndex int) error {
-	processes, err := client.GetProcessList(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting process list in Pod index %d: %v", podIndex, err)
-	}
-	for _, process := range processes {
-		if process.Command != "Binlog Dump" && process.Command != "Binlog Dump GTID" {
-			continue
-		}
-		if err := client.SoftKillProcess(ctx, process); err != nil {
-			return fmt.Errorf("error killing %s process %d in Pod index %d: %v", process.Command, process.ID, podIndex,
-				err)
-		}
-	}
-	return nil
-}
-
 func (r *MariaDBReconciler) filterPrimaryBinlogByDomain(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, domainId uint32,
 	client *sql.Client, logger logr.Logger) error {
 	rawBinlogState, err := client.GtidBinlogState(ctx)
@@ -408,6 +349,65 @@ func (r *MariaDBReconciler) shouldReconcileMultiCluster(ctx context.Context, mdb
 		}
 	}
 	return true, nil
+}
+
+// stopReplicas stops the replication in all the Pods but the current primary one. It returns the indexes of the Pods
+// where the replication was effectively stopped, also when an error is returned.
+func stopReplicas(ctx context.Context, clientSet *sql.ClientSet, podIndexes []int,
+	currentPrimaryPodIndex int) ([]int, error) {
+	var stoppedIndexes []int
+	for _, i := range podIndexes {
+		if i == currentPrimaryPodIndex {
+			continue
+		}
+		client, err := clientSet.ClientForIndex(ctx, i)
+		if err != nil {
+			return stoppedIndexes, fmt.Errorf("error getting client to stop replica in Pod index %d: %v", i, err)
+		}
+		if err := client.StopSlave(ctx); err != nil {
+			return stoppedIndexes, fmt.Errorf("error stopping replica in Pod index %d: %v", i, err)
+		}
+		stoppedIndexes = append(stoppedIndexes, i)
+	}
+	return stoppedIndexes, nil
+}
+
+// startReplicas starts the replication in the given Pod indexes. All the replicas are attempted to be started, so a
+// single unreachable Pod doesn't leave the remaining ones stopped. The errors found are aggregated and returned.
+func startReplicas(ctx context.Context, clientSet *sql.ClientSet, podIndexes []int) error {
+	var startErr *multierror.Error
+	for _, i := range podIndexes {
+		client, err := clientSet.ClientForIndex(ctx, i)
+		if err != nil {
+			startErr = multierror.Append(startErr, fmt.Errorf("error getting client to start replica in Pod index %d: %v", i, err))
+			continue
+		}
+		if err := client.StartSlave(ctx); err != nil {
+			startErr = multierror.Append(startErr, fmt.Errorf("error starting replica in Pod index %d: %v", i, err))
+		}
+	}
+	return startErr.ErrorOrNil()
+}
+
+// killBinlogDumpers kills all the 'Binlog Dump' threads in the given Pod, so a RESET MASTER can run unblocked.
+// Ref: 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave or other
+// RESET MASTER or binlog reader. Check SHOW PROCESSLIST for "Binlog Dump" commands and use KILL to stop such
+// readers'.
+func killBinlogDumpers(ctx context.Context, client *sql.Client, podIndex int) error {
+	processes, err := client.GetProcessList(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting process list in Pod index %d: %v", podIndex, err)
+	}
+	for _, process := range processes {
+		if process.Command != "Binlog Dump" && process.Command != "Binlog Dump GTID" {
+			continue
+		}
+		if err := client.SoftKillProcess(ctx, process); err != nil {
+			return fmt.Errorf("error killing %s process %d in Pod index %d: %v", process.Command, process.ID, podIndex,
+				err)
+		}
+	}
+	return nil
 }
 
 // composeReplicaClusterGTIDs merges the GTIDs of a replica cluster with the ones of its primary cluster by replication domain.
