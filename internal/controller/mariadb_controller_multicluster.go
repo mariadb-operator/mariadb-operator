@@ -422,11 +422,10 @@ func killBinlogDumpers(ctx context.Context, client *sql.Client, podIndex int) er
 // Primary cluster: 0-1-7,0-10-3
 // Resulting replica cluster GTID: 0-1-4,0-10-3.
 //
-// TODO: complete GTIDs once this scenario works with 12.3
 // 2) Replication
-// Replica cluster:
-// Primary cluster:
-// Resulting replica cluster GTID:
+// Replica cluster: 0-10-6
+// Primary cluster: 1-20-4
+// Resulting replica cluster GTID: 0-10-6,1-20-4
 func composeReplicaClusterGTIDs(replicaGtid, primaryGtid string) (string, error) {
 	primaryGtids, err := replication.ParseAllGtids(primaryGtid)
 	if err != nil {

@@ -744,6 +744,7 @@ func (c *Client) DisableReadOnly(ctx context.Context) error {
 // Otherwise the following error will be returned:
 // 'Error 4243 (HY000): Cannot execute RESET MASTER as the binlog is in use by a connected slave or other RESET MASTER or binlog reader.
 // Check SHOW PROCESSLIST for \"Binlog Dump\" commands and use KILL to stop such readers\n\n'
+//
 // MariaDB [(none)]> SHOW PROCESSLIST;
 // +------+------+-------------------+------+-------------+------+---------------------------------------------------------------+------------------+----------+
 // | Id   | User | Host              | db   | Command     | Time | State                                                         | Info             | Progress |
