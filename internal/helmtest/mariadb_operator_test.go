@@ -21,6 +21,7 @@ var (
 
 func TestOperatorHelmExtraEnvFrom(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		// see https://helm.sh/docs/intro/using_helm/#the-format-and-limitations-of---set
 		SetValues: map[string]string{
@@ -32,7 +33,7 @@ func TestOperatorHelmExtraEnvFrom(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -62,6 +63,7 @@ func TestOperatorHelmExtraEnvFrom(t *testing.T) {
 
 func TestOperatorHelmCurrentNamespaceOnly(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"currentNamespaceOnly": `true`,
@@ -71,7 +73,7 @@ func TestOperatorHelmCurrentNamespaceOnly(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -103,11 +105,12 @@ func TestOperatorHelmCurrentNamespaceOnly(t *testing.T) {
 		"templates/webhook/serviceaccount.yaml",
 		"templates/webhook/servicemonitor.yaml",
 	}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, unexpectedTemplates)
 }
 
 func TestOperatorHelmClusterWide(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"webhook.cert.certManager.enabled": `true`,
@@ -118,7 +121,7 @@ func TestOperatorHelmClusterWide(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -145,11 +148,12 @@ func TestOperatorHelmClusterWide(t *testing.T) {
 	unexpectedTemplates := []string{
 		"templates/operator/rbac-namespace.yaml",
 	}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, unexpectedTemplates)
 }
 
 func TestOperatorHelmCertManager(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"webhook.cert.certManager.enabled": `true`,
@@ -164,11 +168,12 @@ func TestOperatorHelmCertManager(t *testing.T) {
 		"templates/cert-controller/rbac.yaml",
 		"templates/cert-controller/serviceaccount.yaml",
 	}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, unexpectedTemplates)
 }
 
 func TestOperatorHelmMetrics(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"metrics.enabled": `true`,
@@ -179,11 +184,12 @@ func TestOperatorHelmMetrics(t *testing.T) {
 		"templates/cert-controller/servicemonitor.yaml",
 		"templates/webhook/servicemonitor.yaml",
 	}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, nil)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, nil)
 }
 
 func TestOperatorHelmWebhook(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"webhook.enabled": `true`,
@@ -196,7 +202,7 @@ func TestOperatorHelmWebhook(t *testing.T) {
 		"templates/webhook/serviceaccount.yaml",
 	}
 	unexpectedTemplates := []string{}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, unexpectedTemplates)
 
 	opts = &helm.Options{
 		SetValues: map[string]string{
@@ -211,11 +217,12 @@ func TestOperatorHelmWebhook(t *testing.T) {
 		"templates/webhook/serviceaccount.yaml",
 		"templates/webhook/pdb.yaml",
 	}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, unexpectedTemplates)
 }
 
 func TestOperatorHelmCertController(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"certController.enabled": `true`,
@@ -227,7 +234,7 @@ func TestOperatorHelmCertController(t *testing.T) {
 		"templates/cert-controller/serviceaccount.yaml",
 	}
 	unexpectedTemplates := []string{}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, unexpectedTemplates)
 
 	opts = &helm.Options{
 		SetValues: map[string]string{
@@ -241,11 +248,12 @@ func TestOperatorHelmCertController(t *testing.T) {
 		"templates/cert-controller/serviceaccount.yaml",
 		"templates/cert-controller/pdb.yaml",
 	}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, unexpectedTemplates)
 }
 
 func TestOperatorHelmHaEnabled(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"ha.enabled": `true`,
@@ -255,7 +263,7 @@ func TestOperatorHelmHaEnabled(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -271,6 +279,7 @@ func TestOperatorHelmHaEnabled(t *testing.T) {
 
 func TestOperatorHelmPDBEnabled(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"pdb.enabled": `true`,
@@ -279,7 +288,7 @@ func TestOperatorHelmPDBEnabled(t *testing.T) {
 			Namespace: operatorTestNamespace,
 		},
 	}
-	pdbData := helm.RenderTemplateContext(t, context.Background(), opts,
+	pdbData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/pdb.yaml"})
 	var pdb policyv1.PodDisruptionBudget
@@ -296,7 +305,7 @@ func TestOperatorHelmPDBEnabled(t *testing.T) {
 			Namespace: operatorTestNamespace,
 		},
 	}
-	pdbData = helm.RenderTemplateContext(t, context.Background(), opts,
+	pdbData = helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/pdb.yaml"})
 	helm.UnmarshalK8SYaml(t, pdbData, &pdb)
@@ -307,7 +316,7 @@ func TestOperatorHelmPDBEnabled(t *testing.T) {
 		"templates/operator/pdb.yaml",
 	}
 	unexpectedTemplates := []string{}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, unexpectedTemplates)
 
 	opts = &helm.Options{
 		SetValues: map[string]string{
@@ -321,23 +330,24 @@ func TestOperatorHelmPDBEnabled(t *testing.T) {
 	unexpectedTemplates = []string{
 		"templates/operator/pdb.yaml",
 	}
-	testOperatorHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+	testOperatorHelmTemplates(t, testCtx, opts, expectedTemplates, unexpectedTemplates)
 }
 
-func testOperatorHelmTemplates(t *testing.T, opts *helm.Options, expectedTemplates, unexpectedTemplates []string) {
+func testOperatorHelmTemplates(t *testing.T, testCtx context.Context, opts *helm.Options, expectedTemplates, unexpectedTemplates []string) {
 	for _, tpl := range expectedTemplates {
-		_, err := helm.RenderTemplateContextE(t, context.Background(), opts, operatorHelmChartPath, operatorHelmReleaseName, []string{tpl})
+		_, err := helm.RenderTemplateContextE(t, testCtx, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{tpl})
 		Expect(err).ToNot(HaveOccurred())
 	}
 
 	for _, tpl := range unexpectedTemplates {
-		_, err := helm.RenderTemplateContextE(t, context.Background(), opts, operatorHelmChartPath, operatorHelmReleaseName, []string{tpl})
+		_, err := helm.RenderTemplateContextE(t, testCtx, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{tpl})
 		Expect(err).To(HaveOccurred())
 	}
 }
 
 func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 
 	repository := "ghcr.io/mariadb-operator/mariadb-operator"
 	tag := "v1.0.0"
@@ -351,7 +361,7 @@ func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 		},
 	}
 
-	renderedData := helm.RenderTemplateContext(t, context.Background(), opts,
+	renderedData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -368,7 +378,7 @@ func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 		},
 	}
 
-	renderedData = helm.RenderTemplateContext(t, context.Background(), opts,
+	renderedData = helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	helm.UnmarshalK8SYaml(t, renderedData, &deployment)
@@ -380,6 +390,7 @@ func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 
 func TestOperatorHelmConfigMap(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	repository := "ghcr.io/mariadb-operator/mariadb-operator"
 	tag := "v1.0.0"
 	opts := &helm.Options{
@@ -399,7 +410,7 @@ func TestOperatorHelmConfigMap(t *testing.T) {
 			"config.exporterMaxscaleImage.tag":        "1.0",
 		},
 	}
-	configMapData := helm.RenderTemplateContext(t, context.Background(), opts,
+	configMapData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/configmap.yaml"})
 	var configMap corev1.ConfigMap
@@ -417,6 +428,7 @@ func TestOperatorHelmConfigMap(t *testing.T) {
 
 func TestOperatorHelmPprof(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"pprof.enabled": `true`,
@@ -427,7 +439,7 @@ func TestOperatorHelmPprof(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -446,13 +458,14 @@ func TestOperatorHelmPprof(t *testing.T) {
 
 func TestOperatorHelmRevisionHistoryLimit(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		KubectlOptions: &k8s.KubectlOptions{
 			Namespace: operatorTestNamespace,
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -472,7 +485,7 @@ func TestOperatorHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData = helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData = helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
@@ -483,6 +496,7 @@ func TestOperatorHelmRevisionHistoryLimit(t *testing.T) {
 
 func TestOperatorHelmStrategy(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"strategy.type":                         "RollingUpdate",
@@ -494,7 +508,7 @@ func TestOperatorHelmStrategy(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -508,6 +522,7 @@ func TestOperatorHelmStrategy(t *testing.T) {
 
 func TestWebhookHelmRevisionHistoryLimit(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"webhook.enabled": `true`,
@@ -517,7 +532,7 @@ func TestWebhookHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/webhook/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -538,7 +553,7 @@ func TestWebhookHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData = helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData = helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/webhook/deployment.yaml"})
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
@@ -549,6 +564,7 @@ func TestWebhookHelmRevisionHistoryLimit(t *testing.T) {
 
 func TestWebhookHelmStrategy(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"webhook.enabled":       `true`,
@@ -559,7 +575,7 @@ func TestWebhookHelmStrategy(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/webhook/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -570,6 +586,7 @@ func TestWebhookHelmStrategy(t *testing.T) {
 
 func TestCertControllerHelmRevisionHistoryLimit(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"certController.enabled": `true`,
@@ -579,7 +596,7 @@ func TestCertControllerHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/cert-controller/deployment.yaml"})
 	var deployment appsv1.Deployment
@@ -600,7 +617,7 @@ func TestCertControllerHelmRevisionHistoryLimit(t *testing.T) {
 		},
 	}
 
-	deploymentData = helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData = helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/cert-controller/deployment.yaml"})
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
@@ -611,6 +628,7 @@ func TestCertControllerHelmRevisionHistoryLimit(t *testing.T) {
 
 func TestCertControllerHelmStrategy(t *testing.T) {
 	RegisterTestingT(t)
+	testCtx := t.Context()
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"certController.enabled":                               `true`,
@@ -623,7 +641,7 @@ func TestCertControllerHelmStrategy(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplateContext(t, context.Background(), opts,
+	deploymentData := helm.RenderTemplateContext(t, testCtx, opts,
 		operatorHelmChartPath, operatorHelmReleaseName,
 		[]string{"templates/cert-controller/deployment.yaml"})
 	var deployment appsv1.Deployment
