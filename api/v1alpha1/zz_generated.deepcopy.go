@@ -4459,6 +4459,11 @@ func (in *ReplicationSpec) DeepCopyInto(out *ReplicationSpec) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.SemiSyncBootAsReplica != nil {
+		in, out := &in.SemiSyncBootAsReplica, &out.SemiSyncBootAsReplica
+		*out = new(bool)
+		**out = **in
+	}
 	if in.SyncBinlog != nil {
 		in, out := &in.SyncBinlog, &out.SyncBinlog
 		*out = new(int)

@@ -108,6 +108,11 @@ buckets:
     purge: false
     versioning: false
     objectlocking: false
+  - name: test-semi-sync
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
 
 securityContext:
   enabled: false

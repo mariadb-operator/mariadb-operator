@@ -1033,6 +1033,18 @@ func (m *MariaDB) IsHAEnabled() bool {
 	return m.IsReplicationEnabled() || m.IsGaleraEnabled()
 }
 
+// IsSemiSyncEnabled indicates whether the MariaDB instance has semi-synchronous replication enabled.
+// Replication is checked first because 'Replication.IsSemiSyncEnabled' defaults to true on the zero value, so calling it
+// through 'ptr.Deref(m.Spec.Replication, Replication{})' reports true for an instance with no replication at all, a Galera
+// one for example.
+func (m *MariaDB) IsSemiSyncEnabled() bool {
+	if !m.IsReplicationEnabled() {
+		return false
+	}
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	return replication.IsSemiSyncEnabled()
+}
+
 // HasPendingHATopologyConfiguration indicates that an HA topology has been enabled, but not yet configured
 func (m *MariaDB) HasPendingHATopologyConfiguration() bool {
 	return (m.IsReplicationEnabled() && !m.HasConfiguredReplication()) ||

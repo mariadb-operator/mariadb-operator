@@ -700,7 +700,7 @@ func (c *Client) SystemVariable(ctx context.Context, variable string) (string, e
 
 	var val string
 	if err := row.Scan(&val); err != nil {
-		return "", nil
+		return "", err
 	}
 	return val, nil
 }
@@ -736,6 +736,20 @@ func (c *Client) EnableReadOnly(ctx context.Context) error {
 
 func (c *Client) DisableReadOnly(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "read_only", "0")
+}
+
+func (c *Client) IsSemiSyncMasterEnabled(ctx context.Context) (bool, error) {
+	return c.IsSystemVariableEnabled(ctx, "rpl_semi_sync_master_enabled")
+}
+
+func (c *Client) EnableSemiSyncMaster(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "rpl_semi_sync_master_enabled", "1")
+}
+
+// DisableSemiSyncMaster disables primary-side semi-synchronous replication. Besides preventing further waits, it also
+// releases the threads that are currently waiting for an acknowledgement.
+func (c *Client) DisableSemiSyncMaster(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "rpl_semi_sync_master_enabled", "0")
 }
 
 // From docs: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/reset-master
