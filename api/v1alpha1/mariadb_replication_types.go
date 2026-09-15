@@ -284,15 +284,27 @@ type ReplicationSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SemiSyncWaitPoint *WaitPoint `json:"semiSyncWaitPoint,omitempty"`
 	// SemiSyncWaitNoSlave determines whether the primary waits for the semi-synchronous ACK timeout to expire when it has
-	// no semi-synchronous replicas connected. Since the operator configures every node as a semi-synchronous primary, replicas
-	// with log_slave_updates enabled also hit this wait when applying transactions. Disabling it makes them fall back to
-	// asynchronous commit immediately instead of stalling for the whole semiSyncAckTimeout.
+	// no semi-synchronous replicas connected. Disabling it makes it fall back to asynchronous commit immediately instead of
+	// stalling for the whole semiSyncAckTimeout.
 	// It requires semi-synchronous replication to be enabled.
 	// It is enabled by default by the server.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_no_slave
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SemiSyncWaitNoSlave *bool `json:"semiSyncWaitNoSlave,omitempty"`
+	// SemiSyncBootAsReplica determines whether a node boots read-only and with primary-side semi-synchronous replication
+	// disabled, so that it is never writable while it is unable to require a replica acknowledgement.
+	// Both read_only and rpl_semi_sync_master_enabled are dynamic global variables that do not survive a restart, so setting
+	// this to true renders them as ON and OFF respectively in the configuration file. The operator then enables
+	// primary-side semi-synchronous replication in the current primary and hands write traffic back to it, in this order.
+	// Setting it to false renders rpl_semi_sync_master_enabled=ON and omits read_only, so every node boots as a writable
+	// semi-synchronous primary.
+	// See: https://mariadb.com/docs/maxscale/mariadb-maxscale-tutorials/failure-tolerant-replication-and-failover#enable-semi-synchronous-replication
+	// It requires semi-synchronous replication to be enabled.
+	// It is disabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	SemiSyncBootAsReplica *bool `json:"semiSyncBootAsReplica,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
 	// +optional
@@ -321,6 +333,12 @@ func (r *Replication) IsGtidStrictModeEnabled() bool {
 // IsSemiSyncEnabled determines whether semi-synchronous replication is enabled.
 func (r *Replication) IsSemiSyncEnabled() bool {
 	return ptr.Deref(r.SemiSyncEnabled, true)
+}
+
+// IsSemiSyncBootAsReplicaEnabled determines whether nodes boot read-only and with primary-side semi-synchronous
+// replication disabled.
+func (r *Replication) IsSemiSyncBootAsReplicaEnabled() bool {
+	return r.IsSemiSyncEnabled() && ptr.Deref(r.SemiSyncBootAsReplica, false)
 }
 
 // Validate determines whether replication config is valid.
