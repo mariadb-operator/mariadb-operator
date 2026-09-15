@@ -461,7 +461,7 @@ func TestClusterHelmExtraManifests(t *testing.T) {
 	manifestSecretName := "extra-manifest-secret"
 
 	opts := &helm.Options{
-		SetJsonValues: map[string]string{
+		SetJSONValues: map[string]string{
 			"extraManifests[0]": fmt.Sprintf(
 				`{"apiVersion":"v1","kind":"Secret","metadata":{"name":"%s"},"data":{"secret":"cGFzc3dvcmQ="}}`,
 				manifestSecretName,
@@ -488,7 +488,7 @@ func TestClusterHelmExtraTemplates(t *testing.T) {
 	templateSecretName := fmt.Sprintf("%s-extra-template-secret", clusterHelmReleaseName)
 
 	opts := &helm.Options{
-		SetJsonValues: map[string]string{
+		SetJSONValues: map[string]string{
 			"extraTemplates[0]": `"apiVersion: v1\nkind: Secret\n` +
 				`metadata:\n  name: {{ .Release.Name }}-extra-template-secret\n` +
 				`data:\n  secret: cGFzc3dvcmQ="`,

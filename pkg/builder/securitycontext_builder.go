@@ -65,3 +65,18 @@ func (b *Builder) buildPodSecurityContextWithUserGroup(podSecurityContext *maria
 		FSGroup:      &group,
 	}, nil
 }
+
+// inheritMariadbSELinuxOptions makes a Job that co-mounts the MariaDB data volume
+// (e.g. a PhysicalBackup Job) share the SELinux context of the MariaDB Pod.
+//
+// An SELinux context explicitly configured on the Job's own PodSecurityContext
+// takes precedence and is left untouched.
+func inheritMariadbSELinuxOptions(securityContext *corev1.PodSecurityContext, mariadb *mariadbv1alpha1.MariaDB) {
+	if securityContext == nil || securityContext.SELinuxOptions != nil {
+		return
+	}
+	if mariadb.Spec.PodSecurityContext == nil || mariadb.Spec.PodSecurityContext.SELinuxOptions == nil {
+		return
+	}
+	securityContext.SELinuxOptions = mariadb.Spec.PodSecurityContext.SELinuxOptions
+}

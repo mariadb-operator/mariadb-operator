@@ -16,7 +16,7 @@
   <tbody>
     <tr>
       <td>MariaDB Community Server</td>
-      <td><code>mariadb:11.8.8</code></td>
+      <td><code>mariadb:12.3.3</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
 	  <tr>
@@ -36,7 +36,7 @@
     </tr>
     <tr>
       <td>MariaDB Operator</td>
-	    <td><code>ghcr.io/mariadb-operator/mariadb-operator:26.6.0</code></td>
+	    <td><code>ghcr.io/mariadb-operator/mariadb-operator:26.10.0</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
   </tbody>

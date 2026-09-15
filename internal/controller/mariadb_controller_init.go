@@ -151,7 +151,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 
 	// Requeue to track replication status
 	if mariadb.IsReplicationEnabled() {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 	}
 	return ctrl.Result{}, nil
 }

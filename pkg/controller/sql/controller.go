@@ -161,7 +161,7 @@ func (r *SqlReconciler) retryResult(ctx context.Context, resource Resource, err 
 		if r.LogSql {
 			log.FromContext(ctx).V(1).Info("Error reconciling SQL resource", "err", err)
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 	}
 	return ctrl.Result{}, nil
 }
@@ -169,7 +169,7 @@ func (r *SqlReconciler) retryResult(ctx context.Context, resource Resource, err 
 func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource, err error) (ctrl.Result, error) {
 	if err != nil {
 		log.FromContext(ctx).V(1).Info("Error reconciling SQL resource", "err", err)
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 	}
 	if resource.RequeueInterval() != nil {
 		requeueInterval := r.addRequeueIntervalOffset(resource.RequeueInterval().Duration)

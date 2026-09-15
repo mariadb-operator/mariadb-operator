@@ -189,6 +189,13 @@ func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, 
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 	}
+	if req.mariadb.IsMultiClusterSwitchoverPending() {
+		// The MariaDB controller reconciles the GTIDs of a cluster being demoted to replica cluster in the multi-cluster phase,
+		// which is only reached when this phase doesn't requeue. Configuring the primary replica before that results in
+		// replication being unable to start, as the primary replica has no replication position to resume from.
+		logger.V(1).Info("Ongoing cluster switchover detected. Skipping Galera multi-cluster reconciliation...")
+		return ctrl.Result{}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -321,10 +328,6 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 		WithChangeMasterOpts(
 			sql.WithChangeMasterGtid(changeMasterGtid),
 		),
-	}
-	// avoid deleting binary logs during archival to prevent drifting from object storage
-	if req.mariadb.IsPointInTimeRecoveryEnabled() {
-		replicaOpts = append(replicaOpts, WithResetMaster(false))
 	}
 	return replicaOpts, nil
 }

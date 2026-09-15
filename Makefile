@@ -14,7 +14,7 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-VERSION ?= 26.6.1-dev
+VERSION ?= 26.10.0
 
 # mariadb-operator
 IMG_NAME ?= ghcr.io/mariadb-operator/mariadb-operator
@@ -22,10 +22,10 @@ IMG ?= $(IMG_NAME):$(VERSION)
 
 # mariadb
 RELATED_IMAGE_MARIADB_NAME ?= mariadb
-RELATED_IMAGE_MARIADB_VERSION ?= 11.8.8
-# RELATED_IMAGE_MARIADB_VERSION ?= 11.8.8-ubi
+RELATED_IMAGE_MARIADB_VERSION ?= 12.3.3
+# RELATED_IMAGE_MARIADB_VERSION ?= 12.3.3-ubi
 RELATED_IMAGE_MARIADB ?= $(RELATED_IMAGE_MARIADB_NAME):$(RELATED_IMAGE_MARIADB_VERSION)
-MARIADB_DEFAULT_VERSION ?= 11.8
+MARIADB_DEFAULT_VERSION ?= 12.3
 MARIADB_GALERA_LIB_PATH ?= /usr/lib/galera/libgalera_smm.so
 # MARIADB_GALERA_LIB_PATH ?= /usr/lib64/galera/libgalera_smm.so
 
