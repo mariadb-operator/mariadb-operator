@@ -251,10 +251,26 @@ func TestBootstrapValidate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "zero uuid",
+			bootstrap: Bootstrap{
+				UUID:  ZeroUUID,
+				Seqno: 1,
+			},
+			wantErr: true,
+		},
+		{
 			name: "seqno",
 			bootstrap: Bootstrap{
 				UUID:  "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "zero seqno",
+			bootstrap: Bootstrap{
+				UUID:  "05f061bd-02a3-11ee-857c-aa370ff6666b",
+				Seqno: 0,
 			},
 			wantErr: false,
 		},
@@ -264,7 +280,7 @@ func TestBootstrapValidate(t *testing.T) {
 				UUID:  "05f061bd-02a3-11ee-857c-aa370ff6666b",
 				Seqno: -1,
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 
