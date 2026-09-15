@@ -98,6 +98,14 @@ The operator continuously monitors the replication status via [`SHOW SLAVE STATU
 
 By default, [semi-synchronous replication](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication) is configured, which requires an acknowledgement from at least one replica before committing the transaction back to the client. This trades off performance for better consistency and facilitates [failover](#primary-failover) and [switchover](#primary-switchover) operations.
 
+Primary-side semi-synchronous replication (`rpl_semi_sync_master_enabled`) is only enabled in the current primary: the operator turns it on when a node is promoted, and turns it off when a node is demoted to replica. Replicas keep `rpl_semi_sync_slave_enabled` on, so they acknowledge as usual and can be promoted at any point. This avoids a node with no replicas connected to it behaving as a semi-synchronous primary, which with `rpl_semi_sync_master_wait_no_slave=ON` would make every statement it writes to its own binary log wait for an acknowledgement that can never arrive, for the whole [`semiSyncAckTimeout`](#configuration).
+
+`rpl_semi_sync_master_enabled` is a dynamic global variable that does not survive a restart, and by default the configuration file renders it as `ON`. A node therefore boots as a writable semi-synchronous primary, and the operator disables it in the replicas once it reconciles them. Until then, a node with no replicas connected to it waits for an acknowledgement that cannot arrive on every statement it writes to its own binary log.
+
+Setting [`semiSyncBootAsReplica`](#configuration) to `true` closes that window: `rpl_semi_sync_master_enabled` is rendered as `OFF` and `read_only` as `ON`, so a node boots read-only and unarmed, and it is made writable only once the operator has enabled semi-synchronous replication on it. The operator connects as root, which holds `READ ONLY ADMIN`, so it can still configure a read-only node.
+
+A consequence of `semiSyncBootAsReplica` worth planning for: if the operator is unable to reconcile a cluster, a restarted primary stays read-only instead of coming back writable. This is deliberate, since the alternative is a primary accepting writes it cannot guarantee, but it does mean the operator has to be healthy for a primary to recover from a restart. This is why the option is disabled by default.
+
 If you are aiming for better performance, you can disable semi-synchronous replication, and go fully asynchronous, please refer to [configuration](#asynchronous-replication) section for doing so.
 
 ## Configuration
@@ -117,6 +125,7 @@ spec:
     semiSyncEnabled: true
     semiSyncAckTimeout: 10s
     semiSyncWaitPoint: AfterCommit
+    semiSyncBootAsReplica: false
     syncBinlog: 1
     standaloneProbes: false
 ```
@@ -125,6 +134,7 @@ spec:
 - `semiSyncEnabled`: Determines whether semi-synchronous replication should be enabled. It is enabled by default. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication).
 - `semiSyncAckTimeout`: ACK timeout for the replicas to acknowledge transactions to the primary. It requires semi-synchronous replication. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout).
 - `semiSyncWaitPoint`: Determines whether the transaction should wait for an ACK after having synced the binlog (`AfterSync`) or after having committed to the storage engine (`AfterCommit`, the default). It requires semi-synchronous replication. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_point).
+- `semiSyncBootAsReplica`: Determines whether a node boots read-only and with primary-side semi-synchronous replication disabled, so that it is never writable while it is unable to require a replica acknowledgement. It is disabled by default, in which case a node boots as a writable semi-synchronous primary. It requires semi-synchronous replication. See [asynchronous vs semi-synchronous replication](#asynchronous-vs-semi-synchronous-replication).
 - `syncBinlog`: Number of events after which the binary log is synchronized to disk. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog).
 - `standaloneProbes`: Determines whether to use regular non-HA startup and liveness probes. It is disabled by default.
 

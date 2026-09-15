@@ -47,12 +47,19 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting server ID: %v", err)
 	}
+	semiSyncBootAsReplica, err := env.ReplSemiSyncBootAsReplica()
+	if err != nil {
+		return nil, fmt.Errorf("error getting semi-sync boot as replica: %v", err)
+	}
 	syncBinlog, err := env.ReplSyncBinlog()
 	if err != nil {
 		return nil, fmt.Errorf("error getting master sync binlog: %v", err)
 	}
 
-	// To facilitate switchover/failover and avoid clashing with MaxScale, this configuration allows any Pod to act either as a primary or a replica.
+	// To facilitate switchover/failover and avoid clashing with MaxScale, this configuration allows any Pod to act either as a primary or a replica:
+	// replica-side semi-sync is enabled everywhere, so any node can acknowledge without reconfiguration.
+	// Primary-side semi-sync is not persisted here, 'reconcileSemiSync' converges it to the role of each Pod, so a Pod always boots
+	// unarmed when 'semiSyncBootAsReplica' is enabled.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#enabling-semisynchronous-replication
 	tpl := createTpl("replication", `[mariadb]
 log_bin
@@ -64,7 +71,12 @@ gtid_strict_mode
 gtid_domain_id={{ . }}
 {{- end }}
 {{- if .SemiSyncEnabled }}
+{{- if .SemiSyncBootAsReplica }}
+read_only=ON
+rpl_semi_sync_master_enabled=OFF
+{{- else }}
 rpl_semi_sync_master_enabled=ON
+{{- end }}
 rpl_semi_sync_slave_enabled=ON
 {{- with .SemiSyncMasterTimeout }}
 rpl_semi_sync_master_timeout={{ . }}
@@ -90,6 +102,7 @@ sync_binlog={{ . }}
 		SemiSyncMasterTimeout     *int64
 		SemiSyncMasterWaitPoint   string
 		SemiSyncMasterWaitNoSlave string
+		SemiSyncBootAsReplica     bool
 		SyncBinlog                *int
 		ServerID                  int
 	}{
@@ -100,6 +113,7 @@ sync_binlog={{ . }}
 		SemiSyncMasterTimeout:     semiSyncMasterTimeout,
 		SemiSyncMasterWaitPoint:   env.MariaDBReplSemiSyncMasterWaitPoint,
 		SemiSyncMasterWaitNoSlave: onOff(semiSyncMasterWaitNoSlave),
+		SemiSyncBootAsReplica:     semiSyncBootAsReplica,
 		ServerID:                  serverID,
 		SyncBinlog:                syncBinlog,
 	})
