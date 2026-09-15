@@ -157,6 +157,12 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 			return result, err
 		}
 	}
+	// After the Pods have been configured, so the primary is only armed once the replicas are able to acknowledge it. Exiting the
+	// loop above early skips this, which is safe by construction: the same non-zero result short-circuits the MariaDB phase loop,
+	// so the Maintenance phase does not hand write traffic back either. The node stays unarmed and read_only together.
+	if err := r.reconcileSemiSync(ctx, req, *req.mariadb.Status.CurrentPrimaryPodIndex, logger); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync: %w", err)
+	}
 	if !req.mariadb.HasConfiguredReplication() {
 		if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetReplicationConfigured(status)

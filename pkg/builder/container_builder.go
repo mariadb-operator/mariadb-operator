@@ -613,6 +613,13 @@ func mariadbReplEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 				Value: strconv.FormatBool(*replication.SemiSyncWaitNoSlave),
 			})
 		}
+		// Only emitted when enabled, so that the Pod template of existing clusters is left untouched.
+		if replication.IsSemiSyncBootAsReplicaEnabled() {
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_SEMI_SYNC_BOOT_AS_REPLICA",
+				Value: fmt.Sprint(true),
+			})
+		}
 	}
 	if replication.SyncBinlog != nil {
 		env = append(env, corev1.EnvVar{

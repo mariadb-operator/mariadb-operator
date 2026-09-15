@@ -153,9 +153,13 @@ func (r *singleClusterTopology) ConfigurePrimary(ctx context.Context, client *sq
 			r.logger.V(1).Info("Unable to reset gtid_slave_pos in the new primary", "err", err)
 		}
 	}
-	if err := client.DisableReadOnly(ctx); err != nil {
-		return fmt.Errorf("error disabling read_only: %v", err)
-	}
+	// read_only is not disabled here. A promotion may make a node more restricted, never less: handing write traffic back belongs to
+	// the Maintenance phase, the single owner of read_only, which runs right after this one. Doing it here would make the node
+	// writable before 'reconcileSemiSync' has armed it, and every write landing in that window would commit with no replica
+	// acknowledgement. 'reconcileSwitchover' is the one sequence that cannot wait for the Maintenance phase and disables it itself.
+	//
+	// The DDL below therefore runs against a read_only node, which works because the operator authenticates as root and read_only
+	// does not apply to a connection holding READ ONLY ADMIN.
 	if err := r.userSqlReconciler.reconcileReplUserSql(ctx, client); err != nil {
 		return fmt.Errorf("error reconciling replication user SQL: %v", err)
 	}
@@ -363,9 +367,6 @@ func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, clie
 		return fmt.Errorf("error resetting local slave: %v", err)
 	}
 
-	if err := client.DisableReadOnly(ctx); err != nil {
-		return fmt.Errorf("error disabling read_only: %v", err)
-	}
 	if err := m.userSqlReconciler.reconcileReplUserSql(ctx, client); err != nil {
 		return fmt.Errorf("error reconciling replication user SQL: %v", err)
 	}

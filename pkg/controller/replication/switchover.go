@@ -93,6 +93,14 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 			name:      "Change primary to replica",
 			reconcile: r.changePrimaryToReplica,
 		},
+		{
+			name:      "Reconcile semi-sync",
+			reconcile: r.reconcileSemiSyncSwitchover,
+		},
+		{
+			name:      "Disable read_only in new primary",
+			reconcile: r.disableNewPrimaryReadOnly,
+		},
 	}
 
 	for _, p := range phases {

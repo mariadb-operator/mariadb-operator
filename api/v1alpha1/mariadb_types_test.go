@@ -2430,6 +2430,66 @@ var _ = Describe("MariaDB types", func() {
 			),
 		)
 	})
+
+	Describe("IsSemiSyncEnabled", func() {
+		DescribeTable("should determine whether semi-sync is enabled",
+			func(mdb *MariaDB, expected bool) {
+				Expect(mdb.IsSemiSyncEnabled()).To(Equal(expected))
+			},
+			Entry("no HA topology", &MariaDB{}, false),
+			// Replication.IsSemiSyncEnabled defaults to true on the zero value, so a Galera instance would report true
+			// if the replication check were skipped.
+			Entry(
+				"Galera",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"replication, semi-sync unset",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"replication, semi-sync disabled",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+							ReplicationSpec: ReplicationSpec{
+								SemiSyncEnabled: ptr.To(false),
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"replication disabled, semi-sync enabled",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							ReplicationSpec: ReplicationSpec{
+								SemiSyncEnabled: ptr.To(true),
+							},
+						},
+					},
+				},
+				false,
+			),
+		)
+	})
 })
 
 var _ = Describe("MariaDBVolume conversion", func() {
