@@ -284,7 +284,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 		}
 		// Requeue to track replication status
 		if mariadb.IsReplicationEnabled() {
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 		}
 	}
 

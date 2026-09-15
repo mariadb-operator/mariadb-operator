@@ -161,7 +161,7 @@ func specValue(obj client.Object) reflect.Value {
 }
 
 func isNilOrZero(val reflect.Value) bool {
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		return val.IsNil()
 	}
 	return val.IsZero()
