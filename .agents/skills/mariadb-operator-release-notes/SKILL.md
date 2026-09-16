@@ -58,16 +58,16 @@ order:
 
 **Preferred input: the release PR.** The user provides the release PR (titled `Release <version>`, head branch
 `release-<version>`, base `main`). Its body is the ordering and scope authority: it lists every PR in the
-release, typically grouped by merge status ("merged into main", "merged into this branch", "in review").
+release, typically grouped by where it merged ("merged into main", "merged into this branch").
 
 Fetch it with the GitHub MCP server:
 
 - `mcp__github-mariadb-operator__pull_request_read(method="get", owner="mariadb-operator",
   repo="mariadb-operator", pullNumber=<release-pr>)` → title, body, headRefName, baseRefName
 
-Parse the body into a list of PR links with their stated status. Respect explicit user directives verbatim, for
-example: "include #X even though it hasn't been merged yet" (document it, and flag in the PR body that it must
-merge before the release is cut) or "omit #Y for now" (drop it entirely — say so in the PR body).
+Parse the body into the list of PR links included in the release. By the time release notes are written, every
+listed PR is expected to be merged — re-check the release PR body for the current state rather than trusting a
+status that was recorded earlier in the conversation.
 
 **Fallback: no release PR provided.** Ask the user for the new version to release (e.g. `26.10.0`). Then infer
 the change set from git history:
@@ -85,12 +85,10 @@ merges, rebases), say so and list the commits you could not attribute to a PR.
 
 ## Step 1 — Read the included PRs
 
-For every PR in the release (excluding the ones the user told you to omit), fetch:
+For every PR in the release, fetch:
 
 - `mcp__github-mariadb-operator__pull_request_read(method="get", owner="mariadb-operator",
   repo="mariadb-operator", pullNumber=<n>)` → title, body, author, state
-- For a PR that is **not merged yet** and is still documented (e.g. new spec fields), fetch
-  `method="get_diff"` on the same PR and verify the field names against its actual changes.
 
 Classify each: **feature** (new capability, new spec field), **bugfix**, **improvement** (perf, tooling,
 CI), **docs**, or **toolchain** (dependency/tool bumps). Note the author — community contributors are thanked
@@ -163,10 +161,8 @@ Formatting rules (these are the review corrections — apply them up front):
 - Inline mentions of docs use **relative links** (`./replication.md`); "Refer to the ... docs" lines use
   **absolute `blob/main` links**.
 - New spec fields: verify the exact field name and enum values against `api/v1alpha1/` on the release branch
-  (or the PR diff when the PR is not merged yet) before writing them — wrong field names in release notes
-  ship to every reader.
+  before writing them — wrong field names in release notes ship to every reader.
 - A YAML example may accompany a headline feature, mirroring the style of the previous header.
-- Do not document omitted PRs; do flag (in the delivery PR body, not the notes) any documented-but-unmerged PR.
 
 ## Step 4 — Write the upgrade guide
 
@@ -221,15 +217,11 @@ the right form for its context, and the upgrade guide must be applicable to user
     head="feature-release-notes-<version>", base="release-<version>", body=...)`
 
   The PR body must include `Closes MDB-<issue-number>` linking the tracking issue when one exists, and it must
-  list the judgement calls: which PRs were included despite being unmerged, which were omitted, and the
-  reasoning behind the data-plane requirement.
+  state the reasoning behind the data-plane requirement.
 - Wait for human review before merging — never self-merge release docs.
 
 ## Gotchas
 
-- **The release notes can describe unmerged work.** That is normal for a draft docs PR: items are documented
-  while their PRs are still open against `release-<version>`. The docs must not ship before the code merges —
-  always flag it in the delivery PR body.
 - **The generated changelog already lists every PR.** If the user wants a PR mentioned, it belongs in the
   header's grouped sections; do not add a third changelog section to the header.
 - **Backport releases exist** (e.g. `release-26.6.1`). The "update to `<version>` from a version prior to
