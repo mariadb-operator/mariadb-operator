@@ -198,7 +198,6 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 		}
 	}
 
-	var expectedUUID string
 	for _, podKey := range podKeys {
 		if err := func() error {
 			podLogger := logger.WithValues("pod", podKey.Name)
@@ -218,26 +217,12 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 			}
 
 			if err := wait.PollWithMariaDB(syncCtx, mariadbKey, r.Client, podLogger, func(ctx context.Context) error {
-				if err := r.ensurePodSynced(ctx, mariadbKey, podKey, sqlClientSet, expectedUUID, podLogger); err != nil {
+				if err := r.ensurePodSynced(ctx, mariadbKey, podKey, sqlClientSet, podLogger); err != nil {
 					return fmt.Errorf("error ensuring Pod '%s' synced: %v", podKey.Name, err)
 				}
 				return nil
 			}); err != nil {
 				return fmt.Errorf("error restarting Pod '%s': %v", podKey.Name, err)
-			}
-
-			if podKey.Name == bootstrapPodKey.Name {
-				uuid, err := r.podClusterStateUUID(syncCtx, mariadbKey, podKey, sqlClientSet, podLogger)
-				if err != nil {
-					return fmt.Errorf("error getting cluster state UUID from bootstrap Pod '%s': %v", podKey.Name, err)
-				}
-				if src.bootstrap != nil && src.bootstrap.UUID != "" && src.bootstrap.UUID != galerarecovery.ZeroUUID &&
-					uuid != src.bootstrap.UUID {
-					return fmt.Errorf("bootstrap Pod '%s' cluster state UUID %s does not match recovery source UUID %s",
-						podKey.Name, uuid, src.bootstrap.UUID)
-				}
-				expectedUUID = uuid
-				podLogger.Info("Captured bootstrap cluster state UUID", "uuid", expectedUUID)
 			}
 			return nil
 		}(); err != nil {
@@ -578,7 +563,7 @@ func (r *GaleraReconciler) pollUntilPodHealthy(ctx context.Context, mariadbKey, 
 }
 
 func (r *GaleraReconciler) ensurePodSynced(ctx context.Context, mariadbKey, podKey types.NamespacedName, sqlClientSet *sql.ClientSet,
-	expectedUUID string, logger logr.Logger) error {
+	logger logr.Logger) error {
 	podIndex, err := statefulset.PodIndex(podKey.Name)
 	if err != nil {
 		return fmt.Errorf("error getting Pod index: %v", err)
@@ -592,7 +577,7 @@ func (r *GaleraReconciler) ensurePodSynced(ctx context.Context, mariadbKey, podK
 		if err != nil {
 			return fmt.Errorf("error getting SQL client: %v", err)
 		}
-		synced, err := isPodSynced(ctx, sqlClient, expectedUUID)
+		synced, err := galeraclient.IsPodSynced(ctx, sqlClient)
 		if err != nil {
 			return err
 		}
@@ -611,7 +596,7 @@ func (r *GaleraReconciler) ensurePodSynced(ctx context.Context, mariadbKey, podK
 	if err := r.pollUntilPodDeleted(ctx, mariadbKey, podKey, logger); err != nil {
 		return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
 	}
-	if err := r.pollUntilPodSynced(ctx, mariadbKey, podKey, sqlClientSet, expectedUUID, logger); err != nil {
+	if err := r.pollUntilPodSynced(ctx, mariadbKey, podKey, sqlClientSet, logger); err != nil {
 		return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", podKey.Name, err)
 	}
 	return nil
@@ -631,7 +616,7 @@ func (r *GaleraReconciler) pollUntilPodDeleted(ctx context.Context, mariadbKey, 
 }
 
 func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, mariadbKey, podKey types.NamespacedName,
-	sqlClientSet *sql.ClientSet, expectedUUID string, logger logr.Logger) error {
+	sqlClientSet *sql.ClientSet, logger logr.Logger) error {
 	return wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
 		if err := r.Get(ctx, podKey, &pod); err != nil {
@@ -647,7 +632,7 @@ func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, mariadbKey, p
 			return fmt.Errorf("error getting SQL client: %v", err)
 		}
 
-		synced, err := isPodSynced(ctx, sqlClient, expectedUUID)
+		synced, err := galeraclient.IsPodSynced(ctx, sqlClient)
 		if err != nil {
 			return fmt.Errorf("error checking Pod sync: %v", err)
 		}
@@ -656,40 +641,6 @@ func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, mariadbKey, p
 		}
 		return nil
 	})
-}
-
-func (r *GaleraReconciler) podClusterStateUUID(ctx context.Context, mariadbKey, podKey types.NamespacedName,
-	sqlClientSet *sql.ClientSet, logger logr.Logger) (string, error) {
-	podIndex, err := statefulset.PodIndex(podKey.Name)
-	if err != nil {
-		return "", fmt.Errorf("error getting Pod index: %v", err)
-	}
-	var uuid string
-	if err := wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
-		sqlClient, err := sqlClientSet.ClientForIndex(ctx, *podIndex, sql.WithTimeout(5*time.Second))
-		if err != nil {
-			return fmt.Errorf("error getting SQL client: %v", err)
-		}
-		current, err := sqlClient.GaleraClusterStateUUID(ctx)
-		if err != nil {
-			return fmt.Errorf("error getting cluster state UUID: %v", err)
-		}
-		if err := galeraclient.ValidateClusterStateUUID(current); err != nil {
-			return err
-		}
-		uuid = current
-		return nil
-	}); err != nil {
-		return "", err
-	}
-	return uuid, nil
-}
-
-func isPodSynced(ctx context.Context, sqlClient *sql.Client, expectedUUID string) (bool, error) {
-	if expectedUUID == "" {
-		return galeraclient.IsPodSynced(ctx, sqlClient)
-	}
-	return galeraclient.IsPodSyncedWithUUID(ctx, sqlClient, expectedUUID)
 }
 
 func (r *GaleraReconciler) getJobLogs(ctx context.Context, key types.NamespacedName) (string, error) {
