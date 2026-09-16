@@ -291,6 +291,54 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 			wantBool: true,
 		},
 		{
+			name: "only safe to bootstrap with empty positions",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 3,
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
+						State: map[string]*recovery.GaleraState{
+							"mariadb-galera-0": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: true,
+							},
+							"mariadb-galera-1": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: true,
+							},
+							"mariadb-galera-2": {
+								Version:         "2.1",
+								UUID:            "00000000-0000-0000-0000-000000000000",
+								Seqno:           -1,
+								SafeToBootstrap: true,
+							},
+						},
+						Recovered: map[string]*recovery.Bootstrap{
+							"mariadb-galera-0": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+							"mariadb-galera-1": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+							"mariadb-galera-2": {
+								UUID:  "00000000-0000-0000-0000-000000000000",
+								Seqno: -1,
+							},
+						},
+					},
+				},
+			},
+			wantBool: false,
+		},
+		{
 			name: "partial state",
 			mdb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,

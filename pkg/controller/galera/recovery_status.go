@@ -160,7 +160,7 @@ func (rs *recoveryStatus) isComplete(mdb *mariadbv1alpha1.MariaDB, logger logr.L
 		state := rs.inner.State[p]
 		recovered := rs.inner.Recovered[p]
 
-		if state != nil && state.SafeToBootstrap && validSeqno(state) && !shouldSkipRecoverer(state) {
+		if state != nil && state.SafeToBootstrap && validSeqno(state) {
 			return true
 		}
 		if shouldSkipRecoverer(recovered) {
@@ -210,11 +210,11 @@ func (rs *recoveryStatus) bootstrapSource(mdb *mariadbv1alpha1.MariaDB, forceBoo
 		recovered := rs.inner.Recovered[p]
 
 		if shouldSkipRecoverer(state) {
-			logger.Info("Skipping Pod while looking for a bootstrap source", "pod", p)
+			logger.Info("Skipping Pod state while looking for a bootstrap source", "pod", p)
 			continue
 		}
 		if shouldSkipRecoverer(recovered) {
-			logger.Info("Skipping Pod while looking for a bootstrap source", "pod", p)
+			logger.Info("Skipping Pod recovered state while looking for a bootstrap source", "pod", p)
 			continue
 		}
 		if validSeqno(state) && state.Compare(currentSource) >= 0 {
