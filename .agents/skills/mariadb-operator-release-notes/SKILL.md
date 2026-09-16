@@ -13,7 +13,7 @@ license: Apache-2.0
 metadata:
   author: mariadb-operator
   version: "1.0"
-compatibility: Requires GitHub API access (gh CLI or MCP tools) and the mariadb-operator repository checkout.
+compatibility: Requires the project-scoped GitHub MCP server (gh CLI as fallback) and the mariadb-operator repository checkout.
 allowed-tools: Read, Grep, Glob, Write, Edit, Bash(git:*), Bash(gh:*)
 ---
 
@@ -40,10 +40,12 @@ changelog**. Consequences:
 
 ## GitHub credentials
 
-Whenever this skill calls GitHub — fetching the release PR, its linked PRs, or opening the docs PR — pick the
-access method in this order, falling through only when the previous one is unavailable:
+All GitHub calls in the Step sections below use the **project-scoped GitHub MCP tools**
+(`mcp__github-mariadb-operator__*`). If the MCP server isn't connected, fall through the access methods in this
+order:
 
-1. **Project-scoped GitHub MCP tools** (names like `mcp__github-mariadb-operator__*`).
+1. **Project-scoped GitHub MCP tools** (names like `mcp__github-mariadb-operator__*`) — the default; the Step
+   sections are written against these.
 2. **`gh` CLI with the project-specific token**, if the MCP server isn't connected. Use
    `GITHUB_MARIADB_OPERATOR_TOKEN` explicitly (`GH_TOKEN="$GITHUB_MARIADB_OPERATOR_TOKEN" gh ...`) rather than
    the ambient `gh auth` session.
@@ -58,9 +60,10 @@ access method in this order, falling through only when the previous one is unava
 `release-<version>`, base `main`). Its body is the ordering and scope authority: it lists every PR in the
 release, typically grouped by merge status ("merged into main", "merged into this branch", "in review").
 
-```bash
-gh pr view <release-pr> --json title,body,headRefName,baseRefName
-```
+Fetch it with the GitHub MCP server:
+
+- `mcp__github-mariadb-operator__pull_request_read(method="get", owner="mariadb-operator",
+  repo="mariadb-operator", pullNumber=<release-pr>)` → title, body, headRefName, baseRefName
 
 Parse the body into a list of PR links with their stated status. Respect explicit user directives verbatim, for
 example: "include #X even though it hasn't been merged yet" (document it, and flag in the PR body that it must
@@ -84,9 +87,10 @@ merges, rebases), say so and list the commits you could not attribute to a PR.
 
 For every PR in the release (excluding the ones the user told you to omit), fetch:
 
-```bash
-gh pr view <n> --json title,body,author,state,mergedAt
-```
+- `mcp__github-mariadb-operator__pull_request_read(method="get", owner="mariadb-operator",
+  repo="mariadb-operator", pullNumber=<n>)` → title, body, author, state
+- For a PR that is **not merged yet** and is still documented (e.g. new spec fields), fetch
+  `method="get_diff"` on the same PR and verify the field names against its actual changes.
 
 Classify each: **feature** (new capability, new spec field), **bugfix**, **improvement** (perf, tooling,
 CI), **docs**, or **toolchain** (dependency/tool bumps). Note the author — community contributors are thanked
@@ -209,10 +213,16 @@ the right form for its context, and the upgrade guide must be applicable to user
 
 - Branch `feature-release-notes-<version>` from `release-<version>`.
 - Commit both files: "Add release notes and upgrade guide for <version>".
-- Push and open a PR **targeting `release-<version>`**. The PR body must include
-  `Closes MDB-<issue-number>` linking the tracking issue when one exists, and it must list the judgement calls:
-  which PRs were included despite being unmerged, which were omitted, and the reasoning behind the
-  data-plane requirement.
+- Push the branch (`git push origin feature-release-notes-<version>`), then open the PR **targeting
+  `release-<version>`** with the GitHub MCP server:
+
+  - `mcp__github-mariadb-operator__create_pull_request(owner="mariadb-operator",
+    repo="mariadb-operator", title="Add release notes and upgrade guide for <version>",
+    head="feature-release-notes-<version>", base="release-<version>", body=...)`
+
+  The PR body must include `Closes MDB-<issue-number>` linking the tracking issue when one exists, and it must
+  list the judgement calls: which PRs were included despite being unmerged, which were omitted, and the
+  reasoning behind the data-plane requirement.
 - Wait for human review before merging — never self-merge release docs.
 
 ## Gotchas
