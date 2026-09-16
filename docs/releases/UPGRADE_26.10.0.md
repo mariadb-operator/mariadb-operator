@@ -8,7 +8,7 @@ This guide illustrates, step by step, how to update to `26.10.0` from previous v
 > [!CAUTION]
 > When migrating `mariadb-operator-crds` to the [OCI-based installation](../helm.md#oci-based-installation), always use `helm upgrade` in-place. Running `helm uninstall` first will delete the CRDs and cascade-delete all CRs, causing downtime.
 
-- The [data-plane](../data_plane.md) must be updated to the `26.10.0` version. You must set `updateStrategy.autoUpdateDataPlane=true` in your `MariaDB` resources before updating the operator. Then, once updated, the operator will also be updating the data-plane based on its version:
+- The [data-plane](../data_plane.md) must be updated to the `26.10.0` version, as this release changes the [replication](../replication.md) configuration rendered by the init container (semi-synchronous state per role) and the replication liveness probe served by the agent. You must set `updateStrategy.autoUpdateDataPlane=true` in your `MariaDB` resources before updating the operator. Then, once updated, the operator will also be updating the data-plane based on its version:
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
@@ -45,3 +45,9 @@ spec:
 +   autoUpdateDataPlane: false
 -   autoUpdateDataPlane: true
 ```
+
+> [!NOTE]
+> __[replication]__ Once updated, the operator enforces `rpl_semi_sync_master_enabled` per role: enabled in the primary and disabled in the replicas. Previously it was enabled in every node. No action is required, this only applies when [semi-synchronous replication](../replication.md#asynchronous-vs-semi-synchronous-replication) is enabled (the default). Optionally, you may set `replication.semiSyncBootAsReplica=true` so nodes boot `read_only` and are never writable while unable to require a replica acknowledgement.
+
+> [!NOTE]
+> The default `mariadb` image is now `mariadb:12.3.3`. Existing `MariaDB` resources keep the image set in their spec, so updating the operator does not update your MariaDB servers: refer to the [updates docs](../updates.md) to upgrade them.
