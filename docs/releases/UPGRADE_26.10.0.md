@@ -1,6 +1,6 @@
 # 26.10 update guide
 
-This guide illustrates, step by step, how to update to `26.10.0` from previous versions. This guide only applies if you are updating from a version prior to `26.10.x`, otherwise you may upgrade directly (see [Helm](../helm.md#updates))
+This guide illustrates, step by step, how to update to `26.10.0` from previous versions. This guide only applies if you are updating from a version prior to `26.10.x`, otherwise you may upgrade directly (see [Helm](../helm.md#updates)).
 
 > [!TIP]
 > The [OCI-based installation](../helm.md#oci-based-installation) is recommended. To migrate an existing release, run `helm upgrade --install` with the same release but pointing to the `oci://` path. Refer to [this guide](https://www.securecodebox.io/blog/2024/06/28/helm-chart-oci-registry-migration/) and [this example PR](https://github.com/mmontes11/k8s-infrastructure/pull/73) for further information. 
@@ -50,4 +50,4 @@ spec:
 > __[replication]__ Once updated, the operator enforces `rpl_semi_sync_master_enabled` per role: enabled in the primary and disabled in the replicas. Previously it was enabled in every node. No action is required, this only applies when [semi-synchronous replication](../replication.md#asynchronous-vs-semi-synchronous-replication) is enabled (the default). Optionally, you may set `replication.semiSyncBootAsReplica=true` so nodes boot `read_only` and are never writable while unable to require a replica acknowledgement.
 
 > [!NOTE]
-> The default `mariadb` image is now `mariadb:12.3.3`. Existing `MariaDB` resources keep the image set in their spec, so updating the operator does not update your MariaDB servers: refer to the [updates docs](../updates.md) to upgrade them.
+> The default `mariadb` image is now `mariadb:12.3.3`. Existing `MariaDB` resources keep the image set in their spec, so updating the operator does not update your MariaDB servers: explicitely set `spec.image=mariadb:12.3.3` in the `MariaDB` CR to upgrade them.
