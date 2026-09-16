@@ -12,9 +12,9 @@ description: >
 license: Apache-2.0
 metadata:
   author: mariadb-operator
-  version: "1.0"
+  version: "1.1"
 compatibility: Requires the project-scoped GitHub MCP server (gh CLI as fallback) and the mariadb-operator repository checkout.
-allowed-tools: Read, Grep, Glob, Write, Edit, Bash(git:*), Bash(gh:*)
+allowed-tools: Read, Grep, Glob, Write, Edit, WebSearch, Bash(git:*), Bash(gh:*)
 ---
 
 # mariadb-operator Release Notes
@@ -41,16 +41,9 @@ changelog**. Consequences:
 ## GitHub credentials
 
 All GitHub calls in the Step sections below use the **project-scoped GitHub MCP tools**
-(`mcp__github-mariadb-operator__*`). If the MCP server isn't connected, fall through the access methods in this
-order:
-
-1. **Project-scoped GitHub MCP tools** (names like `mcp__github-mariadb-operator__*`) — the default; the Step
-   sections are written against these.
-2. **`gh` CLI with the project-specific token**, if the MCP server isn't connected. Use
-   `GITHUB_MARIADB_OPERATOR_TOKEN` explicitly (`GH_TOKEN="$GITHUB_MARIADB_OPERATOR_TOKEN" gh ...`) rather than
-   the ambient `gh auth` session.
-3. **Generic GitHub MCP tools** (`mcp__github__*`), if neither of the above is available.
-4. **`gh` CLI with default credentials** (plain `gh auth`) as a last resort.
+(`mcp__github-mariadb-operator__*`). If that server isn't connected, fall back in order: `gh` CLI with the
+project token (`GH_TOKEN="$GITHUB_MARIADB_OPERATOR_TOKEN" gh ...`, not the ambient `gh auth` session), then the
+generic `mcp__github__*` tools, then plain `gh auth`.
 
 ---
 
@@ -91,8 +84,11 @@ For every PR in the release, fetch:
   repo="mariadb-operator", pullNumber=<n>)` → title, body, author, state
 
 Classify each: **feature** (new capability, new spec field), **bugfix**, **improvement** (perf, tooling,
-CI), **docs**, or **toolchain** (dependency/tool bumps). Note the author — community contributors are thanked
-by name in the Community section.
+CI), **docs**, or **toolchain** (dependency/tool bumps).
+
+Record the **author** (`user.login`) and whether `head.repo` is a fork: a PR authored from a fork by someone
+who is not a maintainer is a community contribution and gets credited in the notes (Step 2). Also read the body
+for co-authors the PR itself credits — they get credited too.
 
 Then determine the **data-plane impact**, which decides the upgrade guide content:
 
@@ -122,6 +118,18 @@ Every item is one bullet naming the concrete change, why it matters, and a PR li
 `- Fixed X that could Y ([#1234](https://github.com/mariadb-operator/mariadb-operator/pull/1234))`.
 Stop at the change: one or two sentences, no forensics.
 
+Group by **what the reader experiences**, not by which PR shipped it: one PR can contribute bullets to two
+sections (e.g. a Galera fix plus a generic backup-args fix), and a section must not collect items that don't
+belong to its topic.
+
+**Credit community contributions inline**, following the convention of previous headers:
+
+- Headline feature driven by a contributor → a closing line in its section: `Kudos to @handle for driving this
+  feature end to end!`
+- Everything else → appended to the bullet's PR link: `([#1234](...), thanks @handle!)`.
+- Credit the PR author and any co-author the PR credits; never credit maintainers this way. Handles are taken
+  verbatim from `user.login` — a wrong handle notifies a stranger.
+
 ## Step 3 — Write the release notes header
 
 Write `docs/releases/RELEASE_<version>_HEADER.md.gotmpl`, following the most recent version's header as the
@@ -132,7 +140,7 @@ template (read `docs/releases/RELEASE_<previous>_HEADER.md.gotmpl` first). Struc
 
 <enthusiastic open-source intro; highlight any milestones the user provides, e.g. star count, Docker pulls —
 never invent numbers>
-<community contributions thank-you paragraph, as in previous releases>
+<community thank-you paragraph, pointing at the inline credits in the sections below>
 
 If you're upgrading from previous versions, __do not miss the [UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_<version>.md)__ for a smooth transition.
 
@@ -158,8 +166,9 @@ Formatting rules (these are the review corrections — apply them up front):
 
 - **Version forms differ by context**: the title link text is zero-padded (`26.10` for `26.10.0`), the
   `releases/tag/` link is not. Keep the two forms consistent with the previous release's header.
-- Inline mentions of docs use **relative links** (`./replication.md`); "Refer to the ... docs" lines use
-  **absolute `blob/main` links**.
+- **Every link in the header must be absolute** (`https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/<doc>.md`).
+  The header is rendered on the GitHub releases page, where relative links such as `./replication.md` resolve
+  against the release URL and 404. Anchors (`#section`) must exist in the target doc — grep its headings.
 - New spec fields: verify the exact field name and enum values against `api/v1alpha1/` on the release branch
   before writing them — wrong field names in release notes ship to every reader.
 - A YAML example may accompany a headline feature, mirroring the style of the previous header.
@@ -183,10 +192,12 @@ applies if you are updating from a version prior to `<zero-padded>x`, otherwise 
 - Consider reverting `updateStrategy.autoUpdateDataPlane` back to `false` (diff block)
 ```
 
-- Include the data-plane step when Step 1's data-plane check found changes; keep the previous guide's exact
-  wording otherwise.
-- Add release-specific `> [!CAUTION]` / `> [!TIP]` blocks only when the release contains a migration hazard
-  (breaking default change, deprecated mechanism, required data-plane feature).
+- Include the data-plane step when Step 1's data-plane check found changes, and state **why** in the same
+  sentence, naming the concrete data-plane change (init-container config rendering, agent behavior). Keep the
+  previous guide's exact wording otherwise.
+- Close with a `> [!NOTE]` per release-specific behavior change users must know about but need not act on —
+  a changed default (e.g. the default `mariadb` image), or reconciled server state that differs after the
+  update. Use `> [!CAUTION]` only for actual migration hazards (breaking change, deprecated mechanism).
 - Helm chart versions in commands are **not** padded (`--version 26.10.0`).
 
 ## Step 5 — Verify before pushing
@@ -198,12 +209,16 @@ ls docs/releases/RELEASE_<version>_HEADER.md.gotmpl docs/releases/UPGRADE_<versi
 # template variables and links are sane
 grep -n "{{ .ProjectName }}" docs/releases/RELEASE_<version>_HEADER.md.gotmpl
 grep -n "UPGRADE_<version>.md" docs/releases/RELEASE_<version>_HEADER.md.gotmpl
-# relative doc links resolve to real files in docs/
-grep -o '](\./[a-z_]*\.md' docs/releases/RELEASE_<version>_HEADER.md.gotmpl | sort -u
+# no relative doc links leaked into the header (must be empty)
+grep -n '](\.\?\./' docs/releases/RELEASE_<version>_HEADER.md.gotmpl
+# every PR of the release is cited exactly where expected
+grep -o 'pull/[0-9]*' docs/releases/RELEASE_<version>_HEADER.md.gotmpl | sort -u
 ```
 
-Re-read both files end to end: every PR link must be a PR from the release list, every version string must use
-the right form for its context, and the upgrade guide must be applicable to users of the previous release.
+Compare that last list against the release PR's list: every PR must appear, and nothing else may. Then re-read
+both files end to end: every version string in the right form for its context, every `@handle` matching the PR
+author, every field name matching `api/v1alpha1/`, and the upgrade guide applicable to users of the previous
+release.
 
 ## Step 6 — Deliver as a PR
 
@@ -228,3 +243,5 @@ the right form for its context, and the upgrade guide must be applicable to user
   `<major.minor>.x`" line must match the actual minor series of the release being documented.
 - **Never invent milestone numbers.** Stars, pulls, adopters: only what the user provided or that is verifiable
   on the repository/package pages at release time.
+- **Verify claims about upstream MariaDB** (LTS status, EOL dates, feature availability) against an
+  authoritative source before writing them — the release notes are the project's public voice.
