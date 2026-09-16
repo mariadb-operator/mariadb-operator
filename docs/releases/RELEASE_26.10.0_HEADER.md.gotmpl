@@ -1,6 +1,6 @@
 **`{{ .ProjectName }}` [26.10](https://github.com/mariadb-operator/mariadb-operator/releases/tag/26.10.0) is here!** 🦭
 
-First of all, we want to celebrate two amazing milestones that the community has helped us reach: `{{ .ProjectName }}` just crossed **1K stars on GitHub** 🌟 ([mariadb-operator](https://github.com/mariadb-operator/mariadb-operator)) and our **Docker image reached 10M pulls** 📦 ([mariadb-operator](https://github.com/mariadb-operator/mariadb-operator/pkgs/container/mariadb-operator)). This is a testament to the incredible adoption of the project, and we are thrilled to have you on board! If you haven't already, consider starring the repo and telling your peers about it!
+First of all, we want to celebrate two amazing milestones that the community has helped us reach: `{{ .ProjectName }}` just crossed **1K stars on GitHub** 🌟 ([mariadb-operator](https://github.com/mariadb-operator/mariadb-operator)) and our **Docker image reached 11M pulls** 📦 ([mariadb-operator](https://github.com/mariadb-operator/mariadb-operator/pkgs/container/mariadb-operator)). This is a testament to the incredible adoption of the project, and we are thrilled to have you on board! If you haven't already, consider starring the repo and telling your peers about it!
 
 Welcome to another release of `{{ .ProjectName }}`! This is a feature-packed one: we are introducing support for **MariaDB 12.3**✨, a series of **replication topology** enhancements, **ZSTD compression** for backups, and several **Galera** improvements.
 
@@ -10,7 +10,7 @@ If you're upgrading from previous versions, __do not miss the [UPGRADE GUIDE](ht
 
 ## MariaDB 12.3 support
 
-`{{ .ProjectName }}` now supports **MariaDB 12.3**, the latest long-term support (LTS) release of MariaDB. The default `mariadb` image used by the operator has been bumped to `mariadb:12.3.3`, so new clusters will run on it unless you pin a different image:
+`{{ .ProjectName }}` now supports **MariaDB 12.3**, the latest long-term support (LTS) release of MariaDB ([#1899](https://github.com/mariadb-operator/mariadb-operator/pull/1899)). The default `mariadb` image used by the operator has been bumped to `mariadb:12.3.3`, so new clusters will run on it unless you pin a different image:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -56,6 +56,7 @@ spec:
 
 - Logical backups of Galera clusters are now restorable. The dump excludes the Galera-managed `mysql.wsrep_*` system tables, which Galera recreates on bootstrap ([#1836](https://github.com/mariadb-operator/mariadb-operator/pull/1836)).
 - Repeatable `mariadb-dump` flags such as `--ignore-table` are no longer silently dropped when passed multiple times, and user-supplied `mariadb-backup` `--databases-exclude` values are now merged with the built-in ones instead of overriding them ([#1836](https://github.com/mariadb-operator/mariadb-operator/pull/1836)).
+- Recovery no longer bootstraps from a Pod with an empty state (null UUID, `seqno: -1`) just because it reports `safe_to_bootstrap: 1`, which could recreate an empty cluster and lose data. The bootstrap source is now selected by highest valid `seqno`, and a timed-out bootstrap keeps the recovered sequence numbers instead of discarding them ([#1816](https://github.com/mariadb-operator/mariadb-operator/pull/1816)).
 
 ## Bugfixes
 
