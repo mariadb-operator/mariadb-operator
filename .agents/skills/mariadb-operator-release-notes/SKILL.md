@@ -1,8 +1,7 @@
 ---
 name: mariadb-operator-release-notes
 description: >
-  Create the release notes and upgrade guide for a mariadb-operator release. Given the release PR (titled
-  "Release <version>", head branch `release-<version>`) whose body lists every PR included in the release, it
+  Create the release notes and upgrade guide for a mariadb-operator release. Given the release PR whose body lists every PR included in the release, it
   gathers each PR, groups the changes by relevance, and produces `docs/releases/RELEASE_<version>_HEADER.md.gotmpl`
   and `docs/releases/UPGRADE_<version>.md` in the format the previous releases use, then opens a PR targeting
   `release-<version>`. If no release PR is provided it asks for the new version and infers the changes from git
@@ -109,8 +108,8 @@ section lineup for this project — use only the ones that have content:
 
 - **MariaDB <X.Y> support** — new default server version, compatibility changes
 - **Replication topologies** — HA orchestration changes (switchovers, failovers, semi-sync, GTID handling, `read_only`)
-- **<New feature> compression** / **Backups** — backup/restore/PITR features
 - **Galera improvements** — clustering changes
+- **Backups** — backup/restore/PITR features
 - **Bugfixes** — user-visible fixes
 - **Improvements** — observability, docs, CI, toolchain
 
@@ -128,7 +127,7 @@ belong to its topic.
   feature end to end!`
 - Everything else → appended to the bullet's PR link: `([#1234](...), thanks @handle!)`.
 - Credit the PR author and any co-author the PR credits; never credit maintainers this way. Handles are taken
-  verbatim from `user.login` — a wrong handle notifies a stranger.
+  verbatim from `user.login`.
 
 ## Step 3 — Write the release notes header
 
@@ -231,8 +230,6 @@ release.
     repo="mariadb-operator", title="Add release notes and upgrade guide for <version>",
     head="feature-release-notes-<version>", base="release-<version>", body=...)`
 
-  The PR body must include `Closes MDB-<issue-number>` linking the tracking issue when one exists, and it must
-  state the reasoning behind the data-plane requirement.
 - Wait for human review before merging — never self-merge release docs.
 
 ## Gotchas
