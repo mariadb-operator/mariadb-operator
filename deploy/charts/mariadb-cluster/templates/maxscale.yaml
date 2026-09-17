@@ -13,5 +13,5 @@ spec:
     {{- if hasKey .Values.maxscale "waitForIt" }}
     waitForIt: {{ .Values.maxscale.waitForIt }}
     {{- end }}
-  {{- include "mariadb-cluster.omitKeys" (dict "object" .Values.maxscale "keys" (list "namespace" "mariaDbRef" "waitForIt") "nindent" 2) }}
+  {{- include "mariadb-cluster.omitKeys" (dict "object" .Values.maxscale "keys" (list "namespace" "mariaDbRef" "waitForIt" "enabled") "nindent" 2) }}
 {{- end }}

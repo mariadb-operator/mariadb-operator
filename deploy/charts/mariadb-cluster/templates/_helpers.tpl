@@ -67,7 +67,9 @@ Usage:
 {{- range .keys }}
   {{- $obj = unset $obj . }}
 {{- end }}
+{{- if $obj }}
 {{- toYaml $obj | nindent (.nindent | default 0) }}
+{{- end }}
 {{- end }}
 
 {{/*
