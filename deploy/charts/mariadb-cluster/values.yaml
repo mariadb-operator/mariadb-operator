@@ -15,6 +15,14 @@ mariadb:
   replicas: 3
   galera:
     enabled: true
+# -- MaxScale CR
+# The `.enabled` key is required.
+# The `.mariaDbRef` key will be ignored.
+# The `.namespace` key is allowed to override `.Release.Namespace`.
+# The `.waitForIt` key is allowed to override `.mariaDbRef.waitForIt` values (`true` by default).
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#maxscalespec
+maxscale:
+  enabled: false
 # -- The list of Database CRs.
 # The `.mariaDbRef` keys will be ignored.
 # The `.name` keys are required to generate distinct CR names.
@@ -129,7 +137,6 @@ extraManifests: []
   #     name: my-secret
   #   data:
   #     secret: cGFzc3dvcmQ=
-
 # -- Custom templated resources
 extraTemplates: []
   # - |
