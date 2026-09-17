@@ -294,7 +294,7 @@ func (r *CertReconciler) handleCAKeyPairResult(keyPair *pki.KeyPair, err error, 
 
 			if relatedObj := opts.relatedObject; relatedObj != nil {
 				r.recorder.Eventf(opts.relatedObject, nil, corev1.EventTypeWarning,
-					mariadbv1alpha1.SecretKeyNotFound, mariadbv1alpha1.ActionReconciling, msg)
+					mariadbv1alpha1.SecretKeyNotFound, mariadbv1alpha1.SecretKeyNotFound, msg)
 			}
 			return nil, errors.New(msg)
 		}

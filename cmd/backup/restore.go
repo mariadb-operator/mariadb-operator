@@ -138,5 +138,5 @@ func getBackupCompressorWithFile(fileName string, processor backup.BackupProcess
 	if err != nil {
 		return nil, fmt.Errorf("error parsing compression algorithm: %v", err)
 	}
-	return mdbcompression.NewBackupCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
+	return mdbcompression.NewBackupCompressor(calg, compressionThreads, path, processor.GetUncompressedBackupFile, logger)
 }

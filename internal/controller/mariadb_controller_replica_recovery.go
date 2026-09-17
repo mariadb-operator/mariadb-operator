@@ -109,7 +109,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, m
 			nil,
 			corev1.EventTypeWarning,
 			mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
-			mariadbv1alpha1.ActionReconciling,
+			mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
 			"Unable to recover replicas: replica datasource not found (replication.replica.bootstrapFrom is nil)",
 		)
 

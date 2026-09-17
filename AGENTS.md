@@ -77,9 +77,11 @@ mariadb-operator/
 ├── examples/                # Example manifests (incl. multi-cluster/) and Flux GitOps setup
 ├── hack/                    # Dev/CI scripts (install_*.sh, config/, manifests/)
 ├── make/                    # Modular Makefiles: build, deploy, deps, dev, docs, gen, helm, net, pki, azure
-├── test/e2e/                # E2E tests (Ginkgo) + test/utils/
+├── test/e2e/                # E2E tests (Ginkgo) + test/utils/ — do NOT add new E2E tests for now
 └── csi-driver-host-path/    # Vendored submodule — ignore
 ```
+
+**Ignore `.gitignore`d paths.** Anything listed in `.gitignore` (vendored, generated or transient dirs) is **not** part of this repository — do not index, read for context, or modify it; changes there are never committed.
 
 ## Makefile Targets
 
@@ -217,7 +219,7 @@ Validation-only admission webhooks (no defaulting webhooks — defaults are set 
 - **Status subresource**: patch status separately from spec, never mutate spec during status updates (see Status patching).
 - **Requeue with backoff**: return `ctrl.Result{RequeueAfter: ...}` for expected wait conditions. The SQL reconciler adds a random offset (`RequeueMaxOffset`) to spread requeues and avoid thundering herds — preserve that.
 - **Concurrency limits**: controllers set `controller.Options{MaxConcurrentReconciles: n}`; the heavy ones (MariaDB, MaxScale, PhysicalBackup) expose per-controller `--*-max-concurrent-reconciles` flags (default 10) in `cmd/controller/main.go`.
-- **Leader election**: available via `--leader-elect` but **disabled by default**; do not write logic that assumes a single active operator instance unless it is gated on it.
+- **Leader election**: only one instance reconciles at a time (single replica by default; enabling HA in the chart, `ha.enabled`, runs multiple replicas with `--leader-elect`, which guarantees a single leader), so don't guard against separate instances racing — but a controller still reconciles objects in parallel (`MaxConcurrentReconciles`), so keep reconcile logic idempotent and free of cross-object shared state.
 - **RBAC markers**: declare permissions with `//+kubebuilder:rbac:` markers next to the reconciler that needs them, then `make manifests`. Remember the manual promotion into the Helm chart (see Gotchas).
 
 ### Error handling
@@ -233,6 +235,27 @@ Validation-only admission webhooks (no defaulting webhooks — defaults are set 
 - Reserve `Info` for state changes an operator of the system cares about; use `logger.V(1).Info(...)` for debug-level detail.
 - Include CR identity (the logger from the reconcile context already carries name/namespace) rather than re-formatting it into the message.
 - **Never log passwords, tokens, certificates or SQL statements containing credentials.**
+
+### Events
+
+Surface user-visible state transitions as Kubernetes Events (visible in `kubectl describe` / `kubectl get events`), in addition to conditions and logs — they are the primary way operators observe what the reconciler did.
+
+- Controllers hold an `events.EventRecorder` (`k8s.io/client-go/tools/events`, not the legacy `record.EventRecorder`) in a `Recorder` field, obtained from the manager via `mgr.GetEventRecorder("<name>")` and wired per subsystem in `cmd/controller/main.go`. Sub-reconcilers (`pkg/controller/galera`, `replication`, `certificate`, `maintenance`) get one via constructor injection.
+- **Reason strings are centralized**: reason constants (`Reason*`) live in `api/v1alpha1/event_types.go` — reuse an existing constant or add one there; never inline a string literal. (`api/v1alpha1/event_actions.go` also defines `Action*` constants, but in practice the codebase passes the `Reason*` constant for the `action` parameter too, not an `Action*` constant.)
+- Emit with `Eventf(regarding, related, eventtype, reason, action, note, args...)`: pass `corev1.EventTypeNormal` / `corev1.EventTypeWarning` for the type, and the **same** `Reason*` constant for **both** `reason` and `action` (this is the established convention across the codebase). Never put secrets in the note (same rule as Logging). For example:
+
+  ```go
+  r.recorder.Eventf(
+      req.mariadb,
+      nil,
+      corev1.EventTypeNormal,
+      mariadbv1alpha1.ReasonReplicationPrimaryToReplica, // reason
+      mariadbv1alpha1.ReasonReplicationPrimaryToReplica, // action (same constant)
+      "Unlocking primary '%d' and configuring it to be a replica. New primary at '%d'",
+      currentPrimary,
+      newPrimary,
+  )
+  ```
 
 ## Feature Map
 
@@ -260,6 +283,32 @@ Where to look when working on a specific feature:
 
 - **Unit** (`make test`): Ginkgo/Gomega over `api/`, `pkg/`, `internal/helmtest/` (chart rendering via terratest), `internal/webhook/` (envtest).
 - **Integration** (`make test-int`): `internal/controller/*_test.go` against envtest, bootstrapped by `suite_test.go`. Ginkgo labels tier the suite: `basic` (PR smoke set), `multi-cluster` (separate target), `flaky`, `finalizer`. Requires a KIND cluster prepared with `make install`, `make install-minio`, `make net` (+ `make install-azurite` for Azure specs).
+
+### Local cluster connectivity
+
+Whether you `make run` the operator or `make test-int`, the binary runs **on your host** while the KIND cluster (and its MariaDB pods) runs inside a container — and the SQL client (`pkg/sql`) connects to the pods over their internal Kubernetes FQDNs.
+
+Because of that host-to-container split, connectivity to the pods has to be simulated. That is what `make net` (`install-metallb` + `host`) provides:
+
+- **MetalLB** assigns each MariaDB test Service a `type: LoadBalancer` IP pinned via a `metallb.io/loadBalancerIPs` annotation, using an IP derived from the KIND Docker network CIDR (`pkg/docker`, `hack/get_kind_cidr_prefix`). Those IPs are routable from the host because KIND's Docker bridge is directly reachable.
+- **`/etc/hosts`** entries (added by `make net` → `hack/add_host.sh`) map the in-cluster FQDNs to those MetalLB IPs, so the host-side `sql.Open` resolves them.
+
+Implications when writing integration tests: `make net` is a hard prerequisite (connections fail without it); a new MariaDB in a spec needs a unique pinned LB IP.
+
+### Local KIND troubleshooting
+
+The integration suite runs the operator **in-process** against the existing cluster: `suite_test.go` sets `UseExistingCluster: true` (it does not bring up its own control plane) and starts the manager with `k8sManager.Start` (`internal/controller/suite_test.go:103,365`). So `make cluster`, `make install`, `make install-minio` and `make net` must all be in place before `make test-int`. A focused single-spec run still takes several minutes (BeforeSuite boots the initial fixtures and each switchover/failover spec has a 300s `Eventually` window) — don't call it hung early.
+
+Before each run, clear the two setup failures that masquerade as test regressions:
+
+- **A stray process holding `:8080` breaks BeforeSuite.** The in-process manager binds `:8080` (controller-runtime's default metrics address; the operator binary's `--metrics-addr` defaults to the same, `cmd/controller/main.go:118`). A leftover `make run`, `make webhook` or `cert-controller` — or another agent's task sharing the host — makes `k8sManager.Start` fail. Find it with `lsof -i:8080 -sTCP:LISTEN` and kill it before re-running.
+- **Interrupted runs leave orphan fixtures → `already exists` (409) on the next run.** `testCreateInitialData` (`internal/controller/suite_test.go:372`) seeds shared CRs and Secrets; a run killed mid-flight can leave a `MariaDB` (e.g. `mdb-test`) plus the Secrets it generated (`password`, SSEC, cert) behind, which the next run cannot re-create. Delete the leftover CR and Secrets, or delete and recreate the test namespace. Nuclear reset: `make cluster-delete && make cluster && make install && make install-minio && make net`.
+
+kubectl gotchas that burn cycles:
+
+- **Use the real CRD short names** — `mdb` (MariaDB), `emdb` (ExternalMariaDB), `mxs` (MaxScale), `pitr` (PointInTimeRecovery); also `umdb`, `gmdb`, `dmdb`, `bmdb`, `pbmdb`, `rmdb`, `smdb`, `cmdb`. `msx` and `ext` **do not exist**: `kubectl get mdb,msx,ext` errors on the bad name, and piping stderr to `/dev/null` hides it so it looks like "no CRs". Don't mask kubectl stderr while hunting for state.
+- **`make dump`** dumps CRs, pods, events and operator logs in one shot — the first stop when a spec is stuck.
+- **A wedged rejoin is not in the operator log.** `StartSlave` returns success while the replica SQL thread fails asynchronously, so a stuck switchover shows no operator-level error. The real signal is in the rejoining pod's `SHOW REPLICA STATUS` (`Last_Errno`/`Last_Error`), which the agent liveness probe reads (a failing probe restarts the pod and loops `Enabling readonly`). Compare `status.currentPrimary` against the expected ordinal to tell "switchover never happened" from "primary moved but the old primary won't rejoin".
 
 ## CI — what a PR must pass
 

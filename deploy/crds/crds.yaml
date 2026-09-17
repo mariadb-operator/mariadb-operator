@@ -298,7 +298,15 @@ spec:
                 - none
                 - bzip2
                 - gzip
+                - zstd
                 type: string
+              compressionThreads:
+                description: |-
+                  CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.
+                  Defaults to all available CPUs.
+                format: int32
+                minimum: 1
+                type: integer
               databases:
                 description: Databases defines the logical databases to be backed
                   up. If not provided, all databases are backed up.
@@ -7565,6 +7573,16 @@ spec:
                       See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication
                       It is enabled by default
                     type: boolean
+                  semiSyncWaitNoSlave:
+                    description: |-
+                      SemiSyncWaitNoSlave determines whether the primary waits for the semi-synchronous ACK timeout to expire when it has
+                      no semi-synchronous replicas connected. Since the operator configures every node as a semi-synchronous primary, replicas
+                      with log_slave_updates enabled also hit this wait when applying transactions. Disabling it makes them fall back to
+                      asynchronous commit immediately instead of stalling for the whole semiSyncAckTimeout.
+                      It requires semi-synchronous replication to be enabled.
+                      It is enabled by default by the server.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_no_slave
+                    type: boolean
                   semiSyncWaitPoint:
                     description: |-
                       SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)
@@ -11838,7 +11856,15 @@ spec:
                 - none
                 - bzip2
                 - gzip
+                - zstd
                 type: string
+              compressionThreads:
+                description: |-
+                  CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.
+                  Defaults to all available CPUs.
+                format: int32
+                minimum: 1
+                type: integer
               failedJobsHistoryLimit:
                 description: FailedJobsHistoryLimit defines the maximum number of
                   failed Jobs to be displayed. It defaults to 5.
@@ -12867,7 +12893,15 @@ spec:
                 - none
                 - bzip2
                 - gzip
+                - zstd
                 type: string
+              compressionThreads:
+                description: |-
+                  CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.
+                  Defaults to all available CPUs.
+                format: int32
+                minimum: 1
+                type: integer
               physicalBackupRef:
                 description: PhysicalBackupRef is a reference to a PhysicalBackup
                   object that will be used as base backup.

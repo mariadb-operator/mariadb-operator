@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/dsnet/compress/bzip2"
+	"github.com/klauspost/compress/zstd"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/reader"
 )
@@ -16,7 +17,7 @@ type Compressor interface {
 	Decompress(ctx context.Context, dst io.Writer, src io.Reader) error
 }
 
-func NewCompressor(calg mariadbv1alpha1.CompressAlgorithm) (Compressor, error) {
+func NewCompressor(calg mariadbv1alpha1.CompressAlgorithm, threads int) (Compressor, error) {
 	switch calg {
 	case mariadbv1alpha1.CompressNone:
 		return &NopCompressor{}, nil
@@ -24,6 +25,8 @@ func NewCompressor(calg mariadbv1alpha1.CompressAlgorithm) (Compressor, error) {
 		return &GzipCompressor{}, nil
 	case mariadbv1alpha1.CompressBzip2:
 		return &Bzip2Compressor{}, nil
+	case mariadbv1alpha1.CompressZstd:
+		return &ZstdCompressor{concurrency: threads}, nil
 	default:
 		return nil, fmt.Errorf("unsupported compression algorithm: %v", calg)
 	}
@@ -81,5 +84,30 @@ func (c *Bzip2Compressor) Decompress(ctx context.Context, dst io.Writer, src io.
 	}
 	defer bzip2Reader.Close()
 	_, err = io.Copy(dst, reader.NewContextReader(ctx, bzip2Reader))
+	return err
+}
+
+type ZstdCompressor struct {
+	concurrency int // 0 = GOMAXPROCS (zstd library default)
+}
+
+func (c *ZstdCompressor) Compress(ctx context.Context, dst io.Writer, src io.Reader) error {
+	opts := []zstd.EOption{zstd.WithEncoderConcurrency(c.concurrency)}
+	writer, err := zstd.NewWriter(dst, opts...)
+	if err != nil {
+		return err
+	}
+	defer writer.Close()
+	_, err = io.Copy(writer, reader.NewContextReader(ctx, src))
+	return err
+}
+
+func (c *ZstdCompressor) Decompress(ctx context.Context, dst io.Writer, src io.Reader) error {
+	zstdReader, err := zstd.NewReader(src)
+	if err != nil {
+		return err
+	}
+	defer zstdReader.Close()
+	_, err = io.Copy(dst, reader.NewContextReader(ctx, zstdReader))
 	return err
 }

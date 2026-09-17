@@ -152,6 +152,44 @@ sync_binlog=1
 			wantErr: false,
 		},
 		{
+			name: "with semi-sync master wait no slave disabled",
+			env: &env.PodEnvironment{
+				PodName:                              "mariadb-0",
+				MariadbName:                          "mariadb",
+				MariaDBReplEnabled:                   "true",
+				MariaDBReplSemiSyncEnabled:           "true",
+				MariaDBReplSemiSyncMasterWaitNoSlave: "false",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+rpl_semi_sync_master_enabled=ON
+rpl_semi_sync_slave_enabled=ON
+rpl_semi_sync_master_wait_no_slave=OFF
+server_id=10
+`,
+			wantErr: false,
+		},
+		{
+			name: "with semi-sync master wait no slave enabled",
+			env: &env.PodEnvironment{
+				PodName:                              "mariadb-0",
+				MariadbName:                          "mariadb",
+				MariaDBReplEnabled:                   "true",
+				MariaDBReplSemiSyncEnabled:           "true",
+				MariaDBReplSemiSyncMasterWaitNoSlave: "true",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+rpl_semi_sync_master_enabled=ON
+rpl_semi_sync_slave_enabled=ON
+rpl_semi_sync_master_wait_no_slave=ON
+server_id=10
+`,
+			wantErr: false,
+		},
+		{
 			name: "with custom GTID domain ID",
 			env: &env.PodEnvironment{
 				PodName:                 "mariadb-0",
@@ -185,16 +223,17 @@ server_id=102
 		{
 			name: "all values present",
 			env: &env.PodEnvironment{
-				PodName:                            "mariadb-0",
-				MariadbName:                        "mariadb",
-				MariaDBReplEnabled:                 "true",
-				MariaDBReplGtidStrictMode:          "true",
-				MariaDBReplGtidDomainID:            "1",
-				MariaDBReplServerIDStartIndex:      "100",
-				MariaDBReplSemiSyncEnabled:         "true",
-				MariaDBReplSemiSyncMasterTimeout:   "5000",
-				MariaDBReplSemiSyncMasterWaitPoint: "AFTER_SYNC",
-				MariaDBReplMasterSyncBinlog:        "1",
+				PodName:                              "mariadb-0",
+				MariadbName:                          "mariadb",
+				MariaDBReplEnabled:                   "true",
+				MariaDBReplGtidStrictMode:            "true",
+				MariaDBReplGtidDomainID:              "1",
+				MariaDBReplServerIDStartIndex:        "100",
+				MariaDBReplSemiSyncEnabled:           "true",
+				MariaDBReplSemiSyncMasterTimeout:     "5000",
+				MariaDBReplSemiSyncMasterWaitPoint:   "AFTER_SYNC",
+				MariaDBReplSemiSyncMasterWaitNoSlave: "false",
+				MariaDBReplMasterSyncBinlog:          "1",
 			},
 			wantConfig: `[mariadb]
 log_bin
@@ -205,6 +244,7 @@ rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
 rpl_semi_sync_master_timeout=5000
 rpl_semi_sync_master_wait_point=AFTER_SYNC
+rpl_semi_sync_master_wait_no_slave=OFF
 server_id=100
 sync_binlog=1
 `,

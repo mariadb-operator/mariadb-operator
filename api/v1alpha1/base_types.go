@@ -805,14 +805,17 @@ const (
 	CompressBzip2 CompressAlgorithm = "bzip2"
 	// Gzip compression. Good compression/decompression speed, but worse compression ratio compared to bzip2.
 	CompressGzip CompressAlgorithm = "gzip"
+	// Zstd compression. Excellent compression/decompression speed with good compression ratio.
+	CompressZstd CompressAlgorithm = "zstd"
 )
 
 func (c CompressAlgorithm) Validate() error {
 	switch c {
-	case CompressAlgorithm(""), CompressNone, CompressBzip2, CompressGzip:
+	case CompressAlgorithm(""), CompressNone, CompressBzip2, CompressGzip, CompressZstd:
 		return nil
 	default:
-		return fmt.Errorf("invalid compression: %v, supported algorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
+		return fmt.Errorf("invalid compression: %v, supported algorithms: [%v|%v|%v|%v]",
+			c, CompressNone, CompressBzip2, CompressGzip, CompressZstd)
 	}
 }
 
@@ -824,8 +827,11 @@ func (c CompressAlgorithm) Extension() (string, error) {
 		return "bz2", nil
 	case CompressGzip:
 		return "gz", nil
+	case CompressZstd:
+		return "zst", nil
 	default:
-		return "", fmt.Errorf("invalid compression: %v, supported algorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
+		return "", fmt.Errorf("invalid compression: %v, supported algorithms: [%v|%v|%v|%v]",
+			c, CompressNone, CompressBzip2, CompressGzip, CompressZstd)
 	}
 }
 
@@ -837,8 +843,10 @@ func CompressionFromExtension(ext string) (CompressAlgorithm, error) {
 		return CompressBzip2, nil
 	case "gz":
 		return CompressGzip, nil
+	case "zst":
+		return CompressZstd, nil
 	default:
-		return "", fmt.Errorf("unknown compression extension: %q, supported extensions: [bz2|gz]", ext)
+		return "", fmt.Errorf("unknown compression extension: %q, supported extensions: [bz2|gz|zst]", ext)
 	}
 }
 

@@ -419,6 +419,12 @@ func TestLogicalParseCompressionAlgorithm(t *testing.T) {
 			wantErr:      false,
 		},
 		{
+			name:         "new format compression zst",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql.zst",
+			wantCompress: mariadbv1alpha1.CompressZstd,
+			wantErr:      false,
+		},
+		{
 			name:         "new format invalid extension",
 			fileName:     "backup.2023-12-22T13:00:00Z.sql.foo",
 			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
@@ -501,6 +507,12 @@ func TestLogicalGetUncompressedBackupFile(t *testing.T) {
 		{
 			name:         "new format compression bz2",
 			fileName:     "backup.2023-12-22T13:00:00Z.sql.bz2",
+			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
+			wantErr:      false,
+		},
+		{
+			name:         "new format compression zst",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql.zst",
 			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
 			wantErr:      false,
 		},
@@ -923,6 +935,18 @@ func TestPhysicalParseCompressionAlgorithm(t *testing.T) {
 			wantCompress: mariadbv1alpha1.CompressBzip2,
 			wantErr:      false,
 		},
+		{
+			name:         "zstd",
+			fileName:     "physicalbackup-20231222130000.xb.zst",
+			wantCompress: mariadbv1alpha1.CompressZstd,
+			wantErr:      false,
+		},
+		{
+			name:         "zstd and prefix",
+			fileName:     "mariadb/physicalbackup-20231222130000.xb.zst",
+			wantCompress: mariadbv1alpha1.CompressZstd,
+			wantErr:      false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1000,6 +1024,18 @@ func TestPhysicalGetUncompressedBackupFile(t *testing.T) {
 		{
 			name:         "prefix and bzip2",
 			fileName:     "mariadb/physicalbackup-20231222130000.xb.bz2",
+			wantFileName: "mariadb/physicalbackup-20231222130000.xb",
+			wantErr:      false,
+		},
+		{
+			name:         "zstd",
+			fileName:     "physicalbackup-20231222130000.xb.zst",
+			wantFileName: "physicalbackup-20231222130000.xb",
+			wantErr:      false,
+		},
+		{
+			name:         "prefix and zstd",
+			fileName:     "mariadb/physicalbackup-20231222130000.xb.zst",
 			wantFileName: "mariadb/physicalbackup-20231222130000.xb",
 			wantErr:      false,
 		},
