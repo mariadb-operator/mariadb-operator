@@ -1,0 +1,17 @@
+{{- if .Values.maxscale.enabled }}
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: {{ include "mariadb-cluster.fullname" . }}-maxscale
+  namespace: {{ .Values.maxscale.namespace | default (include "mariadb-cluster.namespace" .) }}
+  labels:
+    {{- include "mariadb-cluster.labels" . | nindent 4 }}
+spec:
+  mariaDbRef:
+    name: {{ include "mariadb-cluster.fullname" . }}
+    namespace: {{ include "mariadb-cluster.namespace" . }}
+    {{- if hasKey .Values.maxscale "waitForIt" }}
+    waitForIt: {{ .Values.maxscale.waitForIt }}
+    {{- end }}
+  {{- include "mariadb-cluster.omitKeys" (dict "object" .Values.maxscale "keys" (list "namespace" "mariaDbRef" "waitForIt") "nindent" 2) }}
+{{- end }}
