@@ -907,7 +907,8 @@ spec:
               timeout:
                 description: |-
                   Timeout defines the maximum duration of a PhysicalBackup job or snapshot.
-                  If this duration is exceeded, the job or snapshot is considered expired and is deleted by the operator.
+                  A timed out job is marked as failed and, if scheduled, kept according to failedJobsHistoryLimit.
+                  A timed out snapshot is considered expired and is deleted by the operator.
                   A new job or snapshot will then be created according to the schedule.
                   It defaults to 1 hour.
                 type: string

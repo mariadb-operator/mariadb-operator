@@ -212,7 +212,8 @@ type PhysicalBackupSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxRetention metav1.Duration `json:"maxRetention,omitempty"`
 	// Timeout defines the maximum duration of a PhysicalBackup job or snapshot.
-	// If this duration is exceeded, the job or snapshot is considered expired and is deleted by the operator.
+	// A timed out job is marked as failed and, if scheduled, kept according to failedJobsHistoryLimit.
+	// A timed out snapshot is considered expired and is deleted by the operator.
 	// A new job or snapshot will then be created according to the schedule.
 	// It defaults to 1 hour.
 	// +optional
@@ -307,6 +308,11 @@ type PhysicalBackup struct {
 
 func (b *PhysicalBackup) IsComplete() bool {
 	return meta.IsStatusConditionTrue(b.Status.Conditions, ConditionTypeComplete)
+}
+
+func (b *PhysicalBackup) IsJobFailed() bool {
+	condition := meta.FindStatusCondition(b.Status.Conditions, ConditionTypeComplete)
+	return condition != nil && condition.Reason == ConditionReasonJobFailed
 }
 
 func (b *PhysicalBackup) Validate() error {

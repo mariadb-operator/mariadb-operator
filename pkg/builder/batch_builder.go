@@ -3,6 +3,7 @@ package builder
 import (
 	"errors"
 	"fmt"
+	"math"
 	"path/filepath"
 	"time"
 
@@ -298,7 +299,8 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	job := &batchv1.Job{
 		ObjectMeta: jobMeta,
 		Spec: batchv1.JobSpec{
-			BackoffLimit: &backup.Spec.BackoffLimit,
+			BackoffLimit:          &backup.Spec.BackoffLimit,
+			ActiveDeadlineSeconds: physicalBackupJobActiveDeadlineSeconds(backup),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: podMeta,
 				Spec: corev1.PodSpec{
@@ -1107,6 +1109,13 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 
 func backupShouldCleanupTargetFile(backup *mariadbv1alpha1.Backup) bool {
 	return backup.Spec.Storage.S3 != nil && backup.Spec.StagingStorage != nil
+}
+
+func physicalBackupJobActiveDeadlineSeconds(backup *mariadbv1alpha1.PhysicalBackup) *int64 {
+	if backup.Spec.Timeout == nil || backup.Spec.Timeout.Duration <= 0 {
+		return nil
+	}
+	return ptr.To(int64(math.Ceil(backup.Spec.Timeout.Seconds())))
 }
 
 func physicalBackupShouldCleanupTargetFile(pyhisicalBackup *mariadbv1alpha1.PhysicalBackup) bool {

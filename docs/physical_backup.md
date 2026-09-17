@@ -330,7 +330,7 @@ spec:
   timeout: 2h
 ```
 
-When timed out, the operator will delete the `Jobs` or `VolumeSnapshots` resources associated with the `PhysicalBackup` resource. The operator will create new `Jobs` or `VolumeSnapshots` to retry the backup operation if the `PhysicalBackup` resource is still scheduled.
+For `mariadb-backup` based backups, the timeout is set as the `activeDeadlineSeconds` of the `Job`. When timed out, the `Job` is marked as failed by Kubernetes, the `PhysicalBackup` reports it as failed, and, if the `PhysicalBackup` is scheduled, the `Job` is kept according to `failedJobsHistoryLimit`. For `VolumeSnapshots`, the operator will delete the timed out `VolumeSnapshot`. In both cases, the operator will create new `Jobs` or `VolumeSnapshots` to retry the backup operation if the `PhysicalBackup` resource is still scheduled.
 
 ## Log level
 
