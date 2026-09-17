@@ -92,6 +92,44 @@ func TestClusterHelmMariaDBNoSecretKeyRefName(t *testing.T) {
 	Expect(mariadb.Spec.PasswordHashSecretKeyRef.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, passwordHashSecretKeyRefKey)))
 }
 
+func TestClusterHelmMaxScale(t *testing.T) {
+	RegisterTestingT(t)
+	testCtx := t.Context()
+
+	namespace := "database"
+	waitForIt := false
+	replicas := 2
+
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"maxscale.enabled":   "true",
+			"maxscale.namespace": namespace,
+			"maxscale.waitForIt": strconv.FormatBool(waitForIt),
+			"maxscale.replicas":  strconv.Itoa(replicas),
+		},
+		KubectlOptions: kubectlopts,
+	}
+
+	renderedData := helm.RenderTemplateContext(t, testCtx, opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/maxscale.yaml"})
+	var maxscale v1alpha1.MaxScale
+	helm.UnmarshalK8SYaml(t, renderedData, &maxscale)
+
+	Expect(maxscale.Name).To(Equal(fmt.Sprintf("%s-maxscale", clusterHelmReleaseName)))
+	Expect(maxscale.Namespace).To(Equal(namespace))
+	Expect(maxscale.Spec.MariaDBRef.Name).To(Equal(clusterHelmReleaseName))
+	Expect(maxscale.Spec.MariaDBRef.Namespace).To(Equal(clusterHelmNamespace))
+	Expect(maxscale.Spec.MariaDBRef.WaitForIt).To(Equal(waitForIt))
+	Expect(maxscale.Spec.Replicas).To(Equal(int32(replicas)))
+
+	delete(opts.SetValues, "maxscale.enabled")
+	_, err := helm.RenderTemplateContextE(t, testCtx, opts,
+		clusterHelmChartPath, clusterHelmReleaseName,
+		[]string{"templates/maxscale.yaml"})
+	Expect(err).To(HaveOccurred())
+}
+
 func TestClusterHelmDatabase(t *testing.T) {
 	RegisterTestingT(t)
 	testCtx := t.Context()
