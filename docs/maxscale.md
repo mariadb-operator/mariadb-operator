@@ -649,13 +649,13 @@ metadata:
   name: maxscale-galera
 spec:
   securityContext:
-    fsGroup: 996
-    runAsGroup: 996
+    fsGroup: 995
+    runAsGroup: 995
     runAsNonRoot: true
-    runAsUser: 998
+    runAsUser: 997
 ```
 
-This enables the `CSIDriver` and the kubelet to recursively set the ownership ofr the `/var/lib/maxscale` folder to the group `996`, which is the one expected by MaxScale. It is important to note that not all the `CSIDrivers` implementations support this feature, see the [CSIDriver documentation](https://kubernetes-csi.github.io/docs/support-fsgroup.html) for further information.
+This enables the `CSIDriver` and the kubelet to recursively set the ownership ofr the `/var/lib/maxscale` folder to the group `995`, which is the one expected by MaxScale. MaxScale images previous to `23.08.6` ship this user and group as `998` and `996` respectively, and the operator sets those ids instead when such an image is configured in `spec.image`. It is important to note that not all the `CSIDrivers` implementations support this feature, see the [CSIDriver documentation](https://kubernetes-csi.github.io/docs/support-fsgroup.html) for further information.
 
 ## Reference
 - [API reference](./api_reference.md)

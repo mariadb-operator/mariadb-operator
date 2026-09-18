@@ -158,6 +158,8 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale, opts ...mari
 	if err != nil {
 		return nil, err
 	}
+	// The Pod already runs as the 'maxscale' user via its securityContext, so '-U maxscale' is not
+	// needed. MaxScale 23.08.6 and newer fail to start with it, as switching user requires root.
 	command := command.NewCommand(
 		[]string{
 			"maxscale",
@@ -165,8 +167,7 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale, opts ...mari
 		[]string{
 			"--config",
 			fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
-			"-dU",
-			"maxscale",
+			"-d",
 			"-l",
 			"stdout",
 		},

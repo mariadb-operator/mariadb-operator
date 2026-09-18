@@ -11,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -277,7 +278,8 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations
 			WithLabels(selectorLabels).
 			Build()
 
-	securityContext, err := b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleUser, maxscaleGroup)
+	user, group := maxscaleUserGroup(mxs.Spec.Image)
+	securityContext, err := b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, user, group)
 	if err != nil {
 		return nil, err
 	}
@@ -300,6 +302,22 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations
 			TopologySpreadConstraints:    kadapter.ToKubernetesSlice(mxs.Spec.TopologySpreadConstraints),
 		},
 	}, nil
+}
+
+// maxscaleUserGroup returns the uid and gid of the 'maxscale' user in the given MaxScale image.
+// MaxScale changed them in 23.08.6, so the version is inferred from the image to stay backwards
+// compatible with older images. The legacy ids are used when the version cannot be inferred
+// (e.g. an image pinned by digest), as they are the ones previous operator versions used.
+func maxscaleUserGroup(image string) (int64, int64) {
+	v, err := version.NewVersion(image)
+	if err != nil {
+		return maxscaleLegacyUser, maxscaleLegacyGroup
+	}
+	newUserGroup, err := v.GreaterThanOrEqual(maxscaleUserGroupVersion)
+	if err != nil || !newUserGroup {
+		return maxscaleLegacyUser, maxscaleLegacyGroup
+	}
+	return maxscaleUser, maxscaleGroup
 }
 
 func mariadbAffinity(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) *corev1.Affinity {
