@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // BackupReconciler reconciles a Backup object
@@ -48,6 +49,11 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err := r.Get(ctx, req.NamespacedName, &backup); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if backup.Spec.Schedule == nil && backup.IsComplete() {
+		log.FromContext(ctx).WithName("backup").V(1).Info("Backup is complete, skipping reconciliation")
+		return ctrl.Result{}, nil
+	}
+
 	mariaDb, err := r.RefResolver.MariaDBObject(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error

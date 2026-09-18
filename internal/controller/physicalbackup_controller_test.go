@@ -3,13 +3,17 @@ package controller
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("PhysicalBackup", Label("basic"), func() {
@@ -164,6 +168,39 @@ var _ = Describe("PhysicalBackup", Label("basic"), func() {
 			testPhysicalBackup,
 		),
 	)
+
+	It("should not recreate the Jobs of a completed one-off PhysicalBackup", func() {
+		key := types.NamespacedName{
+			Name:      "physicalbackup-completed-job-deleted-test",
+			Namespace: testNamespace,
+		}
+		backup := buildPhysicalBackupWithPVCStorage(testMdbkey)(key)
+		testPhysicalBackup(backup)
+
+		By("Deleting the completed Jobs")
+		jobList, err := job.ListJobs(testCtx, k8sClient, backup)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(jobList.Items).ToNot(BeEmpty())
+		for _, j := range jobList.Items {
+			Expect(k8sClient.Delete(testCtx, &j, client.PropagationPolicy(metav1.DeletePropagationBackground))).To(Succeed())
+		}
+
+		By("Expecting the Jobs to be deleted eventually")
+		Eventually(func(g Gomega) {
+			jobList, err := job.ListJobs(testCtx, k8sClient, backup)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(jobList.Items).To(BeEmpty())
+		}, testTimeout, testInterval).Should(Succeed())
+
+		By("Expecting the Jobs not to be recreated and the PhysicalBackup to remain complete")
+		Consistently(func(g Gomega) {
+			jobList, err := job.ListJobs(testCtx, k8sClient, backup)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(jobList.Items).To(BeEmpty())
+			g.Expect(k8sClient.Get(testCtx, key, backup)).To(Succeed())
+			g.Expect(backup.IsComplete()).To(BeTrue())
+		}, 10*time.Second, testInterval).Should(Succeed())
+	})
 })
 
 var _ = Describe("PhysicalBackup target", Label("basic"), func() {
