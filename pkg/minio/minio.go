@@ -143,11 +143,14 @@ func NewMinioClientFromS3Config(
 	tls := ptr.Deref(s3.TLS, v1alpha1.TLSConfig{})
 	if tls.Enabled {
 		minioOpts = append(minioOpts, WithTLS(true))
-		caCertBytes, err := refResolver.SecretKeyRef(ctx, *s3.TLS.CASecretKeyRef, namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting CA cert: %v", err)
+		// CASecretKeyRef is optional. Without it the system trust chain is used.
+		if tls.CASecretKeyRef != nil {
+			caCertBytes, err := refResolver.SecretKeyRef(ctx, *tls.CASecretKeyRef, namespace)
+			if err != nil {
+				return nil, fmt.Errorf("error getting CA cert: %v", err)
+			}
+			minioOpts = append(minioOpts, WithCACertBytes([]byte(caCertBytes)))
 		}
-		minioOpts = append(minioOpts, WithCACertBytes([]byte(caCertBytes)))
 	}
 
 	if s3.SSEC != nil {

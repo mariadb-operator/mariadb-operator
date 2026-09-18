@@ -347,9 +347,16 @@ func getTransport(opts *AzBlobOpts) (http.RoundTripper, error) {
 		certBytes = caBytes
 	}
 
-	caCertPool := x509.NewCertPool()
-	if ok := caCertPool.AppendCertsFromPEM(certBytes); !ok {
-		return nil, errors.New("unable to add CA cert to pool")
+	// Start from the system trust chain so that a CA bundle adds to it rather than replacing it,
+	// and so that TLS without a CA bundle still verifies against publicly trusted CAs.
+	caCertPool, err := x509.SystemCertPool()
+	if err != nil {
+		caCertPool = x509.NewCertPool()
+	}
+	if len(certBytes) > 0 {
+		if ok := caCertPool.AppendCertsFromPEM(certBytes); !ok {
+			return nil, errors.New("unable to add CA cert to pool")
+		}
 	}
 
 	return &http.Transport{
