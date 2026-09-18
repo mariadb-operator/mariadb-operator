@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	writeFileMode = fs.FileMode(0777)
+	writeFileMode = fs.FileMode(0600)
 )
 
 type FileManager struct {
