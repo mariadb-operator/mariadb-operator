@@ -21,7 +21,7 @@
     </tr>
 	  <tr>
       <td>MaxScale</td>
-      <td><code>mariadb/maxscale:23.08.5</code></td>
+      <td><code>mariadb/maxscale:23.08.13-2</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
     <tr>

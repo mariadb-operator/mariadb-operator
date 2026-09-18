@@ -22,7 +22,7 @@
         "MARIADB_OPERATOR_IMAGE": "ghcr.io/mariadb-operator/mariadb-operator:26.10.0",
         "RELATED_IMAGE_MARIADB": "mariadb:12.3.3",
         "RELATED_IMAGE_MARIADB_NAME": "mariadb",
-        "RELATED_IMAGE_MAXSCALE": "mariadb/maxscale:23.08.5",
+        "RELATED_IMAGE_MAXSCALE": "mariadb/maxscale:23.08.13-2",
         "RELATED_IMAGE_EXPORTER": "prom/mysqld-exporter:v0.15.1",
         "RELATED_IMAGE_EXPORTER_MAXSCALE": "mariadb/maxscale-prometheus-exporter-ubi:latest",
         "MARIADB_GALERA_LIB_PATH": "/usr/lib/galera/libgalera_smm.so",

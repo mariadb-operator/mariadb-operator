@@ -332,7 +332,7 @@ config:
   # -- Default MaxScale image
   maxscaleImage:
     repository: mariadb/maxscale
-    tag: 23.08.5
+    tag: 23.08.13-2
   # -- Default MariaDB exporter image
   exporterImage:
     repository: prom/mysqld-exporter

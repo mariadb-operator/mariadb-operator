@@ -1258,33 +1258,97 @@ func TestMaxscalePodBuilder(t *testing.T) {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
 	builder := newTestBuilder(d)
-	mxs := &mariadbv1alpha1.MaxScale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-maxscale-builder",
+
+	tests := []struct {
+		name      string
+		image     string
+		wantUser  int64
+		wantGroup int64
+	}{
+		{
+			name:      "no image",
+			image:     "",
+			wantUser:  maxscaleLegacyUser,
+			wantGroup: maxscaleLegacyGroup,
+		},
+		{
+			name:      "image without version",
+			image:     "mariadb/maxscale:latest",
+			wantUser:  maxscaleLegacyUser,
+			wantGroup: maxscaleLegacyGroup,
+		},
+		{
+			name:      "image with digest",
+			image:     "mariadb/maxscale@sha256:02171471b9431fd8b19aa150ed56f28ece316e13fe1fb5cda9d16c1601cee103",
+			wantUser:  maxscaleLegacyUser,
+			wantGroup: maxscaleLegacyGroup,
+		},
+		{
+			name:      "legacy version",
+			image:     "mariadb/maxscale:23.08.5",
+			wantUser:  maxscaleLegacyUser,
+			wantGroup: maxscaleLegacyGroup,
+		},
+		{
+			name:      "first version with new user and group",
+			image:     "mariadb/maxscale:23.08.6",
+			wantUser:  maxscaleUser,
+			wantGroup: maxscaleGroup,
+		},
+		{
+			name:      "first version with new user and group and build suffix",
+			image:     "mariadb/maxscale:23.08.6-1",
+			wantUser:  maxscaleUser,
+			wantGroup: maxscaleGroup,
+		},
+		{
+			name:      "newer version",
+			image:     "mariadb/maxscale:23.08.13-2",
+			wantUser:  maxscaleUser,
+			wantGroup: maxscaleGroup,
+		},
+		{
+			name:      "newer minor version",
+			image:     "mariadb/maxscale:24.02.6",
+			wantUser:  maxscaleUser,
+			wantGroup: maxscaleGroup,
 		},
 	}
 
-	podTpl, err := builder.maxscalePodTemplate(mxs, nil)
-	if err != nil {
-		t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mxs := &mariadbv1alpha1.MaxScale{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-maxscale-builder",
+				},
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Image: tt.image,
+				},
+			}
 
-	if podTpl.Spec.SecurityContext == nil {
-		t.Error("expected podSecurityContext to have been set")
-	}
-	sc := ptr.Deref(podTpl.Spec.SecurityContext, corev1.PodSecurityContext{})
-	runAsUser := ptr.Deref(sc.RunAsUser, 0)
-	runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
-	fsGroup := ptr.Deref(sc.FSGroup, 0)
+			podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+			}
 
-	if runAsUser != maxscaleUser {
-		t.Errorf("expected to run as maxscale user, got user: %d", runAsUser)
-	}
-	if runAsGroup != maxscaleGroup {
-		t.Errorf("expected to run as maxscale group, got group: %d", runAsGroup)
-	}
-	if fsGroup != maxscaleGroup {
-		t.Errorf("expected to run as maxscale fsGroup, got fsGroup: %d", fsGroup)
+			if podTpl.Spec.SecurityContext == nil {
+				t.Fatal("expected podSecurityContext to have been set")
+			}
+			sc := ptr.Deref(podTpl.Spec.SecurityContext, corev1.PodSecurityContext{})
+			runAsUser := ptr.Deref(sc.RunAsUser, 0)
+			runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
+			fsGroup := ptr.Deref(sc.FSGroup, 0)
+
+			if runAsUser != tt.wantUser {
+				t.Errorf("unexpected maxscale user, got: %d, want: %d", runAsUser, tt.wantUser)
+			}
+			if runAsGroup != tt.wantGroup {
+				t.Errorf("unexpected maxscale group, got: %d, want: %d", runAsGroup, tt.wantGroup)
+			}
+			if fsGroup != tt.wantGroup {
+				t.Errorf("unexpected maxscale fsGroup, got: %d, want: %d", fsGroup, tt.wantGroup)
+			}
+		})
 	}
 }
 
