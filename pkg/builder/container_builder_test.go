@@ -2233,7 +2233,7 @@ func TestMaxscaleContainers(t *testing.T) {
 				},
 			},
 			wantCommand: []string{"maxscale"},
-			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
+			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-d", "-l", "stdout"},
 		},
 		{
 			name: "With custom command",
@@ -2245,7 +2245,7 @@ func TestMaxscaleContainers(t *testing.T) {
 				},
 			},
 			wantCommand: []string{"maxscale-test"},
-			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
+			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-d", "-l", "stdout"},
 		},
 		{
 			name: "With custom command and args",
