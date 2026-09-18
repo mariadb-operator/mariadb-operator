@@ -368,11 +368,14 @@ func (r *MariaDBReconciler) getABSClient(ctx context.Context, pitr *mariadbv1alp
 	tls := ptr.Deref(abs.TLS, mariadbv1alpha1.TLSConfig{})
 	if tls.Enabled {
 		opts = append(opts, azure.WithTLSEnabled(true))
-		caCertBytes, err := r.RefResolver.SecretKeyRef(ctx, *abs.TLS.CASecretKeyRef, pitr.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting CA cert: %v", err)
+		// CASecretKeyRef is optional. Without it the system trust chain is used.
+		if tls.CASecretKeyRef != nil {
+			caCertBytes, err := r.RefResolver.SecretKeyRef(ctx, *tls.CASecretKeyRef, pitr.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("error getting CA cert: %v", err)
+			}
+			opts = append(opts, azure.WithTLSCACertBytes([]byte(caCertBytes)))
 		}
-		opts = append(opts, azure.WithTLSCACertBytes([]byte(caCertBytes)))
 	}
 
 	return azure.NewAzBlobClient(

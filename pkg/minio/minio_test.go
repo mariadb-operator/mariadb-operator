@@ -3,6 +3,9 @@ package minio
 import (
 	"encoding/base64"
 	"testing"
+
+	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 )
 
 func TestPrefixedFile(t *testing.T) {
@@ -345,6 +348,56 @@ func TestS3GetSSEC(t *testing.T) {
 				if sse == nil {
 					t.Error("expected non-nil SSE-C, got nil")
 				}
+			}
+		})
+	}
+}
+
+func TestNewMinioClientFromS3ConfigOptionalCACert(t *testing.T) {
+	tests := []struct {
+		name        string
+		tls         *v1alpha1.TLSConfig
+		wantTLS     bool
+		wantCACerts bool
+	}{
+		{
+			name:        "no TLS config",
+			tls:         nil,
+			wantTLS:     false,
+			wantCACerts: false,
+		},
+		{
+			name:        "TLS disabled",
+			tls:         &v1alpha1.TLSConfig{Enabled: false},
+			wantTLS:     false,
+			wantCACerts: false,
+		},
+		{
+			name:        "TLS enabled without CA bundle",
+			tls:         &v1alpha1.TLSConfig{Enabled: true},
+			wantTLS:     true,
+			wantCACerts: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// A nil backing client is enough: none of these cases may resolve a Secret.
+			refResolver := refresolver.New(nil)
+			s3 := v1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.example.com",
+				TLS:      tt.tls,
+			}
+
+			client, err := NewMinioClientFromS3Config(t.Context(), *refResolver, s3, "", "test-namespace")
+			if err != nil {
+				t.Fatalf("expected no error, got: %v", err)
+			}
+			if client.MinioOpts.TLS != tt.wantTLS {
+				t.Errorf("expected TLS %v, got %v", tt.wantTLS, client.MinioOpts.TLS)
+			}
+			if gotCACerts := client.MinioOpts.CACertBytes != nil; gotCACerts != tt.wantCACerts {
+				t.Errorf("expected CA cert bytes %v, got %v", tt.wantCACerts, gotCACerts)
 			}
 		})
 	}
