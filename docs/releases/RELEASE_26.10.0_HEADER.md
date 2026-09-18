@@ -40,8 +40,11 @@ Refer to the [replication docs](https://github.com/mariadb-operator/mariadb-oper
 
 ## Galera improvements
 
+> [!IMPORTANT]
+> The operator no longer recovers a Galera cluster where all members present an empty state (`00000000-0000-0000-0000-000000000000` UUID, `seqno: -1`) for safety reasons. In this situation, the user must choose where to bootstrap the new cluster via `forceClusterBootstrapInPod`, please refer to the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/galera.md#force-cluster-bootstrap) for doing so.
+
 - Logical backups of Galera clusters are now restorable ([#1836](https://github.com/mariadb-operator/mariadb-operator/pull/1836)). The dump excludes the Galera-managed `mysql.wsrep_*` system tables, whose `DROP TABLE` statements Galera denies on restore, and which it recreates on bootstrap anyway. Kudos to @ioanalytica!
-- Recovery no longer bootstraps from a Pod with an empty state (null UUID, `seqno: -1`) just because it reports `safe_to_bootstrap: 1`, which could recreate an empty cluster and lose data ([#1816](https://github.com/mariadb-operator/mariadb-operator/pull/1816)). The bootstrap source is now selected by highest valid `seqno`, and a timed-out bootstrap keeps the recovered sequence numbers instead of discarding them. Kudos to @vixns!
+- Recovery no longer bootstraps from a Pod with an empty state (`00000000-0000-0000-0000-000000000000` UUID, `seqno: -1`) just because it reports `safe_to_bootstrap: 1`, which could recreate an empty cluster and lose data ([#1816](https://github.com/mariadb-operator/mariadb-operator/pull/1816)). The bootstrap source is now selected by highest valid `seqno`, and a timed-out bootstrap keeps the recovered sequence numbers instead of discarding them. Kudos to @vixns!
 
 ## ZSTD compression
 
