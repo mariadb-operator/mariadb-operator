@@ -28,17 +28,18 @@ Existing clusters keep the image pinned in their spec and are not affected by th
 
 Our replication topology received a series of reliability and correctness improvements in this release:
 
-- The operator no longer issues `RESET MASTER;` when configuring a replica ([#1883](https://github.com/mariadb-operator/mariadb-operator/pull/1883)). Purging a node's binary logs is not required to configure replication, and it is destructive once the node is promoted: its binary log history is gone. So far, we were only preserving it is for [point-in-time recovery](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md) and [multi-cluster](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/multi-cluster.md), but we are now enforcing this for all topologies.
-- Nodes that rejoin the cluster with self-owned GTIDs are now demoted using `MASTER_DEMOTE_TO_SLAVE` ([#1894](https://github.com/mariadb-operator/mariadb-operator/pull/1894)). This non-destructive replacement of `RESET MASTER` unblocks a scenario where a rejoining primary could never converge back to the cluster.
+- The operator no longer issues `RESET MASTER;` when configuring a replica ([#1883](https://github.com/mariadb-operator/mariadb-operator/pull/1883)). So far, we were only preserving the binary log history for [point-in-time recovery](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md) and [multi-cluster](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/multi-cluster.md), but we are now enforcing this for all topologies.
+- Nodes that rejoin the cluster with self-owned GTIDs are now demoted using `MASTER_DEMOTE_TO_SLAVE` ([#1894](https://github.com/mariadb-operator/mariadb-operator/pull/1894)). This unblocks a scenario where a rejoining primary could never converge back to the cluster.
 - The operator now enforces the correct `rpl_semi_sync_master_enabled` state on every node: enabled in the primary and disabled in the replicas ([#1902](https://github.com/mariadb-operator/mariadb-operator/pull/1902)). Previously every node was a semi-synchronous primary, including the replicas, so a replica could stall writes waiting for a semi-synchronous ACK that can never arrive. 
 - A new optional field `replication.semiSyncBootAsReplica` (disabled by default) boots the node `read_only` with the semi-synchronous primary disabled, so a node is never writable while it is unable to require a replica acknowledgement ([#1902](https://github.com/mariadb-operator/mariadb-operator/pull/1902)).
-- A new `replication.semiSyncWaitNoSlave` field exposes `rpl_semi_sync_master_wait_no_slave` ([#1885](https://github.com/mariadb-operator/mariadb-operator/pull/1885)). Disabling it makes a node with no semi-synchronous replicas connected fall back to asynchronous commit immediately, instead of stalling for the whole `semiSyncAckTimeout`.
-- Switchover no longer leaves the new primary half-configured: when clearing `gtid_slave_pos`, an `Error 1948` was returned in certain circumstances. The operator handles now this situation and the primary is now fully configured, even when `Error 1948` is returned ([#1886](https://github.com/mariadb-operator/mariadb-operator/pull/1886)).
-- `read_only` drift on replicas is now corrected even while the replica is unhealthy, as long as the cluster is not attached to MaxScale ([#1884](https://github.com/mariadb-operator/mariadb-operator/pull/1884)).
+- A new `replication.semiSyncWaitNoSlave` field exposes `rpl_semi_sync_master_wait_no_slave` ([#1885](https://github.com/mariadb-operator/mariadb-operator/pull/1885)). Disabling it makes a node with no semi-synchronous replicas connected fall back to asynchronous replication immediately, instead of stalling for the whole `semiSyncAckTimeout`.
+- The replication liveness probe no longer fails (and the Pod no longer restarts) when the replica SQL thread is stopped administratively without error, e.g. during a physical backup with `--safe-slave-backup` ([#1882](https://github.com/mariadb-operator/mariadb-operator/pull/1882))
+- When clearing `gtid_slave_pos`, an `Error 1948` was returned in certain circumstances. The operator handles now this situation and the primary is now fully configured, even when `Error 1948` is returned ([#1886](https://github.com/mariadb-operator/mariadb-operator/pull/1886)).
+- `read_only` drift on replicas is now corrected even while the replica is unhealthy ([#1884](https://github.com/mariadb-operator/mariadb-operator/pull/1884)).
 
 Refer to the [replication docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/replication.md) for a complete guide.
 
-## Galera improvements
+## Galera topology
 
 > [!IMPORTANT]
 > The operator no longer recovers a Galera cluster where all members present an empty state (`00000000-0000-0000-0000-000000000000` UUID, `seqno: -1`) for safety reasons. In this situation, the user must choose where to bootstrap the new cluster via `forceClusterBootstrapInPod`, please refer to the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/galera.md#force-cluster-bootstrap) for doing so.
@@ -66,7 +67,6 @@ Kudos to @snaax for driving this feature end to end!
 ## Bugfixes
 
 - Repeatable `mariadb-dump` flags such as `--ignore-table` are no longer silently dropped when passed multiple times in `spec.args`, and user-supplied `mariadb-backup` `--databases-exclude` values are now merged with the built-in ones instead of overriding them ([#1836](https://github.com/mariadb-operator/mariadb-operator/pull/1836), thanks @ioanalytica!)
-- The replication liveness probe no longer fails (and the Pod no longer restarts) when the replica SQL thread is stopped administratively without error, e.g. during a physical backup with `--safe-slave-backup` ([#1882](https://github.com/mariadb-operator/mariadb-operator/pull/1882))
 - `PhysicalBackup` jobs now inherit `podSecurityContext.seLinuxOptions` from the referenced `MariaDB` when the job does not set its own, fixing `Errcode: 13` failures on SELinux-enforced clusters ([#1889](https://github.com/mariadb-operator/mariadb-operator/pull/1889), thanks @henryjarend!)
 - Scheduled `Backup` and `SqlJob` resources now report the `CronJobFailed` condition reason when the last run has failed, instead of `CronJobScheduled` ([#1867](https://github.com/mariadb-operator/mariadb-operator/pull/1867), thanks @SynSnt!)
 
