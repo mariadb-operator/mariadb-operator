@@ -3,13 +3,21 @@ package controller
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	jobpkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("PhysicalBackup", Label("basic"), func() {
@@ -164,6 +172,51 @@ var _ = Describe("PhysicalBackup", Label("basic"), func() {
 			testPhysicalBackup,
 		),
 	)
+
+	It("should report a timed out Job as failed", func() {
+		key := types.NamespacedName{
+			Name:      "physicalbackup-job-timeout-test",
+			Namespace: testNamespace,
+		}
+		backup := buildPhysicalBackupWithVolumeStorage(testMdbkey)(key)
+		backup.Spec.Timeout = &metav1.Duration{Duration: 1 * time.Second}
+
+		By("Creating PhysicalBackup")
+		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, backup))).To(Succeed())
+		})
+
+		By("Expecting Job to exceed its deadline eventually")
+		Eventually(func(g Gomega) bool {
+			jobList, err := jobpkg.ListJobs(testCtx, k8sClient, backup)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(jobList.Items).To(HaveLen(1))
+
+			job := jobList.Items[0]
+			g.Expect(job.Spec.ActiveDeadlineSeconds).To(Equal(ptr.To(int64(1))))
+			g.Expect(job.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
+				"Type":   Equal(batchv1.JobFailed),
+				"Status": Equal(corev1.ConditionTrue),
+				"Reason": Equal(batchv1.JobReasonDeadlineExceeded),
+			})))
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting PhysicalBackup to report the Job as failed eventually")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, backup)).To(Succeed())
+			condition := meta.FindStatusCondition(backup.Status.Conditions, mariadbv1alpha1.ConditionTypeComplete)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Reason).To(Equal(mariadbv1alpha1.ConditionReasonJobFailed))
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting failed PhysicalBackup not to be used to bootstrap replicas")
+		r := &MariaDBReconciler{Client: k8sClient}
+		_, err := r.reconcileReplicaPhysicalBackup(testCtx, key, &mariadbv1alpha1.MariaDB{}, logr.Discard())
+		Expect(err).To(HaveOccurred())
+	})
 })
 
 var _ = Describe("PhysicalBackup target", Label("basic"), func() {

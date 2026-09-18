@@ -200,6 +200,10 @@ func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, 
 		logger.V(1).Info("Replica PhysicalBackup job not completed. Requeuing")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	// The Complete condition is also set when the Job fails: replicas must not be bootstrapped from a failed PhysicalBackup.
+	if physicalBackup.IsJobFailed() {
+		return ctrl.Result{}, fmt.Errorf("replica PhysicalBackup \"%s\" has failed, delete it to retry", key.Name)
+	}
 	return ctrl.Result{}, nil
 }
 

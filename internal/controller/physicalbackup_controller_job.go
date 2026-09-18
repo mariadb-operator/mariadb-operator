@@ -12,12 +12,10 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	mdbtime "github.com/mariadb-operator/mariadb-operator/v26/pkg/time"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/wait"
 	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -220,16 +218,6 @@ func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, backu
 	jobList *batchv1.JobList, logger logr.Logger) (ctrl.Result, error) {
 	for _, job := range jobList.Items {
 		if jobpkg.IsJobRunning(&job) {
-			if backup.Spec.Timeout != nil && !job.CreationTimestamp.IsZero() &&
-				time.Since(job.CreationTimestamp.Time) > backup.Spec.Timeout.Duration {
-
-				logger.Info("PhysicalBackup Job timed out. Deleting...", "job", job.Name)
-				if err := r.deleteJobSync(ctx, &job, logger); err != nil {
-					return ctrl.Result{}, fmt.Errorf("error deleting expired Job: %v", err)
-				}
-				return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
-			}
-
 			logger.V(1).Info("PhysicalBackup Job is still running. Requeuing...", "job", job.Name)
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
@@ -392,25 +380,6 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 		job.Name,
 	)
 	return ctrl.Result{}, nil
-}
-
-func (r *PhysicalBackupReconciler) deleteJobSync(ctx context.Context, job *batchv1.Job, logger logr.Logger) error {
-	err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationForeground)})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error deleting Job \"%s\": %v", job.Name, err)
-	}
-
-	waitCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-	key := client.ObjectKeyFromObject(job)
-
-	return wait.PollUntilSuccessOrContextCancel(waitCtx, logger, func(ctx context.Context) error {
-		var j batchv1.Job
-		if err := r.Get(ctx, key, &j); apierrors.IsNotFound(err) {
-			return nil
-		}
-		return errors.New("Job still exists") //nolint:staticcheck
-	})
 }
 
 func getBackupFileName(backup *mariadbv1alpha1.PhysicalBackup, now time.Time) (string, error) {

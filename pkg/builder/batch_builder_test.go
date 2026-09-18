@@ -1120,6 +1120,71 @@ func TestPhysicalBackupJobSELinuxOptions(t *testing.T) {
 	}
 }
 
+func TestPhysicalBackupJobActiveDeadlineSeconds(t *testing.T) {
+	tests := []struct {
+		name                      string
+		timeout                   *metav1.Duration
+		wantActiveDeadlineSeconds *int64
+	}{
+		{
+			name:                      "No timeout",
+			timeout:                   nil,
+			wantActiveDeadlineSeconds: nil,
+		},
+		{
+			name:                      "Timeout",
+			timeout:                   &metav1.Duration{Duration: time.Hour},
+			wantActiveDeadlineSeconds: ptr.To(int64(3600)),
+		},
+		{
+			name:                      "Zero timeout",
+			timeout:                   &metav1.Duration{},
+			wantActiveDeadlineSeconds: nil,
+		},
+		{
+			name:                      "Fractional seconds are rounded up",
+			timeout:                   &metav1.Duration{Duration: 1500 * time.Millisecond},
+			wantActiveDeadlineSeconds: ptr.To(int64(2)),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := newDefaultTestBuilder(t)
+
+			key := types.NamespacedName{
+				Name:      "test-backup",
+				Namespace: "test-namespace",
+			}
+			backup := &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						S3: &mariadbv1alpha1.S3{
+							Bucket:   "test",
+							Endpoint: "test",
+						},
+					},
+					Timeout: tt.timeout,
+				},
+			}
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-0",
+				},
+				Spec: corev1.PodSpec{
+					NodeName: "node1",
+				},
+			}
+
+			job, err := builder.BuildPhysicalBackupJob(key, backup, &mariadbv1alpha1.MariaDB{}, pod, "backup.xb")
+
+			assert.NoError(t, err)
+			assert.NotNil(t, job)
+			assert.Equal(t, tt.wantActiveDeadlineSeconds, job.Spec.ActiveDeadlineSeconds)
+		})
+	}
+}
+
 func TestRestoreJobImagePullSecrets(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{

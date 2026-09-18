@@ -333,5 +333,46 @@ var _ = Describe("PhysicalBackup types", func() {
 				false,
 			),
 		)
+		DescribeTable(
+			"Should return whether the Job has failed",
+			func(backup *PhysicalBackup, wantFailed bool) {
+				Expect(backup.IsJobFailed()).To(Equal(wantFailed))
+			},
+			Entry(
+				"No conditions",
+				&PhysicalBackup{},
+				false,
+			),
+			Entry(
+				"Job complete",
+				&PhysicalBackup{
+					Status: PhysicalBackupStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   ConditionTypeComplete,
+								Status: metav1.ConditionTrue,
+								Reason: ConditionReasonJobComplete,
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"Job failed",
+				&PhysicalBackup{
+					Status: PhysicalBackupStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   ConditionTypeComplete,
+								Status: metav1.ConditionTrue,
+								Reason: ConditionReasonJobFailed,
+							},
+						},
+					},
+				},
+				true,
+			),
+		)
 	})
 })
