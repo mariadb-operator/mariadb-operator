@@ -186,12 +186,28 @@ func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Clie
 	if err != nil {
 		return nil, fmt.Errorf("error creating Minio client: %v", err)
 	}
+
+	// minio-go silently rewrites Amazon S3 endpoints to their dual-stack variant
+	// (e.g. s3.<region>.amazonaws.com -> s3.dualstack.<region>.amazonaws.com) and
+	// enables it by default. That breaks setups where only the standard endpoint is
+	// routable, such as S3 gateway VPC endpoints. Honor the endpoint the user configured:
+	// only keep dual-stack when it was explicitly requested. This is a no-op for
+	// non-Amazon endpoints.
+	client.SetS3EnableDualstack(dualStackEnabled(endpoint))
 	return &Client{
 		Client:    client,
 		MinioOpts: opts,
 		basePath:  basePath,
 		bucket:    bucket,
 	}, nil
+}
+
+// dualStackEnabled reports whether the S3 client should use Amazon dual-stack
+// endpoints. minio-go turns dual-stack on by default for any Amazon endpoint and
+// rewrites the request host accordingly, discarding the configured endpoint. We
+// only want that when the user explicitly configured a dual-stack endpoint.
+func dualStackEnabled(endpoint string) bool {
+	return strings.Contains(endpoint, ".dualstack.")
 }
 
 func (c *Client) ListObjectsWithOptions(ctx context.Context) ([]string, error) {
