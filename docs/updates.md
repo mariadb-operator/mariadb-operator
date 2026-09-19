@@ -17,6 +17,7 @@ To mitigate this, and to give you full control on the upgrade process, you are a
 - [`OnDelete`](#ondelete)
 - [`Never`](#never)
 - [Data-plane updates](#data-plane-updates)
+- [Server updates](#server-updates)
 <!-- /toc -->
 
 ## Update strategies
@@ -145,3 +146,24 @@ spec:
 By default, `updateStrategy.autoUpdateDataPlane` is `false`, which means that no automatic upgrades will be performed, but you can opt-in/opt-out from this feature at any point in time by updating this field. For instance, you may want to selectively enable `updateStrategy.autoUpdateDataPlane` in a subset of your `MariaDB` instances after the operator has been upgraded to a newer version, and then disable it once the upgrades are completed.
 
 It is important to note that this feature is fully compatible with the [`Never`](#never) strategy: no upgrades will happen when `updateStrategy.autoUpdateDataPlane=true` and `updateStrategy.type=Never`.
+
+## Server updates
+
+Bumping `spec.image` across a major MariaDB version (e.g. `mariadb:11.8` to `mariadb:12.3`) requires a one-off migration of the system schema, which the official `mariadb` image performs with `mariadb-upgrade` when the `MARIADB_AUTO_UPGRADE` environment variable is set in the `mariadb` container. Without it, the migration is skipped and the instance breaks on any query that touches the migrated system tables, so logical backups and healthcheck users keep failing until it is run.
+
+You can opt in to the automatic upgrade with `updateStrategy.autoUpdateServer`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  image: mariadb:12.3.3
+  updateStrategy:
+    autoUpdateServer: true
+```
+
+By default, `updateStrategy.autoUpdateServer` is `false`, which means that the `mariadb` container won't run `mariadb-upgrade` on start. When set to `true`, the operator sets `MARIADB_AUTO_UPGRADE=true` in the `mariadb` container, so the official image entrypoint runs `mariadb-upgrade` whenever the `Pods` (re)start.
+
+Set `updateStrategy.autoUpdateServer: true` **before** bumping `spec.image` to a new major version and let the `Pods` roll: the migration will run as part of the update. Leaving it set afterwards is safe, as `mariadb-upgrade` is a no-op when there is nothing to migrate.
