@@ -423,6 +423,11 @@ type UpdateStrategy struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AutoUpdateDataPlane *bool `json:"autoUpdateDataPlane,omitempty"`
+	// AutoUpdateServer indicates whether the official `mariadb` image entrypoint should run `mariadb-upgrade` on start, by setting `MARIADB_AUTO_UPGRADE=true` in the `mariadb` container env. It defaults to false.
+	// Set this to true before bumping `spec.image` to a new major version, so that the server schema is migrated when the Pods roll. Leaving it set afterwards is safe: `mariadb-upgrade` is a no-op when there is nothing to migrate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AutoUpdateServer *bool `json:"autoUpdateServer,omitempty"`
 }
 
 // SetDefaults sets reasonable defaults.
@@ -432,6 +437,9 @@ func (u *UpdateStrategy) SetDefaults() {
 	}
 	if u.AutoUpdateDataPlane == nil {
 		u.AutoUpdateDataPlane = ptr.To(false)
+	}
+	if u.AutoUpdateServer == nil {
+		u.AutoUpdateServer = ptr.To(false)
 	}
 }
 

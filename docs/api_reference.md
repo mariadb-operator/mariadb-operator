@@ -3439,6 +3439,7 @@ _Appears in:_
 | `type` _[UpdateType](#updatetype)_ | Type defines the type of updates. One of `ReplicasFirstPrimaryLast`, `RollingUpdate` or `OnDelete`. If not defined, it defaults to `ReplicasFirstPrimaryLast`. | ReplicasFirstPrimaryLast | Enum: [ReplicasFirstPrimaryLast RollingUpdate OnDelete Never] <br /> |
 | `rollingUpdate` _[RollingUpdateStatefulSetStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#rollingupdatestatefulsetstrategy-v1-apps)_ | RollingUpdate defines parameters for the RollingUpdate type. |  |  |
 | `autoUpdateDataPlane` _boolean_ | AutoUpdateDataPlane indicates whether the Galera data-plane version (agent and init containers) should be automatically updated based on the operator version. It defaults to false.<br />Updating the operator will trigger updates on all the MariaDB instances that have this flag set to true. Thus, it is recommended to progressively set this flag after having updated the operator. |  |  |
+| `autoUpdateServer` _boolean_ | AutoUpdateServer indicates whether the official `mariadb` image entrypoint should run `mariadb-upgrade` on start, by setting `MARIADB_AUTO_UPGRADE=true` in the `mariadb` container env. It defaults to false.<br />Set this to true before bumping `spec.image` to a new major version, so that the server schema is migrated when the Pods roll. Leaving it set afterwards is safe: `mariadb-upgrade` is a no-op when there is nothing to migrate. |  |  |
 
 
 #### UpdateType
