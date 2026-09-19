@@ -2,49 +2,43 @@ package pki
 
 import (
 	"crypto/ecdsa"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestPrivateKey(t *testing.T) {
-	privateKey, err := GeneratePrivateKey()
-	if err != nil {
-		t.Fatalf("unexpected error generating private key: %v", err)
-	}
+var _ = Describe("PrivateKey", func() {
+	It("generates, marshals, encodes and parses an ECDSA private key", func() {
+		privateKey, err := GeneratePrivateKey()
+		Expect(err).NotTo(HaveOccurred())
 
-	bytes, err := MarshalPrivateKey(privateKey)
-	if err != nil {
-		t.Fatalf("unexpected error marshaling private key: %v", err)
-	}
+		bytes, err := MarshalPrivateKey(privateKey)
+		Expect(err).NotTo(HaveOccurred())
 
-	pemKey, err := pemEncodePrivateKey(bytes, privateKey)
-	if err != nil {
-		t.Fatalf("unexpected error encoding private key: %v", err)
-	}
+		pemKey, err := pemEncodePrivateKey(bytes, privateKey)
+		Expect(err).NotTo(HaveOccurred())
 
-	parsedKey, err := ParsePrivateKey(pemKey, []PrivateKey{PrivateKeyTypeECDSA})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if _, ok := parsedKey.(*ecdsa.PrivateKey); !ok {
-		t.Fatalf("expected *ecdsa.PrivateKey, got %T", parsedKey)
-	}
-}
+		parsedKey, err := ParsePrivateKey(pemKey, []PrivateKey{PrivateKeyTypeECDSA})
+		Expect(err).NotTo(HaveOccurred())
+		_, ok := parsedKey.(*ecdsa.PrivateKey)
+		Expect(ok).To(BeTrue())
+	})
+})
 
-func TestParsePrivateKey(t *testing.T) {
-	tests := []struct {
-		name     string
-		pemKey   []byte
-		keyTypes []PrivateKey
-		wantErr  bool
-	}{
-		{
-			name:    "Invalid",
-			pemKey:  []byte("invalid"),
-			wantErr: true,
+var _ = Describe("ParsePrivateKey", func() {
+	DescribeTable("parses a private key",
+		func(pemKey []byte, wantErr bool) {
+			parsedKey, err := ParsePrivateKey(pemKey, []PrivateKey{PrivateKeyTypeECDSA})
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				_, ok := parsedKey.(*ecdsa.PrivateKey)
+				Expect(ok).To(BeTrue())
+			}
 		},
-		{
-			name: "Unsupported",
-			pemKey: []byte(`-----BEGIN RSA PRIVATE KEY-----
+		Entry("Invalid", []byte("invalid"), true),
+		Entry("Unsupported", []byte(`-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEA1l202NMTln0/ngg4JXUJLJXvhSjjHimO22c47tHhWvnzhtnK
 CrH8cWBnnxO11os5PcNIUYTxn04mZPRs+p1YkE9DMlp9Lgy/38304rr4kjllVspv
 l9MdrelqbcDy520rgF/YObfMZvzeseH2F5UK386IXb1KYSmp8dn7RU2HvUf17Z/z
@@ -71,32 +65,12 @@ FQdVAoGAUt0hi789SX+BKzkWWMnds8HZzO3a5OgN9on+Hd/BVaQG6+F4wBGyjdjz
 PEZhWvsvx9Qge+DhwW3vfTDH2RItevD5Av4x0jZX0TWPoII8aP07VmDQ4g0cEkKh
 nBZoGLkeDofSc+Ml4HRpi43U+fqhU77wr8Gq0YU74h7lFfiRI/M=
 -----END RSA PRIVATE KEY-----
-`),
-			wantErr: true,
-		},
-		{
-			name: "Valid",
-			pemKey: []byte(`-----BEGIN EC PRIVATE KEY-----
+`), true),
+		Entry("Valid", []byte(`-----BEGIN EC PRIVATE KEY-----
 MHcCAQEEIAdp3iKnNA1kO2Ep5Hw7owMcm06SecFGdOqW/vO4k2AjoAoGCCqGSM49
 AwEHoUQDQgAEiTVhkriBksuWW5W3Mv9L918m1BECaHUl7ZV/Pz2q84wY9aEbxe2P
 J3c22DtEFzg9emNuruVS5/HL+hanzz4o+g==
 -----END EC PRIVATE KEY-----
-`),
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			parsedKey, err := ParsePrivateKey(tt.pemKey, []PrivateKey{PrivateKeyTypeECDSA})
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("expected error: %v, got: %v", tt.wantErr, err)
-			}
-			if !tt.wantErr {
-				if _, ok := parsedKey.(*ecdsa.PrivateKey); !ok {
-					t.Fatalf("expected *ecdsa.PrivateKey, got %T", parsedKey)
-				}
-			}
-		})
-	}
-}
+`), false),
+	)
+})
