@@ -540,6 +540,13 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		})
 	}
 
+	if ptr.Deref(mariadb.Spec.UpdateStrategy.AutoUpdateServer, false) {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_AUTO_UPGRADE",
+			Value: "true",
+		})
+	}
+
 	if mariadb.Spec.Env != nil {
 		idx := make(map[string]int, len(env))
 		for i, envVar := range env {
