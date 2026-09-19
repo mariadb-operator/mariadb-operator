@@ -393,10 +393,10 @@ func TestNewMinioClientFromS3ConfigOptionalCACert(t *testing.T) {
 			if err != nil {
 				t.Fatalf("expected no error, got: %v", err)
 			}
-			if client.MinioOpts.TLS != tt.wantTLS {
-				t.Errorf("expected TLS %v, got %v", tt.wantTLS, client.MinioOpts.TLS)
+			if client.TLS != tt.wantTLS {
+				t.Errorf("expected TLS %v, got %v", tt.wantTLS, client.TLS)
 			}
-			if gotCACerts := client.MinioOpts.CACertBytes != nil; gotCACerts != tt.wantCACerts {
+			if gotCACerts := client.CACertBytes != nil; gotCACerts != tt.wantCACerts {
 				t.Errorf("expected CA cert bytes %v, got %v", tt.wantCACerts, gotCACerts)
 			}
 		})
