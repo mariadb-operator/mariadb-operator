@@ -151,7 +151,7 @@ It is important to note that this feature is fully compatible with the [`Never`]
 
 Bumping `spec.image` across a major MariaDB version (e.g. `mariadb:11.8` to `mariadb:12.3`) requires a one-off migration of the system schema, which the official `mariadb` image performs with `mariadb-upgrade` when the `MARIADB_AUTO_UPGRADE` environment variable is set in the `mariadb` container. Without it, the migration is skipped and the instance breaks on any query that touches the migrated system tables, so logical backups and healthcheck users keep failing until it is run.
 
-You can opt in to the automatic upgrade with `updateStrategy.autoUpdateServer`:
+You can opt in to the automatic upgrade with `updateStrategy.mariadbAutoUpgradeEnabled`:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -161,9 +161,9 @@ metadata:
 spec:
   image: mariadb:12.3.3
   updateStrategy:
-    autoUpdateServer: true
+    mariadbAutoUpgradeEnabled: true
 ```
 
-By default, `updateStrategy.autoUpdateServer` is `false`, which means that the `mariadb` container won't run `mariadb-upgrade` on start. When set to `true`, the operator sets `MARIADB_AUTO_UPGRADE=true` in the `mariadb` container, so the official image entrypoint runs `mariadb-upgrade` whenever the `Pods` (re)start.
+By default, `updateStrategy.mariadbAutoUpgradeEnabled` is `false`, which means that the `mariadb` container won't run `mariadb-upgrade` on start. When set to `true`, the operator sets `MARIADB_AUTO_UPGRADE=true` in the `mariadb` container, so the official image entrypoint runs `mariadb-upgrade` whenever the `Pods` (re)start.
 
-Set `updateStrategy.autoUpdateServer: true` **before** bumping `spec.image` to a new major version and let the `Pods` roll: the migration will run as part of the update. Leaving it set afterwards is safe, as `mariadb-upgrade` is a no-op when there is nothing to migrate.
+Set `updateStrategy.mariadbAutoUpgradeEnabled: true` **before** bumping `spec.image` to a new major version and let the `Pods` roll: the migration will run as part of the update. Leaving it set afterwards is safe, as `mariadb-upgrade` is a no-op when there is nothing to migrate.
