@@ -14,6 +14,7 @@ type ObjectType string
 const (
 	ObjectTypeUsers     ObjectType = "inet"
 	ObjectTypeServers   ObjectType = "servers"
+	ObjectTypeFilters   ObjectType = "filters"
 	ObjectTypeMonitors  ObjectType = "monitors"
 	ObjectTypeServices  ObjectType = "services"
 	ObjectTypeListeners ObjectType = "listeners"
@@ -31,6 +32,7 @@ type RelationshipData struct {
 
 type Relationships struct {
 	Servers   *RelationshipData `json:"servers,omitempty"`
+	Filters   *RelationshipData `json:"filters,omitempty"`
 	Monitors  *RelationshipData `json:"monitors,omitempty"`
 	Services  *RelationshipData `json:"services,omitempty"`
 	Listeners *RelationshipData `json:"listeners,omitempty"`
@@ -49,6 +51,13 @@ func NewRelationshipsBuilder() *RelationshipsBuilder {
 func (b *RelationshipsBuilder) WithServers(servers ...string) *RelationshipsBuilder {
 	b.rels.Servers = &RelationshipData{
 		Data: b.items(ObjectTypeServers, servers...),
+	}
+	return b
+}
+
+func (b *RelationshipsBuilder) WithFilters(filters ...string) *RelationshipsBuilder {
+	b.rels.Filters = &RelationshipData{
+		Data: b.items(ObjectTypeFilters, filters...),
 	}
 	return b
 }

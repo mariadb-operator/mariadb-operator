@@ -31,7 +31,7 @@ func WithQuery(q map[string]string) Option {
 func WithForceQuery() Option {
 	return func(o *Options) {
 		o.query = map[string]string{
-			"force": "true",
+			"force": "yes",
 		}
 	}
 }

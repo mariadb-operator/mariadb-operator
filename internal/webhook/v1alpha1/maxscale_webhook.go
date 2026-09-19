@@ -37,6 +37,7 @@ func (v *MaxScaleCustomValidator) ValidateCreate(ctx context.Context, maxscale *
 		validateAuth,
 		validateCreateServerSources,
 		validateServers,
+		validateFilters,
 		validateMonitor,
 		validateServices,
 		validateMaxScalePodDisruptionBudget,
@@ -63,6 +64,7 @@ func (v *MaxScaleCustomValidator) ValidateUpdate(ctx context.Context,
 		validateAuth,
 		validateServerSources,
 		validateServers,
+		validateFilters,
 		validateMonitor,
 		validateServices,
 		validateMaxScalePodDisruptionBudget,
@@ -140,6 +142,18 @@ func validateServers(maxscale *mariadbv1alpha1.MaxScale) error {
 	return nil
 }
 
+func validateFilters(maxscale *mariadbv1alpha1.MaxScale) error {
+	idx := maxscale.FilterIndex()
+	if len(idx) != len(maxscale.Spec.Filters) {
+		return field.Invalid(
+			field.NewPath("spec").Child("filters"),
+			maxscale.Spec.Filters,
+			"filter names must be unique",
+		)
+	}
+	return nil
+}
+
 func validateMonitor(maxscale *mariadbv1alpha1.MaxScale) error {
 	if maxscale.Spec.MariaDBRef == nil && maxscale.Spec.Monitor.Module == "" {
 		return field.Invalid(
@@ -186,6 +200,18 @@ func validateServices(maxscale *mariadbv1alpha1.MaxScale) error {
 			maxscale.Spec.Services,
 			"service listener ports must be unique",
 		)
+	}
+	filterIdx := maxscale.FilterIndex()
+	for _, svc := range maxscale.Spec.Services {
+		for _, filterName := range svc.Filters {
+			if _, ok := filterIdx[filterName]; !ok {
+				return field.Invalid(
+					field.NewPath("spec").Child("services").Child("filters"),
+					filterName,
+					"filter must be defined in 'spec.filters'",
+				)
+			}
+		}
 	}
 	return nil
 }
