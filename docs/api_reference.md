@@ -1669,6 +1669,25 @@ _Appears in:_
 | `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | Interval defines the config synchronization timeout. It is defaulted if not provided. |  |  |
 
 
+#### MaxScaleFilter
+
+
+
+MaxScaleFilter defines a MaxScale filter to be applied to services.
+Filters must be referenced explicitly from 'spec.services[].filters'.
+
+
+
+_Appears in:_
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the identifier of the MaxScale filter. |  | Required: \{\} <br /> |
+| `module` _string_ | Module is the filter module to load. |  | Required: \{\} <br /> |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the filter.<br />Any parameter supported by the filter module may be specified here. See reference:<br />https://mariadb.com/docs/maxscale/reference/maxscale-filters |  |  |
+
+
 #### MaxScaleListener
 
 
@@ -1765,6 +1784,7 @@ _Appears in:_
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `volumes` _[Volume](#volume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
 | `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
@@ -1809,6 +1829,7 @@ _Appears in:_
 | `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |  | Enum: [readwritesplit readconnroute] <br />Required: \{\} <br /> |
 | `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |  | Required: \{\} <br /> |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the service.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.<br />Router specific parameter are also supported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration. |  |  |
+| `filters` _string array_ | Filters are the names of the filters defined in 'spec.filters' to apply to this service, in order. |  |  |
 
 
 #### MaxScaleSpec
@@ -1842,6 +1863,7 @@ _Appears in:_
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `volumes` _[Volume](#volume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
 | `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
@@ -1849,6 +1871,7 @@ _Appears in:_
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field. |  |  |
 | `primaryServer` _string_ | PrimaryServer specifies the desired primary server. Setting this field triggers a switchover operation in MaxScale to the desired server.<br />This option is only valid when using monitors that support switchover, currently limited to the MariaDB monitor. |  |  |
 | `servers` _[MaxScaleServer](#maxscaleserver) array_ | Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided. |  |  |
+| `filters` _[MaxScaleFilter](#maxscalefilter) array_ | Filters are the filters to load into MaxScale. They are not applied automatically, they must be<br />referenced explicitly from 'spec.services[].filters'. |  |  |
 | `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.<br />Only MaxScale official images are supported. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
@@ -3504,6 +3527,28 @@ _Appears in:_
 | `host` _string_ | Host related to the User. |  | MaxLength: 255 <br /> |
 
 
+#### Volume
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
+
+
+
+_Appears in:_
+- [MaxScalePodTemplate](#maxscalepodtemplate)
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ |  |  |  |
+| `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
+| `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
+| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
+| `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
+| `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
 
 
 #### VolumeClaimTemplate
