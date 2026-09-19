@@ -60,6 +60,25 @@ func (m *MaxScaleServer) SetDefaults() {
 	}
 }
 
+// MaxScaleFilter defines a MaxScale filter to be applied to services.
+// Filters must be referenced explicitly from 'spec.services[].filters'.
+type MaxScaleFilter struct {
+	// Name is the identifier of the MaxScale filter.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Name string `json:"name"`
+	// Module is the filter module to load.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Module string `json:"module"`
+	// Params defines extra parameters to pass to the filter.
+	// Any parameter supported by the filter module may be specified here. See reference:
+	// https://mariadb.com/docs/maxscale/reference/maxscale-filters
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Params map[string]string `json:"params,omitempty"`
+}
+
 // MonitorModule defines the type of monitor module
 type MonitorModule string
 
@@ -208,6 +227,10 @@ type MaxScaleService struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Params map[string]string `json:"params,omitempty"`
+	// Filters are the names of the filters defined in 'spec.filters' to apply to this service, in order.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Filters []string `json:"filters,omitempty"`
 }
 
 // SetDefaults sets default values.
@@ -595,6 +618,10 @@ type MaxScalePodTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Volumes to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Volumes []Volume `json:"volumes,omitempty"`
 	// PriorityClassName to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -663,6 +690,11 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Servers []MaxScaleServer `json:"servers"`
+	// Filters are the filters to load into MaxScale. They are not applied automatically, they must be
+	// referenced explicitly from 'spec.services[].filters'.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Filters []MaxScaleFilter `json:"filters,omitempty"`
 	// Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.
 	// Only MaxScale official images are supported.
 	// +optional
@@ -834,6 +866,10 @@ type MaxScaleStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	MonitorSpec string `json:"monitorSpec,omitempty"`
+	// FiltersSpec is a hashed version of spec.filters to be able to track changes during reconciliation.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	FiltersSpec string `json:"filtersSpec,omitempty"`
 	// ServersSpec is a hashed version of spec.servers to be able to track changes during reconciliation.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -1056,6 +1092,18 @@ func (m *MaxScale) ServiceIndex() ds.Index[MaxScaleService] {
 // ServiceIDs returns the IDs of the services.
 func (m *MaxScale) ServiceIDs() []string {
 	return ds.Keys(m.ServiceIndex())
+}
+
+// FilterIndex returns the filters indexed by ID.
+func (m *MaxScale) FilterIndex() ds.Index[MaxScaleFilter] {
+	return ds.NewIndex(m.Spec.Filters, func(f MaxScaleFilter) string {
+		return f.Name
+	})
+}
+
+// FilterIDs returns the IDs of the filters.
+func (m *MaxScale) FilterIDs() []string {
+	return ds.Keys(m.FilterIndex())
 }
 
 // ServiceForListener finds the service for a given listener

@@ -587,6 +587,9 @@ func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
 		tlsVolumes, _ := maxscaleTLSVolumes(maxscale)
 		volumes = append(volumes, tlsVolumes...)
 	}
+	if maxscale.Spec.Volumes != nil {
+		volumes = append(volumes, kadapter.ToKubernetesSlice(maxscale.Spec.Volumes)...)
+	}
 	return volumes
 }
 
