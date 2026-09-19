@@ -27,6 +27,20 @@ helm repo update mariadb-operator
 helm upgrade --install mariadb-operator-crds mariadb-operator/mariadb-operator-crds --version 26.10.1
 ```
 
+- Optionally, if you are also upgrading your `MariaDB` servers across a major version (e.g. `mariadb:11.8` to `mariadb:12.3.3`), set `spec.image` and `updateStrategy.mariadbAutoUpgradeEnabled=true` before updating the operator, so that the data-plane and the `mariadb` image are upgraded in a single rolling update. The flag makes the operator set `MARIADB_AUTO_UPGRADE=true` in the `mariadb` container, so that the official image entrypoint runs `mariadb-upgrade` on start and migrates the system schema when the `Pods` roll:
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+-  image: mariadb:11.8.6
++  image: mariadb:12.3.3
+  updateStrategy:
++   mariadbAutoUpgradeEnabled: true
+```
+As `mariadbAutoUpgradeEnabled` is a new field, this step only applies after upgrading `mariadb-operator-crds` to `26.10.1`. Without the migration, the `Pods` restart against an unmigrated datadir and every query touching `mysql.proc` fails. After the `Pods` have rolled successfully, you may set `updateStrategy.mariadbAutoUpgradeEnabled` back to `false`: `mariadb-upgrade` is a no-op when there is nothing to migrate.
+
 Upgrade the `mariadb-operator` helm chart to `26.10.1`:
 ```bash 
 helm repo update mariadb-operator
@@ -45,17 +59,6 @@ spec:
 +   autoUpdateDataPlane: false
 -   autoUpdateDataPlane: true
 ```
-
-> [!IMPORTANT]
-> __[MariaDB major version upgrades]__ To upgrade your `MariaDB` servers across a major version (e.g. `mariadb:11.8` to `mariadb:12.3.3`), set `updateStrategy.mariadbAutoUpgradeEnabled=true` **before** bumping `spec.image`, so that the official image entrypoint runs `mariadb-upgrade` on start and migrates the system schema when the `Pods` roll:
-> ```diff
-> spec:
-> -  image: mariadb:11.8.6
-> +  image: mariadb:12.3.3
->   updateStrategy:
-> +  mariadbAutoUpgradeEnabled: true
-> ```
-> Without the migration, the `Pods` restart against an unmigrated datadir and every query touching `mysql.proc` fails. After the `Pods` have rolled successfully, you may set the flag back to `false`: `mariadb-upgrade` is a no-op when there is nothing to migrate.
 
 > [!NOTE]
 > The default `mariadb` image is `mariadb:12.3.3`. Existing `MariaDB` resources keep the image set in their spec, so updating the operator does not update your MariaDB servers: explicitly set `spec.image=mariadb:12.3.3` in the `MariaDB` CR to upgrade them.
