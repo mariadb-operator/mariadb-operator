@@ -5517,8 +5517,8 @@ func (in *UpdateStrategy) DeepCopyInto(out *UpdateStrategy) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.AutoUpdateServer != nil {
-		in, out := &in.AutoUpdateServer, &out.AutoUpdateServer
+	if in.MariaDBAutoUpgradeEnabled != nil {
+		in, out := &in.MariaDBAutoUpgradeEnabled, &out.MariaDBAutoUpgradeEnabled
 		*out = new(bool)
 		**out = **in
 	}

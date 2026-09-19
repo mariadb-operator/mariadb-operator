@@ -1667,7 +1667,7 @@ func TestMariadbEnv(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						AutoUpdateServer: ptr.To(true),
+						MariaDBAutoUpgradeEnabled: ptr.To(true),
 					},
 				},
 			},
@@ -1682,7 +1682,7 @@ func TestMariadbEnv(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						AutoUpdateServer: ptr.To(true),
+						MariaDBAutoUpgradeEnabled: ptr.To(true),
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Env: []mariadbv1alpha1.EnvVar{
@@ -2057,11 +2057,11 @@ func TestMariadbContainers(t *testing.T) {
 			wantVolumeMountKeys: []string{"TEST", "FOO", "BAR"},
 		},
 		{
-			name: "With autoUpdateServer",
+			name: "With mariadbAutoUpgradeEnabled",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-						AutoUpdateServer: ptr.To(true),
+						MariaDBAutoUpgradeEnabled: ptr.To(true),
 					},
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
@@ -2083,7 +2083,7 @@ func TestMariadbContainers(t *testing.T) {
 			wantMariadbEnvKeys:  []string{"MARIADB_AUTO_UPGRADE"},
 		},
 		{
-			name: "Without autoUpdateServer",
+			name: "Without mariadbAutoUpgradeEnabled",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
