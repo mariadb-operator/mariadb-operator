@@ -11,11 +11,20 @@ spec:
   # Trigger a switchover by declaring the desired primary server
   # primaryServer: mariadb-repl-0
 
+  filters:
+    - name: throttle
+      module: throttlefilter
+      params:
+        max_qps: "500"
+        throttling_duration: 60000ms
+
   services:
     - name: rw-router
       router: readwritesplit
       listener:
         port: 3306
+      filters:
+        - throttle
     - name: rconn-master-router
       router: readconnroute
       params:
