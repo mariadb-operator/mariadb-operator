@@ -27,7 +27,9 @@ type RelationshipItem struct {
 }
 
 type RelationshipData struct {
-	Data []RelationshipItem `json:"data,omitempty"`
+	// Data must always be marshaled, even when empty, so the MaxScale REST API
+	// clears the relationship instead of leaving it untouched.
+	Data []RelationshipItem `json:"data"`
 }
 
 type Relationships struct {
