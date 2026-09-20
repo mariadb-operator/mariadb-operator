@@ -289,12 +289,11 @@ func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha
 	}, nil
 }
 
-// withServiceFilters returns rels extended with the service's filters relationship, if any.
+// withServiceFilters returns rels extended with the service's filters relationship.
+// It is always set explicitly, even when empty, so a filter removed from the spec
+// is also cleared on the MaxScale side instead of being left stale.
 // A copy is returned so the shared rels passed in is not mutated across services.
 func (m *maxScaleAPI) withServiceFilters(rels *mxsclient.Relationships, svc *mariadbv1alpha1.MaxScaleService) *mxsclient.Relationships {
-	if len(svc.Filters) == 0 {
-		return rels
-	}
 	svcRels := *rels
 	svcRels.Filters = &mxsclient.RelationshipData{
 		Data: make([]mxsclient.RelationshipItem, len(svc.Filters)),
