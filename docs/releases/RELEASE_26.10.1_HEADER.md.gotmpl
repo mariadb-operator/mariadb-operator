@@ -22,6 +22,35 @@ spec:
 
 Leaving it set afterwards is safe: `mariadb-upgrade` is a no-op when there is nothing to migrate.
 
+## MaxScale filters
+
+[MaxScale](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/maxscale.md#filter-configuration) now supports [filters](https://mariadb.com/docs/maxscale/reference/maxscale-filters), which let you reject, alter or log requests before they reach the router and before the response is sent back to the client ([#1923](https://github.com/mariadb-operator/mariadb-operator/pull/1923)). Declare them in `spec.filters` and reference them by name from `spec.services[].filters`, in the order they should be applied:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
+  filters:
+    - name: throttle
+      module: throttlefilter
+      params:
+        max_qps: "500"
+        throttling_duration: 60000ms
+  services:
+    - name: rw-router
+      router: readwritesplit
+      filters:
+        - throttle
+      listener:
+        port: 3306
+```
+
+Filters are never applied implicitly: a filter declared in `spec.filters` but not referenced by any service is loaded and left unused. The same release also adds `spec.volumes` to the `MaxScale` Pod template, which pairs with the existing `spec.volumeMounts` so you can mount extra `ConfigMaps`, `Secrets` or ephemeral storage into the MaxScale container.
+
+Kudos to @hedgieinsocks for driving this feature end to end!
+
 ---
 
 ## Community
