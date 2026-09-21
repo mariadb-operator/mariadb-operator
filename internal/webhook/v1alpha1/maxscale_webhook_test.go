@@ -434,6 +434,106 @@ var _ = Describe("MaxScale webhook", func() {
 				},
 				false,
 			),
+			Entry(
+				"Invalid filter names",
+				&v1alpha1.MaxScale{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MaxScaleSpec{
+						MariaDBRef: &v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb",
+							},
+						},
+						Filters: []v1alpha1.MaxScaleFilter{
+							{
+								Name:   "throttle",
+								Module: "throttlefilter",
+							},
+							{
+								Name:   "throttle",
+								Module: "qlafilter",
+							},
+						},
+						Services: []v1alpha1.MaxScaleService{
+							{
+								Name:   "rw-router",
+								Router: v1alpha1.ServiceRouterReadWriteSplit,
+								Listener: v1alpha1.MaxScaleListener{
+									Port: 3306,
+								},
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Undefined service filter",
+				&v1alpha1.MaxScale{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MaxScaleSpec{
+						MariaDBRef: &v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb",
+							},
+						},
+						Filters: []v1alpha1.MaxScaleFilter{
+							{
+								Name:   "throttle",
+								Module: "throttlefilter",
+							},
+						},
+						Services: []v1alpha1.MaxScaleService{
+							{
+								Name:   "rw-router",
+								Router: v1alpha1.ServiceRouterReadWriteSplit,
+								Listener: v1alpha1.MaxScaleListener{
+									Port: 3306,
+								},
+								Filters: []string{"qla"},
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid filters",
+				&v1alpha1.MaxScale{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MaxScaleSpec{
+						MariaDBRef: &v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb",
+							},
+						},
+						Filters: []v1alpha1.MaxScaleFilter{
+							{
+								Name:   "throttle",
+								Module: "throttlefilter",
+								Params: map[string]string{
+									"max_qps": "500",
+								},
+							},
+							{
+								Name:   "qla",
+								Module: "qlafilter",
+							},
+						},
+						Services: []v1alpha1.MaxScaleService{
+							{
+								Name:   "rw-router",
+								Router: v1alpha1.ServiceRouterReadWriteSplit,
+								Listener: v1alpha1.MaxScaleListener{
+									Port: 3306,
+								},
+								Filters: []string{"throttle", "qla"},
+							},
+						},
+					},
+				},
+				false,
+			),
 		)
 	})
 
