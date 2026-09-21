@@ -27,17 +27,39 @@ type RelationshipItem struct {
 }
 
 type RelationshipData struct {
-	// Data must always be marshaled, even when empty, so the MaxScale REST API
-	// clears the relationship instead of leaving it untouched.
+	Data []RelationshipItem `json:"data,omitempty"`
+}
+
+// FilterRelationshipData is the filters relationship of a service.
+// Unlike the other relationship types, its data member is always marshaled, even when empty: the
+// MaxScale REST API leaves a relationship untouched when its data member is absent, so an empty
+// array is the only way to detach every filter from a service. The remaining relationship types
+// keep omitting an empty data member, as they always reconcile a non-empty set of objects.
+type FilterRelationshipData struct {
 	Data []RelationshipItem `json:"data"`
 }
 
+// NewFilterRelationshipData builds the filters relationship of a service.
+// Passing no filters detaches every filter from the service.
+func NewFilterRelationshipData(filters ...string) *FilterRelationshipData {
+	data := make([]RelationshipItem, len(filters))
+	for i, filter := range filters {
+		data[i] = RelationshipItem{
+			ID:   filter,
+			Type: ObjectTypeFilters,
+		}
+	}
+	return &FilterRelationshipData{
+		Data: data,
+	}
+}
+
 type Relationships struct {
-	Servers   *RelationshipData `json:"servers,omitempty"`
-	Filters   *RelationshipData `json:"filters,omitempty"`
-	Monitors  *RelationshipData `json:"monitors,omitempty"`
-	Services  *RelationshipData `json:"services,omitempty"`
-	Listeners *RelationshipData `json:"listeners,omitempty"`
+	Servers   *RelationshipData       `json:"servers,omitempty"`
+	Filters   *FilterRelationshipData `json:"filters,omitempty"`
+	Monitors  *RelationshipData       `json:"monitors,omitempty"`
+	Services  *RelationshipData       `json:"services,omitempty"`
+	Listeners *RelationshipData       `json:"listeners,omitempty"`
 }
 
 type RelationshipsBuilder struct {
@@ -57,10 +79,10 @@ func (b *RelationshipsBuilder) WithServers(servers ...string) *RelationshipsBuil
 	return b
 }
 
+// WithFilters sets the filters relationship. Passing no filters detaches every filter from the
+// service, see FilterRelationshipData.
 func (b *RelationshipsBuilder) WithFilters(filters ...string) *RelationshipsBuilder {
-	b.rels.Filters = &RelationshipData{
-		Data: b.items(ObjectTypeFilters, filters...),
-	}
+	b.rels.Filters = NewFilterRelationshipData(filters...)
 	return b
 }
 

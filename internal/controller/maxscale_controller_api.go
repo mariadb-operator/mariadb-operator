@@ -295,15 +295,7 @@ func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha
 // A copy is returned so the shared rels passed in is not mutated across services.
 func (m *maxScaleAPI) withServiceFilters(rels *mxsclient.Relationships, svc *mariadbv1alpha1.MaxScaleService) *mxsclient.Relationships {
 	svcRels := *rels
-	svcRels.Filters = &mxsclient.RelationshipData{
-		Data: make([]mxsclient.RelationshipItem, len(svc.Filters)),
-	}
-	for i, name := range svc.Filters {
-		svcRels.Filters.Data[i] = mxsclient.RelationshipItem{
-			ID:   name,
-			Type: mxsclient.ObjectTypeFilters,
-		}
-	}
+	svcRels.Filters = mxsclient.NewFilterRelationshipData(svc.Filters...)
 	return &svcRels
 }
 
