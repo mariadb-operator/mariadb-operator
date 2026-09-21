@@ -11,20 +11,24 @@ spec:
   # Trigger a switchover by declaring the desired primary server
   # primaryServer: mariadb-repl-0
 
-  filters:
-    - name: throttle
-      module: throttlefilter
-      params:
-        max_qps: "500"
-        throttling_duration: 60000ms
+  # Declare filters to reject, alter or log requests before they reach the router.
+  # Filters are not applied automatically: reference them by name from the services below.
+  # See: https://mariadb.com/docs/maxscale/reference/maxscale-filters
+  # filters:
+  #   - name: throttle
+  #     module: throttlefilter
+  #     params:
+  #       max_qps: "500"
+  #       throttling_duration: 60000ms
 
   services:
     - name: rw-router
       router: readwritesplit
       listener:
         port: 3306
-      filters:
-        - throttle
+      # Apply the filters declared in 'spec.filters' to this service, in order
+      # filters:
+      #   - throttle
     - name: rconn-master-router
       router: readconnroute
       params:
