@@ -58,8 +58,11 @@ func TestBackupCompressors(t *testing.T) {
 				t.Fatalf("Failed to write test file: %v", err)
 			}
 
-			if err := compressor.Compress(filePath); err != nil {
-				t.Fatalf("Failed to compress test file: %v", err)
+			// Compress twice: a restarted backup container must not add another compression layer.
+			for range 2 {
+				if err := compressor.Compress(filePath); err != nil {
+					t.Fatalf("Failed to compress test file: %v", err)
+				}
 			}
 			decompressedFileName, err := compressor.Decompress(filePath)
 			if err != nil {
