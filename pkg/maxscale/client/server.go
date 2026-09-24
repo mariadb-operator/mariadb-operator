@@ -15,7 +15,7 @@ var ErrMasterServerNotFound = errors.New("master server not found")
 type ServerParameters struct {
 	Address                  string    `json:"address"`
 	Port                     int32     `json:"port"`
-	Protocol                 string    `json:"protocol"`
+	Protocol                 string    `json:"protocol,omitempty"`
 	SSL                      bool      `json:"ssl,omitempty"`
 	SSLCert                  string    `json:"ssl_cert,omitempty"`
 	SSLKey                   string    `json:"ssl_key,omitempty"`
