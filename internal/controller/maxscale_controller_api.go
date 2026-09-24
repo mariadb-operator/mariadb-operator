@@ -68,6 +68,8 @@ func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxS
 	if err != nil {
 		return fmt.Errorf("error getting server attributes: %v", err)
 	}
+	// protocol cannot be modified at runtime, and servers propagated via config sync do not keep it.
+	serverAttrs.Parameters.Protocol = ""
 	return m.client.Server.Patch(ctx, srv.Name, serverAttrs)
 }
 
