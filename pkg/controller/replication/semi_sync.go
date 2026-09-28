@@ -2,6 +2,7 @@ package replication
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -24,13 +25,16 @@ import (
 // When the primary is unreachable it defers to the Pod loop and to 'reconcileSemiSync' afterwards, without requeuing, so it
 // never blocks reconciliation.
 func (r *ReplicationReconciler) reconcileSemiSyncWhenReplicasAvailable(ctx context.Context, req *ReconcileRequest,
-	primaryPodIndex int, logger logr.Logger) error {
+	logger logr.Logger) error {
 	if !req.mariadb.IsSemiSyncEnabled() {
 		return nil
 	}
-	podLogger := logger.WithValues("pod", statefulset.PodName(req.mariadb.ObjectMeta, primaryPodIndex))
+	if req.currentPrimaryPodIndex == nil {
+		return errors.New("req.currentPrimaryPodIndex must be set")
+	}
+	podLogger := logger.WithValues("pod", statefulset.PodName(req.mariadb.ObjectMeta, *req.currentPrimaryPodIndex))
 
-	client, err := req.replClientSet.clientForIndex(ctx, primaryPodIndex)
+	client, err := req.replClientSet.clientForIndex(ctx, *req.currentPrimaryPodIndex)
 	if err != nil {
 		podLogger.V(1).Info("Unable to get primary client to get semi-sync clients", "err", err)
 		return nil
@@ -45,7 +49,7 @@ func (r *ReplicationReconciler) reconcileSemiSyncWhenReplicasAvailable(ctx conte
 		return nil
 	}
 
-	if err := r.reconcileSemiSync(ctx, req, primaryPodIndex, logger); err != nil {
+	if err := r.reconcileSemiSync(ctx, req, *req.currentPrimaryPodIndex, logger); err != nil {
 		return fmt.Errorf("error reconciling semi-sync: %w", err)
 	}
 	return nil
