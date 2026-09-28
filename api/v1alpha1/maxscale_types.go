@@ -1079,6 +1079,18 @@ func (m *MaxScale) PodAPIUrl(podIndex int) string {
 	return m.apiUrlWithAddress(fqdn)
 }
 
+// ServerAddressPodIndex returns the index of the MariaDB Pod that a MaxScale server address points to.
+// It returns an error when the address cannot be mapped to a MariaDB Pod.
+func (m *MaxScale) ServerAddressPodIndex(mdb *MariaDB, serverAddress string) (*int, error) {
+	for i := 0; i < int(mdb.Spec.Replicas); i++ {
+		address := statefulset.PodFQDNWithService(mdb.ObjectMeta, i, mdb.InternalServiceKey().Name)
+		if serverAddress == address {
+			return &i, nil
+		}
+	}
+	return nil, fmt.Errorf("MariaDB Pod with address '%s' not found", serverAddress)
+}
+
 // ServerIDs returns the servers indexed by ID.
 func (m *MaxScale) ServerIndex() ds.Index[MaxScaleServer] {
 	return ds.NewIndex(m.Spec.Servers, func(mss MaxScaleServer) string {
