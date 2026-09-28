@@ -2,6 +2,7 @@ package replication
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -149,23 +150,32 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 }
 
 func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *ReconcileRequest, logger logr.Logger) (ctrl.Result, error) {
+	primaryPodIndex, err := r.currentPrimaryPodIndex(ctx, req, logger)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting current primary Pod index: %w", err)
+	}
+	if primaryPodIndex == nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
 	semiSyncLogger := logger.WithName("semi-sync")
-	if err := r.reconcileSemiSyncWhenReplicasAvailable(ctx, req, semiSyncLogger); err != nil {
+	if err := r.reconcileSemiSyncWhenReplicasAvailable(ctx, req, *primaryPodIndex, semiSyncLogger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync when clients available: %w", err)
 	}
 
 	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
-	for _, i := range r.replicationPodIndexes(req) {
-		if result, err := r.ReconcileReplicationInPod(ctx, req, i, logger); !result.IsZero() || err != nil {
+	for _, i := range r.replicationPodIndexes(req, *primaryPodIndex) {
+		if result, err := r.ReconcileReplicationInPod(ctx, req, i, logger,
+			WithPrimaryPodIndex(*primaryPodIndex)); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
 	// After the Pods have been configured, so the primary is only armed once the replicas are able to acknowledge it. Exiting the
 	// loop above early skips this, which is safe by construction: the same non-zero result short-circuits the MariaDB phase loop,
 	// so the Maintenance phase does not hand write traffic back either. The node stays unarmed and read_only together.
-	if err := r.reconcileSemiSync(ctx, req, *req.mariadb.Status.CurrentPrimaryPodIndex, semiSyncLogger); err != nil {
+	if err := r.reconcileSemiSync(ctx, req, *primaryPodIndex, semiSyncLogger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync: %w", err)
 	}
 	if !req.mariadb.HasConfiguredReplication() {
@@ -180,9 +190,6 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 
 func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, req *ReconcileRequest,
 	logger logr.Logger) (ctrl.Result, error) {
-	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
 	if req.mariadb.IsSwitchingPrimary() {
 		return ctrl.Result{}, nil
 	}
@@ -210,12 +217,12 @@ func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *ReplicationReconciler) replicationPodIndexes(req *ReconcileRequest) []int {
+func (r *ReplicationReconciler) replicationPodIndexes(req *ReconcileRequest, primaryPodIndex int) []int {
 	podIndexes := []int{
-		*req.mariadb.Status.CurrentPrimaryPodIndex,
+		primaryPodIndex,
 	}
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
-		if i != *req.mariadb.Status.CurrentPrimaryPodIndex {
+		if i != primaryPodIndex {
 			podIndexes = append(podIndexes, i)
 		}
 	}
@@ -225,6 +232,7 @@ func (r *ReplicationReconciler) replicationPodIndexes(req *ReconcileRequest) []i
 type ReconcilePodOpts struct {
 	forceReplicaConfiguration bool
 	volumeSnapshotKey         *types.NamespacedName
+	primaryPodIndex           *int
 }
 
 type ReconcilePodOpt func(*ReconcilePodOpts)
@@ -241,6 +249,13 @@ func WithVolumeSnapshotKey(key *types.NamespacedName) ReconcilePodOpt {
 	}
 }
 
+// WithPrimaryPodIndex sets the index of the current primary Pod. It defaults to 'status.currentPrimaryPodIndex'.
+func WithPrimaryPodIndex(index int) ReconcilePodOpt {
+	return func(rpo *ReconcilePodOpts) {
+		rpo.primaryPodIndex = &index
+	}
+}
+
 func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, req *ReconcileRequest, podIndex int,
 	logger logr.Logger, reconcilePodOpts ...ReconcilePodOpt) (ctrl.Result, error) {
 	opts := ReconcilePodOpts{}
@@ -248,7 +263,14 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		setOpt(&opts)
 	}
 
-	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
+	primaryPodIndexPtr := req.mariadb.Status.CurrentPrimaryPodIndex
+	if opts.primaryPodIndex != nil {
+		primaryPodIndexPtr = opts.primaryPodIndex
+	}
+	if primaryPodIndexPtr == nil {
+		return ctrl.Result{}, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	primaryPodIndex := *primaryPodIndexPtr
 	replStatus := ptr.Deref(req.mariadb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	replRoles := replStatus.Roles
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, podIndex)
@@ -258,7 +280,7 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		if shouldSkipPrimaryReconciliation(req.mariadb, replRoles, pod, logger) {
 			return ctrl.Result{}, nil
 		}
-		client, err := req.replClientSet.currentPrimaryClient(ctx)
+		client, err := req.replClientSet.clientForIndex(ctx, primaryPodIndex)
 		if err != nil {
 			logger.V(1).Info("error getting current primary client", "err", err, "pod", pod)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
