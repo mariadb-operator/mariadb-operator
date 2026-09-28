@@ -744,11 +744,6 @@ func (c *Client) IsSemiSyncMasterEnabled(ctx context.Context) (bool, error) {
 	return c.IsSystemVariableEnabled(ctx, "rpl_semi_sync_master_enabled")
 }
 
-// SemiSyncMasterClients returns the number of replicas registered as semi-synchronous clients, which are able to acknowledge.
-func (c *Client) SemiSyncMasterClients(ctx context.Context) (int, error) {
-	return c.StatusVariableInt(ctx, "Rpl_semi_sync_master_clients")
-}
-
 func (c *Client) EnableSemiSyncMaster(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "rpl_semi_sync_master_enabled", "1")
 }
@@ -757,6 +752,12 @@ func (c *Client) EnableSemiSyncMaster(ctx context.Context) error {
 // releases the threads that are currently waiting for an acknowledgement.
 func (c *Client) DisableSemiSyncMaster(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "rpl_semi_sync_master_enabled", "0")
+}
+
+// SemiSyncMasterClients returns the number of replicas registered as semi-synchronous clients, which are able to acknowledge.
+// See: https://mariadb.com/docs/server/ha-and-performance/optimization-and-tuning/system-variables/semisynchronous-replication-plugin-status-variables#rpl_semi_sync_master_clients
+func (c *Client) SemiSyncMasterClients(ctx context.Context) (int, error) {
+	return c.StatusVariableInt(ctx, "Rpl_semi_sync_master_clients")
 }
 
 // From docs: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/reset-master
