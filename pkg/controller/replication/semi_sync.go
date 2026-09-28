@@ -21,7 +21,8 @@ import (
 // old primary comes back. Arming it here is safe, since a registered client is able to acknowledge the replication user DDL
 // in 'ConfigurePrimary'.
 //
-// When the primary is unreachable it defers to the Pod loop and to 'reconcileSemiSync' afterwards, without requeuing i.e. block reconciliation.
+// When the primary is unreachable it defers to the Pod loop and to 'reconcileSemiSync' afterwards, without requeuing, so it
+// never blocks reconciliation.
 func (r *ReplicationReconciler) reconcileSemiSyncWhenReplicasAvailable(ctx context.Context, req *ReconcileRequest,
 	logger logr.Logger) error {
 	if !req.mariadb.IsSemiSyncEnabled() || req.mariadb.Status.CurrentPrimaryPodIndex == nil {
@@ -32,16 +33,16 @@ func (r *ReplicationReconciler) reconcileSemiSyncWhenReplicasAvailable(ctx conte
 
 	client, err := req.replClientSet.currentPrimaryClient(ctx)
 	if err != nil {
-		podLogger.Info("Unable to get primary client to get semi-sync clients", "err", err)
+		podLogger.V(1).Info("Unable to get primary client to get semi-sync clients", "err", err)
 		return nil
 	}
 	clients, err := client.SemiSyncMasterClients(ctx)
 	if err != nil {
-		podLogger.Info("Unable to get semi-sync clients", "err", err)
+		podLogger.V(1).Info("Unable to get semi-sync clients", "err", err)
 		return nil
 	}
 	if clients < 1 {
-		podLogger.Info("No semi-sync clients registered in primary. Skipping semi-sync reconciliation...")
+		podLogger.V(1).Info("No semi-sync clients registered in primary. Skipping semi-sync reconciliation...")
 		return nil
 	}
 
