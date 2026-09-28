@@ -10,8 +10,46 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
+
+// reconcileSemiSyncWhenReplicasAvailable runs 'reconcileSemiSync' as soon as the primary has at least one
+// replica registered as a semi-synchronous client, and therefore able to acknowledge.
+//
+// 'reconcileSemiSync' only runs after every Pod has been configured, so a non-ready Pod keeps the primary unarmed for as
+// long as it is unreachable. For instance, a primary that goes down without a switchover, either hard deleted or drained
+// while MaxScale is unavailable, and stays Pending afterwards: MaxScale fails over to a replica, which stays unarmed until the
+// old primary comes back. Arming it here is safe, since a registered client is able to acknowledge the replication user DDL
+// in 'ConfigurePrimary'.
+//
+// When the primary is unreachable it defers to the Pod loop and to 'reconcileSemiSync' afterwards, without requeuing i.e. block reconciliation.
+func (r *ReplicationReconciler) reconcileSemiSyncWhenReplicasAvailable(ctx context.Context, req *ReconcileRequest,
+	logger logr.Logger) error {
+	if !req.mariadb.IsSemiSyncEnabled() || req.mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return nil
+	}
+	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
+	podLogger := logger.WithValues("pod", statefulset.PodName(req.mariadb.ObjectMeta, primaryPodIndex))
+
+	client, err := req.replClientSet.currentPrimaryClient(ctx)
+	if err != nil {
+		podLogger.Info("Unable to get primary client to get semi-sync clients", "err", err)
+		return nil
+	}
+	clients, err := client.SemiSyncMasterClients(ctx)
+	if err != nil {
+		podLogger.Info("Unable to get semi-sync clients", "err", err)
+		return nil
+	}
+	if clients < 1 {
+		podLogger.Info("No semi-sync clients registered in primary. Skipping semi-sync reconciliation...")
+		return nil
+	}
+
+	if err := r.reconcileSemiSync(ctx, req, primaryPodIndex, logger); err != nil {
+		return fmt.Errorf("error reconciling semi-sync: %w", err)
+	}
+	return nil
+}
 
 // reconcileSemiSync converges rpl_semi_sync_master_enabled to the role of each Pod: enabled in the primary and disabled in
 // the replicas. rpl_semi_sync_slave_enabled stays enabled everywhere, it is rendered in the configuration file.
@@ -62,47 +100,6 @@ func (r *ReplicationReconciler) reconcileSemiSync(ctx context.Context, req *Reco
 		}
 	}
 	return nil
-}
-
-// reconcileSemiSyncWithClients runs 'reconcileSemiSync' before the Pods are configured, as soon as the primary has at least one
-// replica registered as a semi-synchronous client, and therefore able to acknowledge.
-//
-// 'reconcileSemiSync' only runs after every Pod has been configured, so an unreachable Pod keeps the primary unarmed for as
-// long as it is unreachable. For instance, a primary that goes down without a switchover, either hard deleted or drained
-// while MaxScale is unavailable, and stays Pending afterwards: MaxScale fails over to a replica, which stays unarmed until the
-// old primary comes back. Arming it here is safe, since a registered client is able to acknowledge the replication user DDL
-// in 'ConfigurePrimary'.
-//
-// It is scoped to 'semiSyncBootAsReplica', where Pods boot unarmed and read_only, and it is best effort: when the primary is
-// unreachable it defers to the Pod loop and to 'reconcileSemiSync' afterwards, without requeuing.
-func (r *ReplicationReconciler) reconcileSemiSyncWithClients(ctx context.Context, req *ReconcileRequest,
-	logger logr.Logger) (ctrl.Result, error) {
-	replication := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-	if !replication.IsSemiSyncBootAsReplicaEnabled() {
-		return ctrl.Result{}, nil
-	}
-	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
-	primaryLogger := logger.WithValues("pod", statefulset.PodName(req.mariadb.ObjectMeta, primaryPodIndex))
-
-	client, err := req.replClientSet.currentPrimaryClient(ctx)
-	if err != nil {
-		primaryLogger.V(1).Info("Unable to get primary client to get semi-sync clients", "err", err)
-		return ctrl.Result{}, nil
-	}
-	clients, err := client.SemiSyncMasterClients(ctx)
-	if err != nil {
-		primaryLogger.V(1).Info("Unable to get semi-sync clients", "err", err)
-		return ctrl.Result{}, nil
-	}
-	if clients < 1 {
-		primaryLogger.V(1).Info("No semi-sync clients registered in primary. Skipping semi-sync reconciliation...")
-		return ctrl.Result{}, nil
-	}
-
-	if err := r.reconcileSemiSync(ctx, req, primaryPodIndex, logger); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync: %w", err)
-	}
-	return ctrl.Result{}, nil
 }
 
 func (r *ReplicationReconciler) reconcileSemiSyncInPod(ctx context.Context, req *ReconcileRequest, podIndex int,
