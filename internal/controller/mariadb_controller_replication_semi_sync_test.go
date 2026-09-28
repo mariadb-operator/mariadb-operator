@@ -412,6 +412,25 @@ var _ = Describe("MariaDB replication semi-sync", Ordered, func() {
 		expectReplicationConnectionsReady(mdb)
 	})
 
+	// A rolling update restarts every Pod, and with the default 'ReplicasFirstPrimaryLast' strategy it switches the primary
+	// over before restarting it. Every restarted Pod boots unarmed, so the primary must end up armed and acknowledged,
+	// and the replicas disarmed, once the update completes.
+	It("should keep semi-sync consistent across a rolling update", func() {
+		testMariadbUpdate(mdb)
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			return mdb.IsReady()
+		}, testHighTimeout, testInterval).MustPassRepeatedly(10).Should(BeTrue())
+
+		primary := primaryPodIndex()
+		expectSemiSyncTopology(mdb, primary)
+		expectSemiSyncPrimaryAcknowledged(mdb, primary)
+		expectSemiSyncWriteNotStalled(mdb, primary)
+		expectReplicationConnectionsReady(mdb)
+	})
+
 	// Rotating the root password runs ALTER USER in the primary, which is binlogged and therefore waits for a
 	// semi-synchronous acknowledgement: against a wrongly armed primary it never returns, and the rotation never
 	// completes. It is also the one flow where the operator cannot authenticate for a while, because
