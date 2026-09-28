@@ -357,14 +357,7 @@ func podIndexForServer(serverName string, mxs *mariadbv1alpha1.MaxScale, mdb *ma
 	if server == nil {
 		return nil, fmt.Errorf("MaxScale server '%s' not found", serverName)
 	}
-
-	for i := 0; i < int(mdb.Spec.Replicas); i++ {
-		address := stspkg.PodFQDNWithService(mdb.ObjectMeta, i, mdb.InternalServiceKey().Name)
-		if server.Address == address {
-			return &i, nil
-		}
-	}
-	return nil, fmt.Errorf("MariaDB Pod with address '%s' not found", server.Address)
+	return mxs.ServerAddressPodIndex(mdb, server.Address)
 }
 
 func defaultPrimary(mdb *mariadbv1alpha1.MariaDB) {

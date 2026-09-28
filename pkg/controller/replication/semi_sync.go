@@ -24,14 +24,13 @@ import (
 // When the primary is unreachable it defers to the Pod loop and to 'reconcileSemiSync' afterwards, without requeuing, so it
 // never blocks reconciliation.
 func (r *ReplicationReconciler) reconcileSemiSyncWhenReplicasAvailable(ctx context.Context, req *ReconcileRequest,
-	logger logr.Logger) error {
-	if !req.mariadb.IsSemiSyncEnabled() || req.mariadb.Status.CurrentPrimaryPodIndex == nil {
+	primaryPodIndex int, logger logr.Logger) error {
+	if !req.mariadb.IsSemiSyncEnabled() {
 		return nil
 	}
-	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
 	podLogger := logger.WithValues("pod", statefulset.PodName(req.mariadb.ObjectMeta, primaryPodIndex))
 
-	client, err := req.replClientSet.currentPrimaryClient(ctx)
+	client, err := req.replClientSet.clientForIndex(ctx, primaryPodIndex)
 	if err != nil {
 		podLogger.V(1).Info("Unable to get primary client to get semi-sync clients", "err", err)
 		return nil
