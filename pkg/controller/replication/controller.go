@@ -151,7 +151,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *ReconcileRequest, logger logr.Logger) (ctrl.Result, error) {
 	semiSyncLogger := logger.WithName("semi-sync")
 	if err := r.reconcileSemiSyncWhenReplicasAvailable(ctx, req, semiSyncLogger); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync when clients available: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync when clients available: %w", err)
 	}
 
 	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
