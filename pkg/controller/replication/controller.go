@@ -93,12 +93,13 @@ func NewReplicationReconciler(client client.Client, recorder events.EventRecorde
 }
 
 type ReconcileRequest struct {
-	mariadb             *mariadbv1alpha1.MariaDB
-	key                 types.NamespacedName
-	replClientSet       *ReplicationClientSet
-	agentClientSet      *agentclient.ClientSet
-	currentPrimaryReady bool
-	replicasSynced      bool
+	mariadb                *mariadbv1alpha1.MariaDB
+	key                    types.NamespacedName
+	replClientSet          *ReplicationClientSet
+	agentClientSet         *agentclient.ClientSet
+	currentPrimaryReady    bool
+	replicasSynced         bool
+	currentPrimaryPodIndex *int // Inferred using MaxScale API, and fallback to MariaDB' status.currentPrimaryPodIndex
 }
 
 func (r *ReconcileRequest) Close() error {
@@ -108,7 +109,8 @@ func (r *ReconcileRequest) Close() error {
 	return nil
 }
 
-func (r *ReplicationReconciler) NewReconcileRequest(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*ReconcileRequest, error) {
+func (r *ReplicationReconciler) NewReconcileRequest(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	currentPrimaryPodIndex *int) (*ReconcileRequest, error) {
 	replClientSet, err := NewReplicationClientSet(mdb, r.refResolver)
 	if err != nil {
 		return nil, fmt.Errorf("error creating mariadb clientset: %v", err)
@@ -118,12 +120,13 @@ func (r *ReplicationReconciler) NewReconcileRequest(ctx context.Context, mdb *ma
 		return nil, fmt.Errorf("error getting agent clientset: %v", err)
 	}
 	return &ReconcileRequest{
-		mariadb:             mdb,
-		key:                 client.ObjectKeyFromObject(mdb),
-		replClientSet:       replClientSet,
-		agentClientSet:      agentClientSet,
-		currentPrimaryReady: false,
-		replicasSynced:      false,
+		mariadb:                mdb,
+		key:                    client.ObjectKeyFromObject(mdb),
+		replClientSet:          replClientSet,
+		agentClientSet:         agentClientSet,
+		currentPrimaryReady:    false,
+		replicasSynced:         false,
+		currentPrimaryPodIndex: currentPrimaryPodIndex,
 	}, nil
 }
 
@@ -134,7 +137,18 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	logger := log.FromContext(ctx).WithName("replication")
 	switchoverLogger := log.FromContext(ctx).WithName("switchover")
 
-	req, err := r.NewReconcileRequest(ctx, mdb)
+	primaryPodIndex, err := r.currentPrimaryPodIndex(ctx, mdb, logger)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting current primary Pod index: %w", err)
+	}
+	if primaryPodIndex == nil {
+		// r.currentPrimaryPodIndex(...) falls back to MariaDB's status.currentPrimaryPodIndex.
+		// If not set, it means that we are in early reconciliation stages, Pods still coming up.
+		logger.V(1).Info("Primary Pod index not found. Requeuing...")
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	req, err := r.NewReconcileRequest(ctx, mdb, primaryPodIndex)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating reconcile request: %v", err)
 	}
@@ -150,32 +164,33 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 }
 
 func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *ReconcileRequest, logger logr.Logger) (ctrl.Result, error) {
-	primaryPodIndex, err := r.currentPrimaryPodIndex(ctx, req, logger)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting current primary Pod index: %w", err)
+	if req.currentPrimaryPodIndex == nil {
+		return ctrl.Result{}, errors.New("req.currentPrimaryPodIndex must be set")
 	}
-	if primaryPodIndex == nil {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-
 	semiSyncLogger := logger.WithName("semi-sync")
-	if err := r.reconcileSemiSyncWhenReplicasAvailable(ctx, req, *primaryPodIndex, semiSyncLogger); err != nil {
+
+	if err := r.reconcileSemiSyncWhenReplicasAvailable(ctx, req, semiSyncLogger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync when clients available: %w", err)
 	}
 
 	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
-	for _, i := range r.replicationPodIndexes(req, *primaryPodIndex) {
-		if result, err := r.ReconcileReplicationInPod(ctx, req, i, logger,
-			WithPrimaryPodIndex(*primaryPodIndex)); !result.IsZero() || err != nil {
+	for _, i := range r.replicationPodIndexes(req, *req.currentPrimaryPodIndex) {
+		if result, err := r.ReconcileReplicationInPod(
+			ctx,
+			req,
+			i,
+			logger,
+			WithPrimaryPodIndex(*req.currentPrimaryPodIndex),
+		); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
 	// After the Pods have been configured, so the primary is only armed once the replicas are able to acknowledge it. Exiting the
 	// loop above early skips this, which is safe by construction: the same non-zero result short-circuits the MariaDB phase loop,
 	// so the Maintenance phase does not hand write traffic back either. The node stays unarmed and read_only together.
-	if err := r.reconcileSemiSync(ctx, req, *primaryPodIndex, semiSyncLogger); err != nil {
+	if err := r.reconcileSemiSync(ctx, req, *req.currentPrimaryPodIndex, semiSyncLogger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync: %w", err)
 	}
 	if !req.mariadb.HasConfiguredReplication() {

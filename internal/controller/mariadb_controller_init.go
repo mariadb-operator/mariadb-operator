@@ -465,7 +465,7 @@ func (r *MariaDBReconciler) ensureReplicationConfiguredInPod(ctx context.Context
 	if err != nil {
 		return fmt.Errorf("error getting replica pod index: %v", err)
 	}
-	req, err := r.ReplicationReconciler.NewReconcileRequest(ctx, mariadb)
+	req, err := r.ReplicationReconciler.NewReconcileRequest(ctx, mariadb, nil)
 	if err != nil {
 		return fmt.Errorf("error creating replication reconcile request: %v", err)
 	}
