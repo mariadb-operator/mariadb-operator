@@ -152,6 +152,9 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
+	if result, err := r.reconcileSemiSyncWithClients(ctx, req, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
 	for _, i := range r.replicationPodIndexes(req) {
 		if result, err := r.ReconcileReplicationInPod(ctx, req, i, logger); !result.IsZero() || err != nil {
 			return result, err

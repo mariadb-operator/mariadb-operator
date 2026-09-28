@@ -744,6 +744,11 @@ func (c *Client) IsSemiSyncMasterEnabled(ctx context.Context) (bool, error) {
 	return c.IsSystemVariableEnabled(ctx, "rpl_semi_sync_master_enabled")
 }
 
+// SemiSyncMasterClients returns the number of replicas registered as semi-synchronous clients, which are able to acknowledge.
+func (c *Client) SemiSyncMasterClients(ctx context.Context) (int, error) {
+	return c.StatusVariableInt(ctx, "Rpl_semi_sync_master_clients")
+}
+
 func (c *Client) EnableSemiSyncMaster(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "rpl_semi_sync_master_enabled", "1")
 }
