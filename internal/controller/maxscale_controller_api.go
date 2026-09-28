@@ -9,18 +9,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/maxscale/client"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
+	mxsclientset "github.com/mariadb-operator/mariadb-operator/v26/pkg/maxscale/clientset"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
-	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // MaxScale API
@@ -402,17 +399,21 @@ func (m *maxScaleAPI) mariadbMonSwitchover(ctx context.Context, primary, newPrim
 
 // MaxScale client
 
+func (r *MaxScaleReconciler) clientSet(mxs *mariadbv1alpha1.MaxScale) *mxsclientset.ClientSet {
+	return mxsclientset.NewClientSet(mxs, r.RefResolver, mxsclientset.WithAPILogging(r.LogMaxScale))
+}
+
 func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	podIndex int) (*mxsclient.Client, error) {
 	opts := []mdbhttp.Option{
 		mdbhttp.WithTimeout(10 * time.Second),
 	}
 	if r.LogMaxScale {
-		logger := apiLogger(ctx)
+		logger := mxsclientset.APILogger(ctx)
 		opts = append(opts, mdbhttp.WithLogger(&logger))
 	}
 	if mxs.IsTLSEnabled() {
-		tlsOpts, err := r.getClientTLSOptions(ctx, mxs)
+		tlsOpts, err := r.clientSet(mxs).TLSOptions(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error getting client TLS options: %v", err)
 		}
@@ -422,45 +423,15 @@ func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs 
 }
 
 func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
-	return r.clientWithAPIUrl(ctx, mxs, mxs.APIUrl())
+	return r.clientSet(mxs).Client(ctx)
 }
 
 func (r *MaxScaleReconciler) clientSetByPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (map[string]*mxsclient.Client, error) {
-	clientSet := make(map[string]*mxsclient.Client, mxs.Spec.Replicas)
-	for i := 0; i < int(mxs.Spec.Replicas); i++ {
-		pod := stsobj.PodName(mxs.ObjectMeta, i)
-
-		client, err := r.clientWithAPIUrl(ctx, mxs, mxs.PodAPIUrl(i))
-		if err != nil {
-			return nil, fmt.Errorf("error getting client for Pod '%s': %w", pod, err)
-		}
-		clientSet[pod] = client
-	}
-	return clientSet, nil
+	return r.clientSet(mxs).ClientSetByPod(ctx)
 }
 
 func (r *MaxScaleReconciler) primaryClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
-	if mxs.Spec.Monitor.Module != mariadbv1alpha1.MonitorModuleMariadb || mxs.Spec.Monitor.Name == "" {
-		return nil, nil
-	}
-	logger := log.FromContext(ctx).WithName("primary-client").V(1)
-
-	for i := 0; i < int(mxs.Spec.Replicas); i++ {
-		client, err := r.clientWithPodIndex(ctx, mxs, i)
-		if err != nil {
-			return nil, fmt.Errorf("error getting client for Pod index %d: %v", i, err)
-		}
-		monitor, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Name)
-		if err != nil {
-			logger.Info("error getting monitor", "monitor", mxs.Spec.Monitor.Name, "err", err)
-			continue
-		}
-		if monitor.Attributes != nil && monitor.Attributes.Diagnostics != nil &&
-			ptr.Deref(monitor.Attributes.Diagnostics.Primary, false) {
-			return client, nil
-		}
-	}
-	return nil, nil
+	return r.clientSet(mxs).PrimaryClient(ctx)
 }
 
 func (r *MaxScaleReconciler) healthyClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
@@ -473,73 +444,5 @@ func (r *MaxScaleReconciler) healthyClient(ctx context.Context, mxs *mariadbv1al
 
 func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	podIndex int) (*mxsclient.Client, error) {
-	return r.clientWithAPIUrl(ctx, mxs, mxs.PodAPIUrl(podIndex))
-}
-
-func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	apiUrl string) (*mxsclient.Client, error) {
-	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef.SecretKeySelector, mxs.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error getting admin password: %v", err)
-	}
-
-	opts := []mdbhttp.Option{
-		mdbhttp.WithTimeout(10 * time.Second),
-		mdbhttp.WithBasicAuth(mxs.Spec.Auth.AdminUsername, password),
-	}
-	if r.LogMaxScale {
-		logger := apiLogger(ctx)
-		opts = append(opts, mdbhttp.WithLogger(&logger))
-	}
-	if mxs.IsTLSEnabled() {
-		tlsOpts, err := r.getClientTLSOptions(ctx, mxs)
-		if err != nil {
-			return nil, fmt.Errorf("error getting client TLS options: %v", err)
-		}
-		opts = append(opts, tlsOpts...)
-	}
-	return mxsclient.NewClient(apiUrl, opts...)
-}
-
-func (r *MaxScaleReconciler) getClientTLSOptions(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) ([]mdbhttp.Option, error) {
-	if !mxs.IsTLSEnabled() {
-		return nil, nil
-	}
-	tlsCA, err := r.RefResolver.SecretKeyRef(ctx, mxs.TLSCABundleSecretKeyRef(), mxs.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error reading TLS CA bundle: %v", err)
-	}
-
-	adminCertKeySelector := mariadbv1alpha1.SecretKeySelector{
-		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: mxs.TLSAdminCertSecretKey().Name,
-		},
-		Key: pki.TLSCertKey,
-	}
-	tlsCert, err := r.RefResolver.SecretKeyRef(ctx, adminCertKeySelector, mxs.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error reading TLS cert: %v", err)
-	}
-
-	adminKeyKeySelector := mariadbv1alpha1.SecretKeySelector{
-		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: mxs.TLSAdminCertSecretKey().Name,
-		},
-		Key: pki.TLSKeyKey,
-	}
-	tlsKey, err := r.RefResolver.SecretKeyRef(ctx, adminKeyKeySelector, mxs.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error reading TLS cert: %v", err)
-	}
-
-	return []mdbhttp.Option{
-		mdbhttp.WithTLSEnabled(mxs.IsTLSEnabled()),
-		mdbhttp.WithTLSCA([]byte(tlsCA)),
-		mdbhttp.WithTLSCert([]byte(tlsCert)),
-		mdbhttp.WithTLSKey([]byte(tlsKey)),
-	}, nil
-}
-
-func apiLogger(ctx context.Context) logr.Logger {
-	return log.FromContext(ctx).WithName("api")
+	return r.clientSet(mxs).ClientWithPodIndex(ctx, podIndex)
 }
