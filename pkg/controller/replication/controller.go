@@ -99,7 +99,7 @@ type ReconcileRequest struct {
 	agentClientSet         *agentclient.ClientSet
 	currentPrimaryReady    bool
 	replicasSynced         bool
-	currentPrimaryPodIndex *int // Inferred using MaxScale API, and fallback to MariaDB' status.currentPrimaryPodIndex
+	currentPrimaryPodIndex *int // Inferred using MaxScale API, and fallback to MariaDB's status.currentPrimaryPodIndex
 }
 
 func (r *ReconcileRequest) Close() error {

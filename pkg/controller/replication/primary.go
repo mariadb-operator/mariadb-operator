@@ -7,6 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	ds "github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
+	mxsclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/maxscale/client"
 	mxsclientset "github.com/mariadb-operator/mariadb-operator/v26/pkg/maxscale/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -49,6 +50,16 @@ func (r *ReplicationReconciler) currentPrimaryPodIndex(ctx context.Context, mari
 		return statusPrimaryPodIndex, nil
 	}
 
+	return primaryServerPodIndex(mariadb, mxs, serverIdx, logger), nil
+}
+
+// primaryServerPodIndex maps the MaxScale server in Master state to its Pod index, based on the servers returned by the
+// MaxScale API. It falls back to MariaDB's 'status.currentPrimaryPodIndex' when no server is in Master state, or when the
+// Master server address cannot be mapped to a Pod.
+func primaryServerPodIndex(mariadb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale,
+	serverIdx ds.Index[mxsclient.Data[*mxsclient.ServerAttributes]], logger logr.Logger) *int {
+	statusPrimaryPodIndex := mariadb.Status.CurrentPrimaryPodIndex
+
 	for _, srv := range ds.Filter(serverIdx, mxs.ServerIDs()...) {
 		if srv.Attributes == nil || !srv.Attributes.IsMaster() {
 			continue
@@ -56,14 +67,14 @@ func (r *ReplicationReconciler) currentPrimaryPodIndex(ctx context.Context, mari
 		podIndex, err := mxs.ServerAddressPodIndex(mariadb, srv.Attributes.Parameters.Address)
 		if err != nil {
 			logger.V(1).Info("Unable to get MaxScale primary server Pod index. Using MariaDB primary", "server", srv.ID, "err", err)
-			return statusPrimaryPodIndex, nil
+			return statusPrimaryPodIndex
 		}
 		if statusPrimaryPodIndex != nil && *statusPrimaryPodIndex != *podIndex {
 			logger.Info("MariaDB's 'status.currentPrimaryPodIndex' is stale. Using MaxScale primary", "mariadb-primary", *statusPrimaryPodIndex,
 				"maxscale-primary", *podIndex)
 		}
-		return podIndex, nil
+		return podIndex
 	}
 	logger.V(1).Info("MaxScale primary server not found. Using MariaDB primary")
-	return statusPrimaryPodIndex, nil
+	return statusPrimaryPodIndex
 }
