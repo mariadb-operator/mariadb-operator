@@ -465,6 +465,11 @@ func (r *MariaDBReconciler) ensureReplicationConfiguredInPod(ctx context.Context
 	if err != nil {
 		return fmt.Errorf("error getting replica pod index: %v", err)
 	}
+	// A nil current primary Pod index makes 'ReconcileReplicationInPod' fall back to MariaDB's 'status.currentPrimaryPodIndex'.
+	// This is acceptable in the Init phase, as the cluster is still bootstrapping and no failover can have happened yet.
+	// TODO: in the replica recovery phase, 'status.currentPrimaryPodIndex' could be stale with MaxScale, if a failover has just
+	// happened. The risk is low, but the replica could be pointed to the old primary. Resolve the current primary from the
+	// MaxScale API here as well, as done in the 'ReplicationReconciler'.
 	req, err := r.ReplicationReconciler.NewReconcileRequest(ctx, mariadb, nil)
 	if err != nil {
 		return fmt.Errorf("error creating replication reconcile request: %v", err)

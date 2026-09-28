@@ -2,7 +2,6 @@ package replication
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -28,9 +27,6 @@ func (r *ReplicationReconciler) reconcileSemiSyncWhenReplicasAvailable(ctx conte
 	logger logr.Logger) error {
 	if !req.mariadb.IsSemiSyncEnabled() {
 		return nil
-	}
-	if req.currentPrimaryPodIndex == nil {
-		return errors.New("req.currentPrimaryPodIndex must be set")
 	}
 	podLogger := logger.WithValues("pod", statefulset.PodName(req.mariadb.ObjectMeta, *req.currentPrimaryPodIndex))
 
