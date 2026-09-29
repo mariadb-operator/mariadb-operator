@@ -9,6 +9,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -418,8 +419,24 @@ var _ = Describe("MariaDB replication semi-sync", Ordered, func() {
 	// and the replicas disarmed, once the update completes. The primary is re-armed after every Pod update, so it must
 	// never accept writes unarmed while the update is in progress.
 	It("should keep semi-sync consistent across a rolling update", func() {
+		var sts appsv1.StatefulSet
+		Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
+		previousRevision := sts.Status.UpdateRevision
+
 		stopSampling := sampleSemiSyncWritablePrimary(mdb)
 		testMariadbUpdate(mdb)
+
+		// The Updated condition may still be the one from before the update when 'testMariadbUpdate' checks it, so wait
+		// for every Pod to be rolled to the new revision. Otherwise the update would keep going during the next spec.
+		By("Expecting all Pods to be updated eventually")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
+			return sts.Status.ObservedGeneration == sts.Generation &&
+				sts.Status.UpdateRevision != previousRevision &&
+				sts.Status.UpdatedReplicas == mdb.Spec.Replicas &&
+				sts.Status.ReadyReplicas == mdb.Spec.Replicas
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
 		Expect(stopSampling()).To(BeEmpty(), "The primary accepted writes with semi-sync disabled during the rolling update.")
 
 		By("Expecting MariaDB to be ready eventually")
