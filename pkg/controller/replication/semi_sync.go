@@ -10,6 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // reconcileSemiSyncWhenReplicasAvailable runs 'reconcileSemiSync' as soon as the primary has at least one
@@ -22,33 +23,62 @@ import (
 // in 'ConfigurePrimary'.
 //
 // When the primary is unreachable it defers to the Pod loop and to 'reconcileSemiSync' afterwards, without requeuing, so it
-// never blocks reconciliation.
+// never blocks reconciliation. It returns whether semi-sync has been reconciled.
 func (r *ReplicationReconciler) reconcileSemiSyncWhenReplicasAvailable(ctx context.Context, req *ReconcileRequest,
-	logger logr.Logger) error {
+	logger logr.Logger) (bool, error) {
 	if !req.mariadb.IsSemiSyncEnabled() {
-		return nil
+		return false, nil
 	}
 	podLogger := logger.WithValues("pod", statefulset.PodName(req.mariadb.ObjectMeta, *req.currentPrimaryPodIndex))
 
 	client, err := req.replClientSet.clientForIndex(ctx, *req.currentPrimaryPodIndex)
 	if err != nil {
 		podLogger.V(1).Info("Unable to get primary client to get semi-sync clients", "err", err)
-		return nil
+		return false, nil
 	}
 	clients, err := client.SemiSyncMasterClients(ctx)
 	if err != nil {
 		podLogger.V(1).Info("Unable to get semi-sync clients", "err", err)
-		return nil
+		return false, nil
 	}
 	if clients < 1 {
 		podLogger.V(1).Info("No semi-sync clients registered in primary. Skipping semi-sync reconciliation...")
-		return nil
+		return false, nil
 	}
 
 	if err := r.reconcileSemiSync(ctx, req, *req.currentPrimaryPodIndex, logger); err != nil {
-		return fmt.Errorf("error reconciling semi-sync: %w", err)
+		return false, fmt.Errorf("error reconciling semi-sync: %w", err)
 	}
-	return nil
+	return true, nil
+}
+
+// ReconcileSemiSyncWhenReplicasAvailable runs 'reconcileSemiSyncWhenReplicasAvailable' outside of the Replication phase. It is
+// meant for the rolling update, which restarts one Pod per reconciliation in the StatefulSet phase and returns before the
+// Replication phase is reached, so the primary promoted by a MaxScale switchover would otherwise stay unarmed until every Pod
+// has been rolled. It returns whether semi-sync has been reconciled, which requires at least one replica registered as a
+// semi-synchronous client of the current primary.
+func (r *ReplicationReconciler) ReconcileSemiSyncWhenReplicasAvailable(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (bool, error) {
+	if !mdb.IsSemiSyncEnabled() {
+		return false, nil
+	}
+	logger := log.FromContext(ctx).WithName("replication")
+
+	primaryPodIndex, err := r.currentPrimaryPodIndex(ctx, mdb, logger)
+	if err != nil {
+		return false, fmt.Errorf("error getting current primary Pod index: %w", err)
+	}
+	if primaryPodIndex == nil {
+		logger.V(1).Info("Primary Pod index not found. Skipping semi-sync reconciliation...")
+		return false, nil
+	}
+
+	req, err := r.NewReconcileRequest(ctx, mdb, primaryPodIndex)
+	if err != nil {
+		return false, fmt.Errorf("error creating reconcile request: %v", err)
+	}
+	defer req.Close()
+
+	return r.reconcileSemiSyncWhenReplicasAvailable(ctx, req, logger.WithName("semi-sync"))
 }
 
 // reconcileSemiSync converges rpl_semi_sync_master_enabled to the role of each Pod: enabled in the primary and disabled in
