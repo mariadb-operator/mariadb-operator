@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -414,9 +415,12 @@ var _ = Describe("MariaDB replication semi-sync", Ordered, func() {
 
 	// A rolling update restarts every Pod, and with the default 'ReplicasFirstPrimaryLast' strategy it switches the primary
 	// over before restarting it. Every restarted Pod boots unarmed, so the primary must end up armed and acknowledged,
-	// and the replicas disarmed, once the update completes.
+	// and the replicas disarmed, once the update completes. The primary is re-armed after every Pod update, so it must
+	// never accept writes unarmed while the update is in progress.
 	It("should keep semi-sync consistent across a rolling update", func() {
+		stopSampling := sampleSemiSyncWritablePrimary(mdb)
 		testMariadbUpdate(mdb)
+		Expect(stopSampling()).To(BeEmpty(), "The primary accepted writes with semi-sync disabled during the rolling update.")
 
 		By("Expecting MariaDB to be ready eventually")
 		Eventually(func(g Gomega) bool {
@@ -498,6 +502,63 @@ func withSemiSyncSqlClient(g Gomega, mdb *mariadbv1alpha1.MariaDB, podIndex int,
 	g.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Could not create a client for Pod '%d'.", podIndex))
 
 	fn(client)
+}
+
+// sampleSemiSyncWritablePrimary samples the Pod at 'status.currentPrimaryPodIndex' until the returned function is called,
+// and records every sample where it is writable while primary-side semi-sync is disabled. Samples where the Pod cannot be
+// reached are ignored, as they are expected while it is being rolled. The returned function stops sampling and returns
+// the recorded violations.
+func sampleSemiSyncWritablePrimary(mdb *mariadbv1alpha1.MariaDB) func() []string {
+	key := client.ObjectKeyFromObject(mdb)
+	done := make(chan struct{})
+	result := make(chan []string, 1)
+
+	sample := func() (string, bool) {
+		var sampled mariadbv1alpha1.MariaDB
+		if err := k8sClient.Get(testCtx, key, &sampled); err != nil || sampled.Status.CurrentPrimaryPodIndex == nil {
+			return "", false
+		}
+		podIndex := *sampled.Status.CurrentPrimaryPodIndex
+
+		clientSet := sql.NewClientSet(&sampled, testRefResolver)
+		defer clientSet.Close()
+		client, err := clientSet.ClientForIndex(testCtx, podIndex)
+		if err != nil {
+			return "", false
+		}
+		readOnly, err := client.IsSystemVariableEnabled(testCtx, "read_only")
+		if err != nil || readOnly {
+			return "", false
+		}
+		enabled, err := client.IsSemiSyncMasterEnabled(testCtx)
+		if err != nil || enabled {
+			return "", false
+		}
+		return fmt.Sprintf("%s: Pod '%d' writable with semi-sync disabled", time.Now().Format(time.RFC3339), podIndex), true
+	}
+
+	go func() {
+		defer GinkgoRecover()
+		var violations []string
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				result <- violations
+				return
+			case <-ticker.C:
+				if violation, ok := sample(); ok {
+					violations = append(violations, violation)
+				}
+			}
+		}
+	}()
+
+	return func() []string {
+		close(done)
+		return <-result
+	}
 }
 
 // expectSemiSyncTopology asserts that primary-side semi-sync converges to the role of every Pod: enabled in the

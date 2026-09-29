@@ -169,7 +169,7 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 	}
 	semiSyncLogger := logger.WithName("semi-sync")
 
-	if err := r.reconcileSemiSyncWhenReplicasAvailable(ctx, req, semiSyncLogger); err != nil {
+	if _, err := r.reconcileSemiSyncWhenReplicasAvailable(ctx, req, semiSyncLogger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync when clients available: %w", err)
 	}
 
