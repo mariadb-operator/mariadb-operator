@@ -5,7 +5,11 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -124,4 +128,63 @@ var _ = Describe("MaxScale Replication options", Label("basic"), func() {
 			}, ","),
 		}),
 	)
+})
+
+var _ = Describe("MaxScale servers hash", Label("basic"), func() {
+	It("should change when MariaDB-derived server attributes change", func() {
+		scheme := runtime.NewScheme()
+		Expect(mariadbv1alpha1.AddToScheme(scheme)).To(Succeed())
+
+		mdb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mariadb-servers-hash",
+				Namespace: "default",
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				Replication: &mariadbv1alpha1.Replication{
+					Enabled: true,
+				},
+			},
+		}
+		mxs := &mariadbv1alpha1.MaxScale{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "maxscale-servers-hash",
+				Namespace: "default",
+			},
+			Spec: mariadbv1alpha1.MaxScaleSpec{
+				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
+						Name: mdb.Name,
+					},
+				},
+				Servers: []mariadbv1alpha1.MaxScaleServer{
+					{
+						Name:    "mariadb-0",
+						Address: "mariadb-0.mariadb-internal.default.svc.cluster.local",
+						Port:    3306,
+					},
+				},
+			},
+		}
+		req := &requestMaxScale{
+			mxs: mxs,
+		}
+
+		hashWithMariaDB := func(mdb *mariadbv1alpha1.MariaDB) string {
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(mdb).Build()
+			r := &MaxScaleReconciler{
+				RefResolver: refresolver.New(client),
+			}
+			hash, err := r.serversHash(testCtx, req)
+			Expect(err).ToNot(HaveOccurred())
+			return hash
+		}
+
+		hash := hashWithMariaDB(mdb.DeepCopy())
+		Expect(hashWithMariaDB(mdb.DeepCopy())).To(Equal(hash))
+
+		mdbWithRetry := mdb.DeepCopy()
+		mdbWithRetry.Spec.Replication.Replica.ConnectionRetrySeconds = ptr.To(5)
+		Expect(hashWithMariaDB(mdbWithRetry)).NotTo(Equal(hash))
+	})
 })

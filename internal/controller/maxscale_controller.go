@@ -1231,9 +1231,9 @@ func (r *MaxScaleReconciler) reconcileFilters(ctx context.Context, req *requestM
 }
 
 func (r *MaxScaleReconciler) reconcileChangedServers(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	serversHash, err := hash.HashJSON(req.mxs.Spec.Servers)
+	serversHash, err := r.serversHash(ctx, req)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error hashing spec.Servers: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error hashing servers: %v", err)
 	}
 	logger := log.FromContext(ctx)
 	if serversHash == req.mxs.Status.ServersSpec {
@@ -1248,6 +1248,27 @@ func (r *MaxScaleReconciler) reconcileChangedServers(ctx context.Context, req *r
 	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
 		mss.ServersSpec = serversHash
 		return nil
+	})
+}
+
+// serversHash hashes spec.servers together with the rendered server attributes, as some of them are derived
+// from sources other than spec.servers (e.g. replication_custom_options from the MariaDB and spec.tls).
+func (r *MaxScaleReconciler) serversHash(ctx context.Context, req *requestMaxScale) (string, error) {
+	mxsApi := newMaxScaleAPI(req.mxs, req.client, r.RefResolver)
+	attrs := make([]*mxsclient.ServerAttributes, len(req.mxs.Spec.Servers))
+	for i, srv := range req.mxs.Spec.Servers {
+		srvAttrs, err := mxsApi.serverAttributes(ctx, &srv)
+		if err != nil {
+			return "", fmt.Errorf("error getting server attributes: %v", err)
+		}
+		attrs[i] = srvAttrs
+	}
+	return hash.HashJSON(struct {
+		Servers    []mariadbv1alpha1.MaxScaleServer `json:"servers"`
+		Attributes []*mxsclient.ServerAttributes    `json:"attributes"`
+	}{
+		Servers:    req.mxs.Spec.Servers,
+		Attributes: attrs,
 	})
 }
 
