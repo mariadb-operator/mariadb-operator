@@ -241,10 +241,10 @@ func (r *MariaDBReconciler) updatePod(ctx context.Context, mariadbKey types.Name
 
 // reconcileSemiSyncAfterPodUpdate re-arms the semi-synchronous primary right after a Pod has been updated. Every update
 // returns before the Replication phase is reached, and the next reconciliations wait for all Pods to be ready, so without
-// this the primary promoted by a MaxScale switchover would accept writes unarmed while the demoted primary is being rolled.
+// this the primary promoted by a MaxScale switchover could accept writes unarmed while the demoted primary is being rolled.
 //
-// It waits until the primary has at least one semi-sync client, so it is only armed when a replica is able to acknowledge,
-// and requeues otherwise: with no replicas connected to the primary, continuing the update is not safe.
+// The primary is only armed when it has at least one semi-sync client, so a replica is able to acknowledge, and it requeues
+// otherwise: with no replicas connected to the primary, continuing the update is not safe.
 func (r *MariaDBReconciler) reconcileSemiSyncAfterPodUpdate(ctx context.Context, mariadbKey types.NamespacedName,
 	logger logr.Logger) (ctrl.Result, error) {
 	var mdb mariadbv1alpha1.MariaDB
@@ -255,22 +255,12 @@ func (r *MariaDBReconciler) reconcileSemiSyncAfterPodUpdate(ctx context.Context,
 		return ctrl.Result{}, nil
 	}
 
-	semiSyncCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-	defer cancel()
-	if err := wait.PollWithMariaDB(semiSyncCtx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
-		if err := r.Get(ctx, mariadbKey, &mdb); err != nil {
-			return fmt.Errorf("error getting MariaDB: %v", err)
-		}
-		reconciled, err := r.ReplicationReconciler.ReconcileSemiSyncWhenReplicasAvailable(ctx, &mdb)
-		if err != nil {
-			return err
-		}
-		if !reconciled {
-			return errors.New("no semi-sync clients registered in primary")
-		}
-		return nil
-	}); err != nil {
-		logger.Info("Timeout waiting for semi-sync clients in primary. Requeuing...", "err", err)
+	reconciled, err := r.ReplicationReconciler.ReconcileSemiSyncWhenReplicasAvailable(ctx, &mdb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync: %v", err)
+	}
+	if !reconciled {
+		logger.V(1).Info("Waiting for semi-sync clients in primary. Requeuing...")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
