@@ -2,10 +2,13 @@ package controller
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	mxsstate "github.com/mariadb-operator/mariadb-operator/v26/pkg/maxscale/state"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -56,9 +59,10 @@ func (r *MaxScaleReconciler) clearNoPrimaryServer(ctx context.Context, mxs *mari
 
 // recoverStaleMonitorTopology restarts MaxScale Pods when the pool has been without a Master for longer
 // than noPrimaryServerRecoveryDelay while MariaDB is observing a healthy primary. In that state the
-// mariadbmon journal still names a node that is no longer the primary, and master_conditions blocks any
-// promotion while that value stands. The journal is persisted on the MaxScale volume, so stopping and
-// starting the monitor does not clear it: only a Pod restart forces a clean topology rediscovery.
+// mariadbmon journal still names a node that is no longer the primary. The journal is persisted on the
+// MaxScale volume: the monitor writes it when it stops and reads it back when it starts, so neither a
+// monitor restart nor a Pod restart discards it. The journal is removed before the Pod is restarted, so
+// the new Pod rediscovers the topology from scratch.
 func (r *MaxScaleReconciler) recoverStaleMonitorTopology(ctx context.Context, req *requestMaxScale,
 	logger logr.Logger) (ctrl.Result, error) {
 	since := req.mxs.Status.NoPrimaryServerSince
@@ -85,6 +89,20 @@ func (r *MaxScaleReconciler) recoverStaleMonitorTopology(ctx context.Context, re
 		return ctrl.Result{}, nil
 	}
 
+	if err := r.discardMonitorJournal(ctx, req, pod); err != nil {
+		logger.Info("Unable to discard the MaxScale monitor journal, restarting the Pod anyway", "pod", pod.Name, "err", err)
+		r.Recorder.Eventf(
+			req.mxs,
+			nil,
+			corev1.EventTypeWarning,
+			mariadbv1alpha1.ReasonMaxScaleMonitorRestarted,
+			mariadbv1alpha1.ActionReconciling,
+			"Unable to discard the monitor journal in Pod %s: %v",
+			pod.Name,
+			err,
+		)
+	}
+
 	logger.Info(
 		"Restarting MaxScale Pod to discard a stale monitor topology",
 		"pod", pod.Name,
@@ -103,6 +121,27 @@ func (r *MaxScaleReconciler) recoverStaleMonitorTopology(ctx context.Context, re
 		pod.Name,
 	)
 	return ctrl.Result{RequeueAfter: noPrimaryServerRecoveryRequeue}, nil
+}
+
+// discardMonitorJournal stops the monitor, which flushes its journal, and then deletes the journal file so
+// the restarted Pod does not load the stale topology back.
+func (r *MaxScaleReconciler) discardMonitorJournal(ctx context.Context, req *requestMaxScale, pod *corev1.Pod) error {
+	if r.PodExecutor == nil {
+		return errors.New("pod executor not configured")
+	}
+	client, ok := req.podClientSet[pod.Name]
+	if !ok {
+		return fmt.Errorf("MaxScale client for Pod '%s' not found", pod.Name)
+	}
+	monitor := req.mxs.Spec.Monitor.Name
+	if err := client.Monitor.Stop(ctx, monitor); err != nil {
+		return fmt.Errorf("error stopping monitor '%s': %v", monitor, err)
+	}
+	return r.PodExecutor.Exec(ctx, pod, builder.MaxScaleContainerName, []string{"rm", "-f", monitorJournalPath(monitor)})
+}
+
+func monitorJournalPath(monitor string) string {
+	return fmt.Sprintf("%s/%s_journal.json", builder.MaxscaleStorageMountPath, monitor)
 }
 
 // hasStaleMonitorTopology reports whether MariaDB observes a primary that MaxScale is not able to see

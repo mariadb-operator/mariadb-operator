@@ -74,6 +74,8 @@ type MaxScaleReconciler struct {
 
 	RequeueInterval time.Duration
 	LogMaxScale     bool
+
+	PodExecutor pod.Executor
 }
 
 type requestMaxScale struct {
@@ -99,6 +101,7 @@ type reconcilePhaseMaxScale struct {
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;deletecollection
+//+kubebuilder:rbac:groups="",resources=pods/exec,verbs=create
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;watch;create;patch

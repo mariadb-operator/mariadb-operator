@@ -39,6 +39,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
@@ -437,6 +438,8 @@ var rootCmd = &cobra.Command{
 
 			RequeueInterval: requeueMaxScale,
 			LogMaxScale:     logMaxScale,
+
+			PodExecutor: pod.NewRemoteExecutor(restConfig, kubeClientset),
 		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: maxscaleMaxConcurrentReconciles}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)

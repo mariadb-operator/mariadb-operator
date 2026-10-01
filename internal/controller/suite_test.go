@@ -34,6 +34,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -260,6 +261,8 @@ var _ = BeforeSuite(func() {
 
 		RequeueInterval: 5 * time.Second,
 		LogMaxScale:     false,
+
+		PodExecutor: pod.NewRemoteExecutor(cfg, kubeClientset),
 	}).SetupWithManager(testCtx, k8sManager, ctrlcontroller.Options{MaxConcurrentReconciles: 10})
 	Expect(err).ToNot(HaveOccurred())
 
