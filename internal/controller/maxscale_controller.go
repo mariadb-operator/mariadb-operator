@@ -1095,6 +1095,14 @@ func (r *MaxScaleReconciler) ensurePrimaryServer(ctx context.Context, req *reque
 	if err := r.recordNoPrimaryServer(ctx, req.mxs); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error recording missing primary server: %v", err)
 	}
+	// The Server State phase runs after this one, so it is never reached while the pool has no Master. When
+	// the operator itself put the node now acting as primary into maintenance, that left the pool without a
+	// Master forever: reconcile the server state here so that maintenance is lifted.
+	if req.mxs.Spec.MariaDBRef != nil {
+		if _, err := r.reconcileServerState(ctx, req); err != nil {
+			logger.Info("error reconciling server state without a primary server", "err", err)
+		}
+	}
 	if result, err := r.recoverStaleMonitorTopology(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
