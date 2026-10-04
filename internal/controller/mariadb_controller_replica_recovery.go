@@ -180,10 +180,18 @@ func shouldRepairRecoveryPrimaryDrift(mariadb *mariadbv1alpha1.MariaDB, podState
 		return false
 	}
 	primaryState, ok := podStates[primaryIndex]
-	if !ok {
+	if !ok || !primaryState.Running {
 		return false
 	}
-	return primaryState.Running && !primaryState.Ready
+	if !primaryState.Ready {
+		return true
+	}
+	// A primary failed over on paper only (status rewritten, no SQL promotion) keeps replicating from
+	// the Pod under recovery. Once that Pod is restored from a backup of this very primary, replication
+	// is healthy again and the primary turns Ready, so readiness alone would leave the pool without a
+	// writable node for the whole recovery. The observed role still exposes the drift.
+	roles := ptr.Deref(mariadb.Status.Replication, mariadbv1alpha1.ReplicationStatus{}).Roles
+	return roles[stsobj.PodName(mariadb.ObjectMeta, primaryIndex)] == mariadbv1alpha1.ReplicationRoleReplica
 }
 
 func (r *MariaDBReconciler) getPVCRecoveryReplicas(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

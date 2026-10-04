@@ -2943,6 +2943,11 @@ func TestShouldRepairRecoveryPrimaryDrift(t *testing.T) {
 			},
 		}
 	}
+	mariadbWithRoles := func(primaryIndex int, roles map[string]mariadbv1alpha1.ReplicationRole) *mariadbv1alpha1.MariaDB {
+		mdb := mariadb(ptr.To(primaryIndex))
+		mdb.Status.Replication = &mariadbv1alpha1.ReplicationStatus{Roles: roles}
+		return mdb
+	}
 	tests := []struct {
 		name              string
 		mariadb           *mariadbv1alpha1.MariaDB
@@ -2961,6 +2966,33 @@ func TestShouldRepairRecoveryPrimaryDrift(t *testing.T) {
 			name:              "ready primary is left alone",
 			mariadb:           mariadb(ptr.To(1)),
 			podStates:         map[int]podLifecycleState{1: {Running: true, Ready: true}},
+			replicasToRecover: []string{"db-cluster-0"},
+		},
+		{
+			name: "ready primary observed as replica is repaired",
+			mariadb: mariadbWithRoles(1, map[string]mariadbv1alpha1.ReplicationRole{
+				"db-cluster-0": mariadbv1alpha1.ReplicationRoleUnknown,
+				"db-cluster-1": mariadbv1alpha1.ReplicationRoleReplica,
+			}),
+			podStates:         map[int]podLifecycleState{1: {Running: true, Ready: true}},
+			replicasToRecover: []string{"db-cluster-0"},
+			want:              true,
+		},
+		{
+			name: "ready primary observed as primary is left alone",
+			mariadb: mariadbWithRoles(1, map[string]mariadbv1alpha1.ReplicationRole{
+				"db-cluster-0": mariadbv1alpha1.ReplicationRoleReplica,
+				"db-cluster-1": mariadbv1alpha1.ReplicationRolePrimary,
+			}),
+			podStates:         map[int]podLifecycleState{1: {Running: true, Ready: true}},
+			replicasToRecover: []string{"db-cluster-0"},
+		},
+		{
+			name: "primary observed as replica but not running is left alone",
+			mariadb: mariadbWithRoles(1, map[string]mariadbv1alpha1.ReplicationRole{
+				"db-cluster-1": mariadbv1alpha1.ReplicationRoleReplica,
+			}),
+			podStates:         map[int]podLifecycleState{1: {Ready: true}},
 			replicasToRecover: []string{"db-cluster-0"},
 		},
 		{
