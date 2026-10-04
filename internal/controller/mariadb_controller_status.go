@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -436,6 +437,15 @@ func (r *MariaDBReconciler) syncReplicationPrimaryStatus(ctx context.Context, md
 	}
 
 	primaryName := stspkg.PodName(mdb.ObjectMeta, *podIndex)
+	// A Pod under replica recovery is being rebuilt from a backup of another node. Replicas that were
+	// never re-pointed by a paper-only failover reconnect to it as soon as it comes back, which makes
+	// it look like the primary. Electing it would turn the node holding the data into the replica to
+	// rebuild next, so the observation is ignored until the recovery is over.
+	if slices.Contains(getActiveReplicaRecoveryReplicas(mdb), primaryName) {
+		logger.Info("Observed primary is under replica recovery, keeping current primary status",
+			"observed-primary", primaryName)
+		return ctrl.Result{}, nil
+	}
 	logger.Info("Syncing MariaDB primary status from replication roles", "primary", primaryName, "pod-index", *podIndex)
 	if err := r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		status.UpdateCurrentPrimary(mdb, *podIndex)
