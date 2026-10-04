@@ -651,7 +651,65 @@ func (r *MariaDBReconciler) quiescePVCRecoveryReplicas(ctx context.Context, mari
 	if stsDeleted || podDeleted {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
-	return ctrl.Result{}, nil
+	return r.ensureRecoveryPrimaryPodPresent(ctx, mariadb, logger)
+}
+
+// ensureRecoveryPrimaryPodPresent recreates the StatefulSet when the primary Pod has vanished while the
+// StatefulSet is removed for a PVC recovery. The recovery backup targets the primary, and with the
+// StatefulSet gone nothing brings the Pod back, so the recovery would otherwise wait forever.
+func (r *MariaDBReconciler) ensureRecoveryPrimaryPodPresent(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (ctrl.Result, error) {
+	vanished, err := r.recoveryPrimaryPodVanished(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !vanished {
+		return ctrl.Result{}, nil
+	}
+	primary := ptr.Deref(mariadb.Status.CurrentPrimary, "")
+	logger.Info("Primary Pod is missing while the StatefulSet is absent, recreating StatefulSet to resume replica recovery",
+		"primary", primary)
+	if r.Recorder != nil {
+		r.Recorder.Eventf(mariadb,
+			nil,
+			corev1.EventTypeWarning,
+			mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
+			mariadbv1alpha1.ActionReconciling,
+			"Primary Pod %s is missing while the StatefulSet is absent, recreating StatefulSet to resume replica recovery",
+			primary,
+		)
+	}
+	if err := r.ensureStatefulSetPresent(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error recreating StatefulSet for missing primary Pod: %v", err)
+	}
+	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+}
+
+// recoveryPrimaryPodVanished reports whether the current primary Pod does not exist and no StatefulSet is
+// left to recreate it.
+func (r *MariaDBReconciler) recoveryPrimaryPodVanished(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return false, nil
+	}
+	primaryKey := types.NamespacedName{
+		Name:      stsobj.PodName(mariadb.ObjectMeta, *mariadb.Status.CurrentPrimaryPodIndex),
+		Namespace: mariadb.Namespace,
+	}
+	pod, err := r.getPodIfExists(ctx, primaryKey)
+	if err != nil {
+		return false, err
+	}
+	if pod != nil {
+		return false, nil
+	}
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		return false, fmt.Errorf("error getting StatefulSet: %v", err)
+	}
+	return false, nil
 }
 
 type pvcRecoveryQuiesceAction struct {

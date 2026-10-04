@@ -3075,3 +3075,129 @@ func TestReplicaRecoveryHasSource(t *testing.T) {
 		})
 	}
 }
+
+func TestRecoveryPrimaryPodVanished(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+	if err := appsv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding apps scheme: %v", err)
+	}
+	newMariaDB := func(primaryIndex *int) *mariadbv1alpha1.MariaDB {
+		return &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mariadb",
+				Namespace: "test",
+			},
+			Status: mariadbv1alpha1.MariaDBStatus{
+				CurrentPrimaryPodIndex: primaryIndex,
+			},
+		}
+	}
+	sts := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "mariadb", Namespace: "test"},
+	}
+	primaryPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "mariadb-1", Namespace: "test"},
+	}
+
+	tests := []struct {
+		name    string
+		mariadb *mariadbv1alpha1.MariaDB
+		objects []client.Object
+		want    bool
+	}{
+		{
+			name:    "primary Pod and StatefulSet both gone",
+			mariadb: newMariaDB(ptr.To(1)),
+			want:    true,
+		},
+		{
+			name:    "primary Pod gone but StatefulSet recreates it",
+			mariadb: newMariaDB(ptr.To(1)),
+			objects: []client.Object{sts},
+		},
+		{
+			name:    "primary Pod present",
+			mariadb: newMariaDB(ptr.To(1)),
+			objects: []client.Object{primaryPod},
+		},
+		{
+			name:    "unknown primary",
+			mariadb: newMariaDB(nil),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(append([]client.Object{tt.mariadb}, tt.objects...)...).
+				Build()
+			reconciler := &MariaDBReconciler{Client: fakeClient}
+
+			got, err := reconciler.recoveryPrimaryPodVanished(context.Background(), tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("unexpected vanished decision: got %t, want %t", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestQuiescePVCRecoveryReplicasLeavesPrimaryAloneWhenPresent(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+	if err := appsv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding apps scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+			Annotations: map[string]string{
+				replicaRecoveryNodeAnnotationKey(0): "node-a",
+			},
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			CurrentPrimary:         ptr.To("mariadb-1"),
+			CurrentPrimaryPodIndex: ptr.To(1),
+		},
+	}
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: "node-a"},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{{Type: corev1.NodeReady, Status: corev1.ConditionTrue}},
+		},
+	}
+	primaryPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "mariadb-1", Namespace: "test"},
+	}
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(mariadb, node, primaryPod).
+		Build()
+	reconciler := &MariaDBReconciler{Client: fakeClient}
+
+	result, err := reconciler.quiescePVCRecoveryReplicas(context.Background(), mariadb, []string{"mariadb-0"}, logr.Discard())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.IsZero() {
+		t.Fatalf("expected the quiesce to finish without requeue while the primary Pod exists, got %v", result)
+	}
+}
