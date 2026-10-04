@@ -3030,3 +3030,48 @@ func TestShouldRepairRecoveryPrimaryDrift(t *testing.T) {
 		})
 	}
 }
+
+func TestReplicaRecoveryHasSource(t *testing.T) {
+	mariadb := func(replicas int32) *mariadbv1alpha1.MariaDB {
+		return &mariadbv1alpha1.MariaDB{
+			Spec: mariadbv1alpha1.MariaDBSpec{Replicas: replicas},
+		}
+	}
+	tests := []struct {
+		name              string
+		mariadb           *mariadbv1alpha1.MariaDB
+		replicasToRecover []string
+		want              bool
+	}{
+		{
+			name:              "one of two replicas keeps a source",
+			mariadb:           mariadb(2),
+			replicasToRecover: []string{"db-cluster-0"},
+			want:              true,
+		},
+		{
+			name:              "both of two replicas has no source",
+			mariadb:           mariadb(2),
+			replicasToRecover: []string{"db-cluster-0", "db-cluster-1"},
+		},
+		{
+			name:              "two of three replicas keeps a source",
+			mariadb:           mariadb(3),
+			replicasToRecover: []string{"db-cluster-1", "db-cluster-2"},
+			want:              true,
+		},
+		{
+			name:              "nothing to recover",
+			mariadb:           mariadb(2),
+			replicasToRecover: nil,
+			want:              true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := replicaRecoveryHasSource(tt.mariadb, tt.replicasToRecover); got != tt.want {
+				t.Fatalf("unexpected source decision: got %t, want %t", got, tt.want)
+			}
+		})
+	}
+}

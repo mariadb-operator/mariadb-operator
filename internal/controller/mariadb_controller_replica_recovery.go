@@ -50,7 +50,10 @@ var recoverableSQLErrorCodes = []int{
 
 var errReplicaRecoveryArtifactFailed = errors.New("replica recovery artifact failed")
 
-const replicaRecoveryArtifactRetryDelay = 30 * time.Second
+const (
+	replicaRecoveryArtifactRetryDelay   = 30 * time.Second
+	replicaRecoveryNoSourceRequeueDelay = 30 * time.Second
+)
 
 func shouldReconcileReplicaRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
 	if !mdb.IsReplicationEnabled() {
@@ -114,8 +117,8 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	logger = logger.
 		WithValues("replicas", replicasToRecover)
 
-	if handled, err := r.completeReplicaRecoveryIfDone(ctx, mariadb, replicasToRecover, pvcUIDs); handled || err != nil {
-		return ctrl.Result{}, err
+	if result, handled, err := r.checkReplicaRecoverySet(ctx, mariadb, replicasToRecover, pvcUIDs, logger); handled || err != nil {
+		return result, err
 	}
 	if err := r.reconcileRecoveryPrimaryDrift(ctx, mariadb, podStates, replicasToRecover, logger); err != nil {
 		return ctrl.Result{}, err
@@ -239,6 +242,37 @@ func (r *MariaDBReconciler) resetReplicaRecoveryIfNotNeeded(ctx context.Context,
 		return false, fmt.Errorf("error cleaning replica recovery artifacts: %v", err)
 	}
 	return true, nil
+}
+
+// replicaRecoveryHasSource reports whether at least one Pod stays out of the recovery set. Recovering
+// every Pod leaves nothing to take the recovery backup from and would delete the last copy of the data.
+func replicaRecoveryHasSource(mariadb *mariadbv1alpha1.MariaDB, replicasToRecover []string) bool {
+	return len(replicasToRecover) < int(mariadb.Spec.Replicas)
+}
+
+// checkReplicaRecoverySet handles the two boundaries of the recovery set: an empty set completes the
+// recovery, and a set covering every Pod is refused because nothing is left to take the backup from.
+func (r *MariaDBReconciler) checkReplicaRecoverySet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	replicasToRecover []string, pvcUIDs map[int]string, logger logr.Logger) (ctrl.Result, bool, error) {
+	if len(replicasToRecover) == 0 {
+		handled, err := r.completeReplicaRecoveryIfDone(ctx, mariadb, replicasToRecover, pvcUIDs)
+		return ctrl.Result{}, handled, err
+	}
+	if replicaRecoveryHasSource(mariadb, replicasToRecover) {
+		return ctrl.Result{}, false, nil
+	}
+	logger.Info("Refusing to recover every replica: no Pod is left to take the recovery backup from",
+		"replicas", replicasToRecover)
+	if r.Recorder != nil {
+		r.Recorder.Eventf(mariadb,
+			nil,
+			corev1.EventTypeWarning,
+			mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
+			mariadbv1alpha1.ActionReconciling,
+			"Refusing to recover replicas %v: no Pod is left to take the recovery backup from", replicasToRecover,
+		)
+	}
+	return ctrl.Result{RequeueAfter: replicaRecoveryNoSourceRequeueDelay}, true, nil
 }
 
 func (r *MariaDBReconciler) completeReplicaRecoveryIfDone(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
