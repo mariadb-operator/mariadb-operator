@@ -3,6 +3,10 @@ package v1alpha1
 const (
 	// ReasonReplicationResetStaleSwitchover indicates a stale switchover has been reset.
 	ReasonReplicationResetStaleSwitchover = "ResetStaleSwitchover"
+	// ReasonReplicationSwitchoverPostponed indicates a switchover is waiting for its new primary to become a configured replica.
+	ReasonReplicationSwitchoverPostponed = "SwitchoverPostponed"
+	// ReasonReplicationSwitchoverAbandoned indicates an in-flight switchover was reset because its new primary can no longer be promoted.
+	ReasonReplicationSwitchoverAbandoned = "SwitchoverAbandoned"
 	// ReasonReplicationPrimaryLock indicates that primary tables have a read lock.
 	ReasonReplicationPrimaryLock = "PrimaryLock"
 	// ReasonReplicationPrimaryReadonly indicates that primary is being changed to readonly mode.

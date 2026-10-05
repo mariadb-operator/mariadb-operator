@@ -30,14 +30,60 @@ func isSwitchoverStale(mdb *mariadbv1alpha1.MariaDB) bool {
 	return mdb.IsSwitchingPrimary() && !mdb.IsReplicationSwitchoverRequired()
 }
 
-func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
+// switchoverCandidate returns the Pod that spec.replication.primary.podIndex designates as the new primary.
+// It is only meaningful when IsReplicationSwitchoverRequired holds, which guarantees the index is set.
+func switchoverCandidate(mdb *mariadbv1alpha1.MariaDB) string {
+	replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
+	return statefulset.PodName(mdb.ObjectMeta, ptr.Deref(replication.Primary.PodIndex, 0))
+}
+
+func isSwitchoverAllowed(mdb *mariadbv1alpha1.MariaDB) bool {
 	if mdb.IsMaxScaleEnabled() || mdb.IsRestoringBackup() || mdb.IsResizingStorage() {
 		return false
 	}
-	if !mdb.HasConfiguredReplica() {
+	return mdb.IsReplicationSwitchoverRequired()
+}
+
+func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
+	if !isSwitchoverAllowed(mdb) {
 		return false
 	}
-	return mdb.IsReplicationSwitchoverRequired()
+	// An in-flight switchover is always resumed. Its "Configure new primary" phase promotes the candidate,
+	// so a two-node cluster has no configured replica left mid-flight: gating the resume on one left the old
+	// primary read-locked and read-only forever, while the promoted candidate accepted writes that the
+	// status never acknowledged.
+	if mdb.IsSwitchingPrimary() {
+		return true
+	}
+	// A switchover only starts towards a configured replica. The phases need a replica to sync and promote;
+	// a candidate that is still being recovered, or that was never configured, would otherwise lock the
+	// primary with nothing to switch to.
+	return mdb.IsConfiguredReplica(switchoverCandidate(mdb))
+}
+
+// isSwitchoverPostponed reports whether a required switchover is waiting for its new primary to become a
+// configured replica.
+func isSwitchoverPostponed(mdb *mariadbv1alpha1.MariaDB) bool {
+	return isSwitchoverAllowed(mdb) && !mdb.IsSwitchingPrimary() && !mdb.IsConfiguredReplica(switchoverCandidate(mdb))
+}
+
+// switchoverAbandonReason returns why an in-flight switchover can never complete, or an empty string while it
+// still can. The new primary's Pod must exist and must not be under replica recovery: a recovery wipes the
+// candidate's data, so there is nothing left to promote, and the recovery cannot finish while the switchover
+// holds the current primary locked.
+func switchoverAbandonReason(mdb *mariadbv1alpha1.MariaDB, candidatePodExists bool) string {
+	if !mdb.IsSwitchingPrimary() || !mdb.IsReplicationSwitchoverRequired() {
+		return ""
+	}
+	candidate := switchoverCandidate(mdb)
+	if !candidatePodExists {
+		return fmt.Sprintf("Pod '%s' does not exist", candidate)
+	}
+	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+	if ptr.Deref(replication.ReplicaToRecover, "") == candidate {
+		return fmt.Sprintf("Pod '%s' is under replica recovery", candidate)
+	}
+	return ""
 }
 
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *ReconcileRequest, switchoverLogger logr.Logger) error {
@@ -52,7 +98,11 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 	if err := r.reconcileStaleSwitchover(ctx, req, logger); err != nil {
 		return fmt.Errorf("error reconciling stale switchover: %v", err)
 	}
+	if err := r.reconcileAbandonedSwitchover(ctx, req, logger); err != nil {
+		return fmt.Errorf("error reconciling abandoned switchover: %v", err)
+	}
 	if !shouldReconcileSwitchover(req.mariadb) {
+		r.recordPostponedSwitchover(req, logger)
 		return nil
 	}
 
@@ -126,6 +176,56 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 		logger.Info("Skipped stale switchover reconciliation due to primary's non ready status")
 		return nil
 	}
+	if err := r.resetSwitchover(ctx, req, logger); err != nil {
+		return err
+	}
+
+	logger.Info("Stale switchover has been reset")
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationResetStaleSwitchover,
+		mariadbv1alpha1.ActionReconciling, "Stale switchover has been reset")
+	return nil
+}
+
+// reconcileAbandonedSwitchover resets an in-flight switchover whose new primary can no longer be promoted,
+// returning the current primary to service. The switchover is not retried until the candidate is a
+// configured replica again, see shouldReconcileSwitchover.
+func (r *ReplicationReconciler) reconcileAbandonedSwitchover(ctx context.Context, req *ReconcileRequest,
+	logger logr.Logger) error {
+	if !req.mariadb.IsSwitchingPrimary() || !req.mariadb.IsReplicationSwitchoverRequired() {
+		return nil
+	}
+	candidate := switchoverCandidate(req.mariadb)
+	var pod corev1.Pod
+	err := r.Get(ctx, types.NamespacedName{Name: candidate, Namespace: req.mariadb.Namespace}, &pod)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("error getting Pod '%s': %v", candidate, err)
+	}
+	reason := switchoverAbandonReason(req.mariadb, err == nil)
+	if reason == "" {
+		return nil
+	}
+	if !req.currentPrimaryReady {
+		logger.Info("Skipped abandoning switchover due to primary's non ready status", "new-primary", candidate, "reason", reason)
+		return nil
+	}
+	logger.Info("Abandoning switchover", "new-primary", candidate, "reason", reason)
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationSwitchoverAbandoned,
+		mariadbv1alpha1.ActionReconciling, "Switchover to '%s' abandoned: %s", candidate, reason)
+	return r.resetSwitchover(ctx, req, logger)
+}
+
+func (r *ReplicationReconciler) recordPostponedSwitchover(req *ReconcileRequest, logger logr.Logger) {
+	if !isSwitchoverPostponed(req.mariadb) {
+		return
+	}
+	candidate := switchoverCandidate(req.mariadb)
+	logger.Info("Switchover postponed until the new primary is a configured replica", "new-primary", candidate)
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationSwitchoverPostponed,
+		mariadbv1alpha1.ActionReconciling, "Switchover to '%s' postponed: Pod is not a configured replica", candidate)
+}
+
+// resetSwitchover unlocks the current primary, makes it writable again and clears the switching condition.
+func (r *ReplicationReconciler) resetSwitchover(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
 	currentPrimaryClient, err := req.replClientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
@@ -146,10 +246,6 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
-
-	logger.Info("Stale switchover has been reset")
-	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationResetStaleSwitchover,
-		mariadbv1alpha1.ActionReconciling, "Stale switchover has been reset")
 	return nil
 }
 
@@ -413,6 +509,17 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	replicaOpts, err := r.configureReplicaOpts(ctx, req, newPrimaryClient, logger)
 	if err != nil {
 		return fmt.Errorf("error getting replica options: %v", err)
+	}
+	// The old primary reattaches from its own position rather than from the new primary's. Once the replicas
+	// were synced, every GTID the old primary holds is in the new primary's binary log, so its own position is
+	// always servable, and any write the new primary accepted since its promotion (for example while a
+	// stranded switchover was being resumed) is replayed on the old primary instead of being skipped.
+	currentPrimaryPos, err := currentPrimaryClient.GtidCurrentPos(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting current primary GTID position: %v", err)
+	}
+	if currentPrimaryPos != "" {
+		replicaOpts = append(replicaOpts, WithGtidSlavePos(currentPrimaryPos))
 	}
 
 	logger.Info("Unlocking primary")

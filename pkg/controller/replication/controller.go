@@ -140,7 +140,9 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	}
 	defer req.Close()
 
-	if mdb.IsReplicationSwitchoverRequired() {
+	// A postponed switchover still needs the replication phase: it is what configures the new primary as a
+	// replica of the current one, which is the condition the switchover is waiting for.
+	if mdb.IsReplicationSwitchoverRequired() && !isSwitchoverPostponed(mdb) {
 		return ctrl.Result{}, r.reconcileSwitchover(ctx, req, switchoverLogger)
 	}
 	if result, err := r.reconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {

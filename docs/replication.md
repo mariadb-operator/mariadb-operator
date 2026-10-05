@@ -248,6 +248,8 @@ The steps involved in the switchover operation are:
 
 If the switchover operation is stuck waiting for replicas to be in sync, you can check the `MariaDB` status to identify which replicas are causing the issue. Furthermore, if still in this step, you can cancel the switchover operation by setting back the `spec.replication.primary.podIndex` field back to the previous primary index.
 
+The selected Pod must be a configured replica before the switchover starts. Until it is, the operator keeps the current primary in service, emits a `SwitchoverPostponed` event on the `MariaDB` CR and keeps configuring replication, so a Pod that is still being recovered becomes eligible on its own once its recovery completes. Once started, the switchover is always resumed, even while the promoted Pod is no longer observed as a replica; it is only reset, with a `SwitchoverAbandoned` event, when the selected Pod no longer exists or enters [replica recovery](#replica-recovery), returning the current primary to service until the Pod is a configured replica again.
+
 ## Primary failover
 
 > [!IMPORTANT]  
