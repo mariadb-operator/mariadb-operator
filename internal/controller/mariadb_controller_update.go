@@ -75,12 +75,8 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 			continue
 		}
 		logger.Info("Updating replica Pod", "pod", replicaPod.Name)
-		result, err := r.updatePod(ctx, mariadbKey, &replicaPod, stsUpdateRevision, logger)
-		if err != nil {
+		if err := r.updatePod(ctx, mdb, &replicaPod, stsUpdateRevision, logger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error updating replica Pod '%s': %v", replicaPod.Name, err)
-		}
-		if !result.IsZero() {
-			return result, nil
 		}
 		return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 	}
@@ -102,11 +98,10 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 
 	logger.Info("Updating primary Pod", "pod", primaryPod.Name)
-	result, err := r.updatePod(ctx, mariadbKey, &primaryPod, stsUpdateRevision, logger)
-	if err != nil {
+	if err := r.updatePod(ctx, mdb, &primaryPod, stsUpdateRevision, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error updating primary Pod '%s': %v", primaryPod.Name, err)
 	}
-	return result, nil
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
@@ -225,45 +220,26 @@ func (r *MariaDBReconciler) waitForConfiguredReplica(mdb *mariadbv1alpha1.MariaD
 	return nil
 }
 
-func (r *MariaDBReconciler) updatePod(ctx context.Context, mariadbKey types.NamespacedName, pod *corev1.Pod, updateRevision string,
-	logger logr.Logger) (ctrl.Result, error) {
-	if err := r.Delete(ctx, pod); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error deleting Pod '%s': %v", pod.Name, err)
+func (r *MariaDBReconciler) updatePod(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, pod *corev1.Pod, updateRevision string,
+	logger logr.Logger) error {
+	// A MaxScale switchover does not arm the new primary, and the Replication phase is not reached until every Pod has been
+	// rolled. Arm it before deleting the Pod, while every Pod is ready and the replicas are connected to it. It is a no-op when
+	// semi-sync is disabled.
+	if err := r.ReplicationReconciler.ReconcileSemiSyncWhenReplicasAvailable(ctx, mdb); err != nil {
+		return fmt.Errorf("error reconciling semi-sync: %v", err)
 	}
 
+	if err := r.Delete(ctx, pod); err != nil {
+		return fmt.Errorf("error deleting Pod '%s': %v", pod.Name, err)
+	}
+
+	mariadbKey := client.ObjectKeyFromObject(mdb)
 	updateCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 	if err := r.pollUntilPodUpdated(updateCtx, mariadbKey, client.ObjectKeyFromObject(pod), updateRevision, logger); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error waiting for Pod '%s' to be updated: %v", pod.Name, err)
+		return fmt.Errorf("error waiting for Pod '%s' to be updated: %v", pod.Name, err)
 	}
-	return r.reconcileSemiSyncAfterPodUpdate(ctx, mariadbKey, logger)
-}
-
-// reconcileSemiSyncAfterPodUpdate re-arms the semi-synchronous primary right after a Pod has been updated. Every update
-// returns before the Replication phase is reached, and the next reconciliations wait for all Pods to be ready, so without
-// this the primary promoted by a MaxScale switchover could accept writes unarmed while the demoted primary is being rolled.
-//
-// The primary is only armed when it has at least one semi-sync client, so a replica is able to acknowledge, and it requeues
-// otherwise: with no replicas connected to the primary, continuing the update is not safe.
-func (r *MariaDBReconciler) reconcileSemiSyncAfterPodUpdate(ctx context.Context, mariadbKey types.NamespacedName,
-	logger logr.Logger) (ctrl.Result, error) {
-	var mdb mariadbv1alpha1.MariaDB
-	if err := r.Get(ctx, mariadbKey, &mdb); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
-	}
-	if !mdb.IsSemiSyncEnabled() {
-		return ctrl.Result{}, nil
-	}
-
-	reconciled, err := r.ReplicationReconciler.ReconcileSemiSyncWhenReplicasAvailable(ctx, &mdb)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync: %v", err)
-	}
-	if !reconciled {
-		logger.V(1).Info("Waiting for semi-sync clients in primary. Requeuing...")
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *MariaDBReconciler) pollUntilPodUpdated(ctx context.Context, mariadbKey, podKey types.NamespacedName, updateRevision string,

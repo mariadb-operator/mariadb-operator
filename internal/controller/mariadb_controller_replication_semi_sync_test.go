@@ -2,11 +2,13 @@ package controller
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -60,16 +62,7 @@ var _ = Describe("MariaDB replication semi-sync", Ordered, func() {
 	BeforeAll(func() {
 		mdb = buildTestMariaDBWithRepl(key)
 		applyMariadbTestConfig(mdb)
-
-		mdb.Spec.Replication.SemiSyncEnabled = ptr.To(true)
-		mdb.Spec.Replication.SemiSyncAckTimeout = &metav1.Duration{Duration: testSemiSyncAckTimeout}
-		// The server default, set explicitly: it is the setting that turns a wrongly armed node into a stalled one,
-		// which is precisely what these specs must detect.
-		mdb.Spec.Replication.SemiSyncWaitNoSlave = ptr.To(true)
-		// Opt in to booting unarmed and read_only, so a node is never writable while it is unable to require an
-		// acknowledgement. Without it the nodes boot as writable semi-synchronous primaries and the assertions below
-		// would only hold from the first reconciliation onwards.
-		mdb.Spec.Replication.SemiSyncBootAsReplica = ptr.To(true)
+		applySemiSyncTestConfig(mdb)
 
 		By("Creating a dedicated root password Secret")
 		rootPwdSecret := corev1.Secret{
@@ -416,26 +409,14 @@ var _ = Describe("MariaDB replication semi-sync", Ordered, func() {
 
 	// A rolling update restarts every Pod, and with the default 'ReplicasFirstPrimaryLast' strategy it switches the primary
 	// over before restarting it. Every restarted Pod boots unarmed, so the primary must end up armed and acknowledged,
-	// and the replicas disarmed, once the update completes. The primary is re-armed after every Pod update, so it must
-	// never accept writes unarmed while the update is in progress.
+	// and the replicas disarmed, once the update completes. The primary must never accept writes unarmed in the meantime.
 	It("should keep semi-sync consistent across a rolling update", func() {
-		var sts appsv1.StatefulSet
-		Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
-		previousRevision := sts.Status.UpdateRevision
+		previousRevision := statefulSetUpdateRevision(key)
 
 		stopSampling := sampleSemiSyncWritablePrimary(mdb)
+		DeferCleanup(stopSampling)
 		testMariadbUpdate(mdb)
-
-		// The Updated condition may still be the one from before the update when 'testMariadbUpdate' checks it, so wait
-		// for every Pod to be rolled to the new revision. Otherwise the update would keep going during the next spec.
-		By("Expecting all Pods to be updated eventually")
-		Eventually(func(g Gomega) bool {
-			g.Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
-			return sts.Status.ObservedGeneration == sts.Generation &&
-				sts.Status.UpdateRevision != previousRevision &&
-				sts.Status.UpdatedReplicas == mdb.Spec.Replicas &&
-				sts.Status.ReadyReplicas == mdb.Spec.Replicas
-		}, testHighTimeout, testInterval).Should(BeTrue())
+		expectStatefulSetRolledOut(mdb, previousRevision)
 
 		Expect(stopSampling()).To(BeEmpty(), "The primary accepted writes with semi-sync disabled during the rolling update.")
 
@@ -509,6 +490,148 @@ var _ = Describe("MariaDB replication semi-sync", Ordered, func() {
 	})
 })
 
+// A MaxScale switchover promotes a replica without arming it, and the rolling update does not reach the Replication phase
+// until every Pod has been rolled, so the operator must arm the new primary before it rolls the demoted one.
+var _ = Describe("MariaDB replication semi-sync with MaxScale", Ordered, func() {
+	var (
+		key = types.NamespacedName{
+			Name:      "mariadb-repl",
+			Namespace: testNamespace,
+		}
+		mdb *mariadbv1alpha1.MariaDB
+	)
+
+	BeforeAll(func() {
+		mdb = buildTestMariaDBWithRepl(key)
+		applyMariadbTestConfig(mdb)
+		applySemiSyncTestConfig(mdb)
+
+		By("Creating MariaDB with replication")
+		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key, false)
+		})
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			return mdb.IsReady()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		mxs := &mariadbv1alpha1.MaxScale{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "maxscale-repl",
+				Namespace: testNamespace,
+			},
+			Spec: mariadbv1alpha1.MaxScaleSpec{
+				Replicas: 2,
+				KubernetesService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.214",
+						},
+					},
+				},
+				GuiKubernetesService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.230",
+						},
+					},
+				},
+				// 'testMaxscale' expects a ready Connection, which is only created when this is set.
+				Connection: &mariadbv1alpha1.ConnectionTemplate{
+					SecretName: ptr.To("mxs-repl-conn"),
+					HealthCheck: &mariadbv1alpha1.HealthCheck{
+						Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+					},
+				},
+				Auth: mariadbv1alpha1.MaxScaleAuth{
+					Generate: ptr.To(true),
+					AdminPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+							LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+								Name: testPwdKey.Name,
+							},
+							Key: testPwdSecretKey,
+						},
+						Generate: false,
+					},
+				},
+				TLS: &mariadbv1alpha1.MaxScaleTLS{
+					Enabled:               true,
+					VerifyPeerCertificate: ptr.To(true),
+					VerifyPeerHost:        ptr.To(false),
+					ReplicationSSLEnabled: ptr.To(true),
+				},
+			},
+		}
+		testMaxscale(mdb, mxs)
+	})
+
+	It("should arm the new primary before rolling the demoted primary", func() {
+		Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+		Expect(mdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
+		oldPrimary := *mdb.Status.CurrentPrimaryPodIndex
+		oldPrimaryKey := types.NamespacedName{
+			Name:      statefulset.PodName(mdb.ObjectMeta, oldPrimary),
+			Namespace: mdb.Namespace,
+		}
+		var oldPrimaryPod corev1.Pod
+		Expect(k8sClient.Get(testCtx, oldPrimaryKey, &oldPrimaryPod)).To(Succeed())
+		previousRevision := statefulSetUpdateRevision(key)
+
+		By("Triggering a rolling update")
+		Eventually(func(g Gomega) {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			if mdb.Spec.PodMetadata == nil {
+				mdb.Spec.PodMetadata = &mariadbv1alpha1.Metadata{}
+			}
+			if mdb.Spec.PodMetadata.Annotations == nil {
+				mdb.Spec.PodMetadata.Annotations = map[string]string{}
+			}
+			mdb.Spec.PodMetadata.Annotations["k8s.mariadb.com/updated-at"] = time.Now().String()
+			g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+		}, testTimeout, testInterval).Should(Succeed())
+
+		// Polled faster than testInterval, so that the check below runs right after the deletion.
+		By("Expecting the demoted primary Pod to be rolled eventually")
+		Eventually(func(g Gomega) bool {
+			var pod corev1.Pod
+			if err := k8sClient.Get(testCtx, oldPrimaryKey, &pod); err != nil {
+				return apierrors.IsNotFound(err)
+			}
+			return pod.UID != oldPrimaryPod.UID || pod.DeletionTimestamp != nil
+		}, testHighTimeout, 250*time.Millisecond).Should(BeTrue())
+
+		Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+		Expect(mdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
+		newPrimary := *mdb.Status.CurrentPrimaryPodIndex
+		Expect(newPrimary).NotTo(Equal(oldPrimary))
+
+		By(fmt.Sprintf("Expecting the new primary in Pod '%d' to be armed", newPrimary))
+		withSemiSyncSqlClient(Default, mdb, newPrimary, func(client *sql.Client) {
+			enabled, err := client.IsSemiSyncMasterEnabled(testCtx)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(enabled).To(BeTrue(), "The new primary was not armed when the demoted primary was rolled.")
+		})
+
+		expectStatefulSetRolledOut(mdb, previousRevision)
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			return mdb.IsReady()
+		}, testHighTimeout, testInterval).MustPassRepeatedly(10).Should(BeTrue())
+
+		expectSemiSyncTopology(mdb, newPrimary)
+		expectSemiSyncPrimaryAcknowledged(mdb, newPrimary)
+		expectSemiSyncWriteNotStalled(mdb, newPrimary)
+	})
+})
+
 // withSemiSyncSqlClient runs fn against a SQL client connected to a given Pod. Pass the Gomega instance provided by
 // Eventually when polling, or Default when asserting once.
 func withSemiSyncSqlClient(g Gomega, mdb *mariadbv1alpha1.MariaDB, podIndex int, fn func(client *sql.Client)) {
@@ -572,10 +695,47 @@ func sampleSemiSyncWritablePrimary(mdb *mariadbv1alpha1.MariaDB) func() []string
 		}
 	}()
 
+	var once sync.Once
+	var violations []string
 	return func() []string {
-		close(done)
-		return <-result
+		once.Do(func() {
+			close(done)
+			violations = <-result
+		})
+		return violations
 	}
+}
+
+// statefulSetUpdateRevision returns the current 'status.updateRevision' of the MariaDB StatefulSet.
+func statefulSetUpdateRevision(key types.NamespacedName) string {
+	var sts appsv1.StatefulSet
+	Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
+	return sts.Status.UpdateRevision
+}
+
+// expectStatefulSetRolledOut waits for every Pod to be rolled to a revision newer than previousRevision. The Updated
+// condition may still be the one from before the update when 'testMariadbUpdate' checks it, and the update would
+// otherwise keep going during the next spec.
+func expectStatefulSetRolledOut(mdb *mariadbv1alpha1.MariaDB, previousRevision string) {
+	By("Expecting all Pods to be updated eventually")
+	Eventually(func(g Gomega) bool {
+		var sts appsv1.StatefulSet
+		g.Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(mdb), &sts)).To(Succeed())
+		return sts.Status.ObservedGeneration == sts.Generation &&
+			sts.Status.UpdateRevision != previousRevision &&
+			sts.Status.UpdatedReplicas == mdb.Spec.Replicas &&
+			sts.Status.ReadyReplicas == mdb.Spec.Replicas
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+// applySemiSyncTestConfig enables semi-sync with the settings that turn a wrongly armed node into a stalled one.
+func applySemiSyncTestConfig(mdb *mariadbv1alpha1.MariaDB) {
+	mdb.Spec.Replication.SemiSyncEnabled = ptr.To(true)
+	mdb.Spec.Replication.SemiSyncAckTimeout = &metav1.Duration{Duration: testSemiSyncAckTimeout}
+	// The server default, set explicitly: it is what makes a node armed with no replicas stall its writes.
+	mdb.Spec.Replication.SemiSyncWaitNoSlave = ptr.To(true)
+	// Boot unarmed and read_only, so a node is never writable while it is unable to require an acknowledgement.
+	mdb.Spec.Replication.SemiSyncBootAsReplica = ptr.To(true)
 }
 
 // expectSemiSyncTopology asserts that primary-side semi-sync converges to the role of every Pod: enabled in the
