@@ -793,6 +793,11 @@ func (s *MaxScaleServerStatus) InMaintenance() bool {
 	return mxsstate.InMaintenance(s.State)
 }
 
+// IsDown indicates whether the current server is in down state.
+func (s *MaxScaleServerStatus) IsDown() bool {
+	return mxsstate.IsDown(s.State)
+}
+
 // MaxScaleResourceStatus indicates whether the resource is in a given state.
 type MaxScaleResourceStatus struct {
 	Name  string `json:"name"`
