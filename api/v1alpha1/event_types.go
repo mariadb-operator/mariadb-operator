@@ -11,6 +11,11 @@ const (
 	ReasonReplicationReplicaSync = "ReplicaSync"
 	// ReasonReplicationReplicaSyncErr indicates that an error has happened while replicas were being synced with primary.
 	ReasonReplicationReplicaSyncErr = "ReplicaSyncErr"
+	// Indicates that a replica replicating from a wrong source is being reconnected to the current primary.
+	ReasonReplicationReplicaSourceFix = "ReplicaSourceFix"
+	// Indicates that a switchover attempt failed before promoting the new primary
+	// and the current primary has been unlocked until the next attempt.
+	ReasonReplicationSwitchoverRetry = "SwitchoverRetry"
 	// ReasonReplicationPrimaryNewSync indicates that the new primary is being synced.
 	ReasonReplicationPrimaryNewSync = "PrimaryNewSync"
 	// ReasonReplicationPrimaryNewSync indicates that an error has happened while the new primary was being synced.
