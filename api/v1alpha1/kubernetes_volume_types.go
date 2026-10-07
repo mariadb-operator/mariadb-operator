@@ -151,6 +151,8 @@ type StorageVolumeSource struct {
 	// +optional
 	EmptyDir *EmptyDirVolumeSource `json:"emptyDir,omitempty"`
 	// +optional
+	Ephemeral *EphemeralVolumeSource `json:"ephemeral,omitempty"`
+	// +optional
 	NFS *NFSVolumeSource `json:"nfs,omitempty"`
 	// +optional
 	CSI *CSIVolumeSource `json:"csi,omitempty"`
@@ -164,6 +166,9 @@ func (v StorageVolumeSource) ToKubernetesType() corev1.VolumeSource {
 	var volumeSource corev1.VolumeSource
 	if v.EmptyDir != nil {
 		volumeSource.EmptyDir = ptr.To(v.EmptyDir.ToKubernetesType())
+	}
+	if v.Ephemeral != nil {
+		volumeSource.Ephemeral = ptr.To(v.Ephemeral.ToKubernetesType())
 	}
 	if v.NFS != nil {
 		volumeSource.NFS = ptr.To(v.NFS.ToKubernetesType())
