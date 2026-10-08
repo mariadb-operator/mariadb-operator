@@ -178,17 +178,48 @@ func (r *PhysicalBackupReconciler) reconcileJobStatus(ctx context.Context, backu
 
 func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	jobList *batchv1.JobList, logger logr.Logger) error {
+
+	var jobs []batchv1.Job
 	if backup.Spec.Schedule == nil {
-		return nil
+		var allJobList batchv1.JobList
+		if err := r.List(ctx, &allJobList, client.InNamespace(backup.Namespace)); err != nil {
+			return fmt.Errorf("error listing Jobs: %v", err)
+		}
+
+		for _, job := range allJobList.Items {
+			owner := metav1.GetControllerOf(&job)
+			if owner == nil || owner.Kind != "PhysicalBackup" || owner.APIVersion != mariadbv1alpha1.GroupVersion.String() {
+				continue
+			}
+
+			var parentBackup mariadbv1alpha1.PhysicalBackup
+			parentKey := types.NamespacedName{
+				Name:      owner.Name,
+				Namespace: job.Namespace,
+			}
+			if err := r.Get(ctx, parentKey, &parentBackup); err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				return fmt.Errorf("error getting parent PhysicalBackup: %v", err)
+			}
+
+			if parentBackup.Spec.Schedule == nil && parentBackup.Spec.MariaDBRef.Name == backup.Spec.MariaDBRef.Name {
+				jobs = append(jobs, job)
+			}
+		}
+	} else {
+		jobs = append(jobs, jobList.Items...)
 	}
 
 	var completeJobs []*batchv1.Job
 	var failedJobs []*batchv1.Job
-	for _, job := range jobList.Items {
-		if jobpkg.IsJobComplete(&job) {
-			completeJobs = append(completeJobs, &job)
-		} else if jobpkg.IsJobFailed(&job) {
-			failedJobs = append(failedJobs, &job)
+	for i := range jobs {
+		job := &jobs[i]
+		if jobpkg.IsJobComplete(job) {
+			completeJobs = append(completeJobs, job)
+		} else if jobpkg.IsJobFailed(job) {
+			failedJobs = append(failedJobs, job)
 		}
 	}
 	maxHistory := int(ptr.Deref(backup.Spec.SuccessfulJobsHistoryLimit, 5))
