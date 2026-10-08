@@ -1,22 +1,22 @@
 package config
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-func TestThreads(t *testing.T) {
-	tests := []struct {
-		name       string
-		mxs        *mariadbv1alpha1.MaxScale
-		wantString string
-	}{
-		{
-			name: "cpu limit defined",
-			mxs: &mariadbv1alpha1.MaxScale{
+var _ = Describe("threads", func() {
+	DescribeTable("computing threads",
+		func(mxs *mariadbv1alpha1.MaxScale, wantString string) {
+			gotString := threads(mxs)
+			Expect(gotString).To(Equal(wantString))
+		},
+		Entry("cpu limit defined",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
@@ -27,11 +27,10 @@ func TestThreads(t *testing.T) {
 					},
 				},
 			},
-			wantString: "1",
-		},
-		{
-			name: "cpu limit defined round up",
-			mxs: &mariadbv1alpha1.MaxScale{
+			"1",
+		),
+		Entry("cpu limit defined round up",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
@@ -42,18 +41,16 @@ func TestThreads(t *testing.T) {
 					},
 				},
 			},
-			wantString: "1",
-		},
-		{
-			name: "resources not defined",
-			mxs: &mariadbv1alpha1.MaxScale{
+			"1",
+		),
+		Entry("resources not defined",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{},
 			},
-			wantString: "auto",
-		},
-		{
-			name: "only requests defined",
-			mxs: &mariadbv1alpha1.MaxScale{
+			"auto",
+		),
+		Entry("only requests defined",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
@@ -64,11 +61,10 @@ func TestThreads(t *testing.T) {
 					},
 				},
 			},
-			wantString: "auto",
-		},
-		{
-			name: "other limit defined",
-			mxs: &mariadbv1alpha1.MaxScale{
+			"auto",
+		),
+		Entry("other limit defined",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
@@ -79,29 +75,19 @@ func TestThreads(t *testing.T) {
 					},
 				},
 			},
-			wantString: "auto",
+			"auto",
+		),
+	)
+})
+
+var _ = Describe("queryClassifierCacheSize", func() {
+	DescribeTable("computing query classifier cache size",
+		func(mxs *mariadbv1alpha1.MaxScale, wantString string) {
+			gotString := queryClassifierCacheSize(mxs)
+			Expect(gotString).To(Equal(wantString))
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotString := threads(tt.mxs)
-			if tt.wantString != gotString {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantString, gotString)
-			}
-		})
-	}
-}
-
-func TestQueryClassifierCacheSize(t *testing.T) {
-	tests := []struct {
-		name       string
-		mxs        *mariadbv1alpha1.MaxScale
-		wantString string
-	}{
-		{
-			name: "memory limit defined",
-			mxs: &mariadbv1alpha1.MaxScale{
+		Entry("memory limit defined",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
@@ -112,18 +98,16 @@ func TestQueryClassifierCacheSize(t *testing.T) {
 					},
 				},
 			},
-			wantString: "150000000",
-		},
-		{
-			name: "resources not defined",
-			mxs: &mariadbv1alpha1.MaxScale{
+			"150000000",
+		),
+		Entry("resources not defined",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{},
 			},
-			wantString: "",
-		},
-		{
-			name: "only requests defined",
-			mxs: &mariadbv1alpha1.MaxScale{
+			"",
+		),
+		Entry("only requests defined",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
@@ -134,11 +118,10 @@ func TestQueryClassifierCacheSize(t *testing.T) {
 					},
 				},
 			},
-			wantString: "",
-		},
-		{
-			name: "other limit defined",
-			mxs: &mariadbv1alpha1.MaxScale{
+			"",
+		),
+		Entry("other limit defined",
+			&mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
@@ -149,16 +132,7 @@ func TestQueryClassifierCacheSize(t *testing.T) {
 					},
 				},
 			},
-			wantString: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotString := queryClassifierCacheSize(tt.mxs)
-			if tt.wantString != gotString {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantString, gotString)
-			}
-		})
-	}
-}
+			"",
+		),
+	)
+})
