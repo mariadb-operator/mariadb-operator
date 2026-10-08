@@ -168,6 +168,81 @@ func (j *JobContainerTemplate) FromContainerTemplate(ctpl *ContainerTemplate) {
 	}
 }
 
+// ContainerInheritancePolicy controls which MariaDB environment variables and volume mounts are inherited by a custom container.
+type ContainerInheritancePolicy string
+
+const (
+	// ContainerInheritanceLegacy preserves the historical behavior by inheriting all MariaDB environment variables and volume mounts.
+	ContainerInheritanceLegacy ContainerInheritancePolicy = "Legacy"
+	// ContainerInheritanceIsolated starts with no inherited environment variables or volume mounts.
+	ContainerInheritanceIsolated ContainerInheritancePolicy = "Isolated"
+	// ContainerInheritanceSelected inherits only the explicitly selected semantic groups.
+	ContainerInheritanceSelected ContainerInheritancePolicy = "Selected"
+)
+
+// ContainerEnvGroup identifies a stable semantic group of MariaDB environment variables.
+// +kubebuilder:validation:Enum=Runtime;TLS;Replication;RootPassword;User
+type ContainerEnvGroup string
+
+const (
+	// ContainerEnvGroupRuntime includes non-secret MariaDB and Pod runtime metadata.
+	ContainerEnvGroupRuntime ContainerEnvGroup = "Runtime"
+	// ContainerEnvGroupTLS includes MariaDB TLS paths and settings.
+	ContainerEnvGroupTLS ContainerEnvGroup = "TLS"
+	// ContainerEnvGroupReplication includes MariaDB replication settings.
+	ContainerEnvGroupReplication ContainerEnvGroup = "Replication"
+	// ContainerEnvGroupRootPassword includes the MariaDB root password Secret reference or empty-password setting.
+	ContainerEnvGroupRootPassword ContainerEnvGroup = "RootPassword"
+	// ContainerEnvGroupUser includes environment variables authored in spec.env.
+	ContainerEnvGroupUser ContainerEnvGroup = "User"
+)
+
+// ContainerVolumeMountGroup identifies a stable semantic group of MariaDB volume mounts.
+// +kubebuilder:validation:Enum=Config;TLS;Storage;Replication;AgentAuth;ServiceAccount;Galera;PointInTimeRecovery;User
+type ContainerVolumeMountGroup string
+
+const (
+	// ContainerVolumeMountGroupConfig includes the MariaDB configuration mount.
+	ContainerVolumeMountGroupConfig ContainerVolumeMountGroup = "Config"
+	// ContainerVolumeMountGroupTLS includes MariaDB TLS certificate and key mounts.
+	ContainerVolumeMountGroupTLS ContainerVolumeMountGroup = "TLS"
+	// ContainerVolumeMountGroupStorage includes the MariaDB data directory.
+	ContainerVolumeMountGroupStorage ContainerVolumeMountGroup = "Storage"
+	// ContainerVolumeMountGroupReplication includes the generated replication configuration mount.
+	ContainerVolumeMountGroupReplication ContainerVolumeMountGroup = "Replication"
+	// ContainerVolumeMountGroupAgentAuth includes the data-plane agent authentication mount.
+	ContainerVolumeMountGroupAgentAuth ContainerVolumeMountGroup = "AgentAuth"
+	// ContainerVolumeMountGroupServiceAccount includes the projected data-plane service account mount.
+	ContainerVolumeMountGroupServiceAccount ContainerVolumeMountGroup = "ServiceAccount"
+	// ContainerVolumeMountGroupGalera includes the generated Galera configuration mount.
+	ContainerVolumeMountGroupGalera ContainerVolumeMountGroup = "Galera"
+	// ContainerVolumeMountGroupPointInTimeRecovery includes point-in-time recovery storage TLS CA mounts.
+	ContainerVolumeMountGroupPointInTimeRecovery ContainerVolumeMountGroup = "PointInTimeRecovery"
+	// ContainerVolumeMountGroupUser includes volume mounts authored in spec.volumeMounts.
+	ContainerVolumeMountGroupUser ContainerVolumeMountGroup = "User"
+)
+
+// ContainerInheritance configures MariaDB environment-variable and volume-mount inheritance for a custom container.
+// +kubebuilder:validation:XValidation:rule="(!has(self.env) && !has(self.volumeMounts)) || (has(self.policy) && self.policy == 'Selected')",message="env and volumeMounts groups may only be used with the Selected policy"
+type ContainerInheritance struct {
+	// Policy controls inheritance. When omitted, Legacy is used without persisting a default.
+	// +optional
+	// +kubebuilder:validation:Enum=Legacy;Isolated;Selected
+	Policy ContainerInheritancePolicy `json:"policy,omitempty"`
+	// Env selects environment-variable groups when policy is Selected.
+	// +optional
+	// +listType=set
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=5
+	Env []ContainerEnvGroup `json:"env,omitempty"`
+	// VolumeMounts selects volume-mount groups when policy is Selected.
+	// +optional
+	// +listType=set
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=9
+	VolumeMounts []ContainerVolumeMountGroup `json:"volumeMounts,omitempty"`
+}
+
 // Container object definition.
 type Container struct {
 	// Name to be given to the container.
@@ -203,6 +278,15 @@ type Container struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`
+	// SecurityContext holds security configuration that will be applied to the container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SecurityContext *SecurityContext `json:"securityContext,omitempty"`
+	// Inheritance controls which MariaDB environment variables and volume mounts are inherited by this container.
+	// When omitted, the historical Legacy behavior is preserved.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Inheritance *ContainerInheritance `json:"inheritance,omitempty"`
 }
 
 // InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
@@ -312,6 +396,15 @@ type Agent struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
+}
+
+// HasBasicAuthSecret reports whether the agent has usable basic-auth password material.
+func (r *Agent) HasBasicAuthSecret() bool {
+	if r == nil {
+		return false
+	}
+	basicAuth := ptr.Deref(r.BasicAuth, BasicAuth{})
+	return basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero()
 }
 
 // SetDefaults sets reasonable defaults.
