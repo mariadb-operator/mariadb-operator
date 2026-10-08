@@ -102,6 +102,21 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
 	return currentPodIndex != desiredPodIndex
 }
 
+// isClusterHealthy determines whether all the Galera replicas are Ready. The readiness probe reports a Pod as Ready
+// only when its Galera node is in Synced state, hence all replicas being Ready implies that they are all part of the
+// primary component and that there is nothing to recover.
+func isClusterHealthy(mdb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) bool {
+	return sts.Status.ReadyReplicas == mdb.Spec.Replicas
+}
+
+func shouldReconcileRecovery(mdb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) bool {
+	if !mdb.HasGaleraNotReadyCondition() {
+		return false
+	}
+	// A healthy cluster has nothing to recover: the GaleraReady condition is stale and it gets cleared by adopting the cluster.
+	return !isClusterHealthy(mdb, sts)
+}
+
 func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if !mariadb.IsGaleraEnabled() {
 		return ctrl.Result{}, nil
@@ -119,13 +134,13 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	}
 	topology := r.topologyManager.TopologyForMariaDB(mariadb, logger)
 
-	if mariadb.HasGaleraNotReadyCondition() {
+	if shouldReconcileRecovery(mariadb, &sts) {
 		if result, err := r.reconcileRecovery(ctx, mariadb, logger.WithName("recovery")); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
 
-	if !mariadb.HasGaleraReadyCondition() && sts.Status.ReadyReplicas == mariadb.Spec.Replicas {
+	if !mariadb.HasGaleraReadyCondition() && isClusterHealthy(mariadb, &sts) {
 		if err := r.disableBootstrap(ctx, mariadb, logger); err != nil {
 			return ctrl.Result{}, err
 		}
