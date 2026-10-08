@@ -1,252 +1,85 @@
 package version
 
 import (
-	"testing"
-
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestGetMinorVersion(t *testing.T) {
-	tests := []struct {
-		name             string
-		image            string
-		defaultVersion   string
-		wantMinorVersion string
-		wantErr          bool
-	}{
-		{
-			name:             "empty",
-			image:            "",
-			defaultVersion:   "",
-			wantMinorVersion: "",
-			wantErr:          true,
-		},
-		{
-			name:             "empty with default",
-			image:            "",
-			defaultVersion:   "10.11.8",
-			wantMinorVersion: "10.11",
-			wantErr:          false,
-		},
-		{
-			name:             "invalid image",
-			image:            "10.11.8",
-			defaultVersion:   "",
-			wantMinorVersion: "",
-			wantErr:          true,
-		},
-		{
-			name:             "invalid image with default",
-			image:            "10.11.8",
-			defaultVersion:   "11.4",
-			wantMinorVersion: "11.4",
-			wantErr:          false,
-		},
-		{
-			name:             "non semver",
-			image:            "mariadb:latest",
-			defaultVersion:   "",
-			wantMinorVersion: "",
-			wantErr:          true,
-		},
-		{
-			name:             "non semver with default",
-			image:            "mariadb:latest",
-			defaultVersion:   "10.6",
-			wantMinorVersion: "10.6",
-			wantErr:          false,
-		},
-		{
-			name:             "sha256",
-			image:            "mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
-			defaultVersion:   "",
-			wantMinorVersion: "",
-			wantErr:          true,
-		},
-		{
-			name:             "sha256 with default",
-			image:            "mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
-			defaultVersion:   "11.4",
-			wantMinorVersion: "11.4",
-			wantErr:          false,
-		},
-		{
-			name:             "major",
-			image:            "mariadb:10",
-			defaultVersion:   "",
-			wantMinorVersion: "10.0",
-			wantErr:          false,
-		},
-		{
-			name:             "major + minor",
-			image:            "mariadb:10.11",
-			defaultVersion:   "",
-			wantMinorVersion: "10.11",
-			wantErr:          false,
-		},
-		{
-			name:             "major + minor + patch",
-			image:            "mariadb:10.11.8",
-			defaultVersion:   "",
-			wantMinorVersion: "10.11",
-			wantErr:          false,
-		},
-		{
-			name:             "major + minor + patch + prerelease",
-			image:            "mariadb:10.11.8-ubi",
-			defaultVersion:   "",
-			wantMinorVersion: "10.11",
-			wantErr:          false,
-		},
-		{
-			name:             "registry non semver",
-			image:            "registry-1.docker.io/v2/library/mariadb:latest",
-			defaultVersion:   "",
-			wantMinorVersion: "",
-			wantErr:          true,
-		},
-		{
-			name:             "registry non semver with default",
-			image:            "registry-1.docker.io/v2/library/mariadb:latest",
-			defaultVersion:   "10.6",
-			wantMinorVersion: "10.6",
-			wantErr:          false,
-		},
-		{
-			name:             "registry major + minor",
-			image:            "registry-1.docker.io/v2/library/mariadb:10.6",
-			defaultVersion:   "",
-			wantMinorVersion: "10.6",
-			wantErr:          false,
-		},
-		{
-			name:             "registry major + minor + patch + prerelease",
-			image:            "registry-1.docker.io/v2/library/mariadb:10.6.18-14",
-			defaultVersion:   "",
-			wantMinorVersion: "10.6",
-			wantErr:          false,
-		},
-		{
-			name:             "registry sha256",
-			image:            "registry-1.docker.io/v2/library/mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
-			defaultVersion:   "",
-			wantMinorVersion: "",
-			wantErr:          true,
-		},
-		{
-			name:             "registry sha256 with default",
-			image:            "registry-1.docker.io/v2/library/mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
-			defaultVersion:   "10.6",
-			wantMinorVersion: "10.6",
-			wantErr:          false,
-		},
-		{
-			name:             "invalid default",
-			image:            "registry-1.docker.io/v2/library/mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
-			defaultVersion:   "latest",
-			wantMinorVersion: "",
-			wantErr:          true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+var _ = Describe("GetMinorVersion", func() {
+	DescribeTable("returns the minor version",
+		func(image, defaultVersion, wantMinorVersion string, wantErr bool) {
 			var opts []Option
-			if tt.defaultVersion != "" {
-				opts = append(opts, WithDefaultVersion(tt.defaultVersion))
+			if defaultVersion != "" {
+				opts = append(opts, WithDefaultVersion(defaultVersion))
 			}
 
-			version, err := NewVersion(tt.image, opts...)
-			if tt.wantErr && err == nil {
-				t.Error("expected error but got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("unexpected error creating version: %v", err)
+			version, err := NewVersion(image, opts...)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
 			}
 
-			if !tt.wantErr {
+			if !wantErr {
 				minorVersion, err := version.GetMinorVersion()
-				if err != nil {
-					t.Errorf("unexpected error getting minor version: %v", err)
-				}
-				if diff := cmp.Diff(tt.wantMinorVersion, minorVersion); diff != "" {
-					t.Errorf("unexpected minor version (-want +got):\n%s", diff)
-				}
+				Expect(err).NotTo(HaveOccurred())
+				Expect(minorVersion).To(Equal(wantMinorVersion))
 			}
-		})
-	}
-}
+		},
+		Entry("empty", "", "", "", true),
+		Entry("empty with default", "", "10.11.8", "10.11", false),
+		Entry("invalid image", "10.11.8", "", "", true),
+		Entry("invalid image with default", "10.11.8", "11.4", "11.4", false),
+		Entry("non semver", "mariadb:latest", "", "", true),
+		Entry("non semver with default", "mariadb:latest", "10.6", "10.6", false),
+		Entry("sha256", "mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d", "", "", true),
+		Entry("sha256 with default", "mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d", "11.4", "11.4", false),
+		Entry("major", "mariadb:10", "", "10.0", false),
+		Entry("major + minor", "mariadb:10.11", "", "10.11", false),
+		Entry("major + minor + patch", "mariadb:10.11.8", "", "10.11", false),
+		Entry("major + minor + patch + prerelease", "mariadb:10.11.8-ubi", "", "10.11", false),
+		Entry("registry non semver", "registry-1.docker.io/v2/library/mariadb:latest", "", "", true),
+		Entry("registry non semver with default", "registry-1.docker.io/v2/library/mariadb:latest", "10.6", "10.6", false),
+		Entry("registry major + minor", "registry-1.docker.io/v2/library/mariadb:10.6", "", "10.6", false),
+		Entry("registry major + minor + patch + prerelease", "registry-1.docker.io/v2/library/mariadb:10.6.18-14", "", "10.6", false),
+		Entry(
+			"registry sha256",
+			"registry-1.docker.io/v2/library/mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
+			"", "", true,
+		),
+		Entry(
+			"registry sha256 with default",
+			"registry-1.docker.io/v2/library/mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
+			"10.6", "10.6", false,
+		),
+		Entry(
+			"invalid default",
+			"registry-1.docker.io/v2/library/mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
+			"latest", "", true,
+		),
+	)
+})
 
-func TestGreaterThanOrEqual(t *testing.T) {
-	tests := []struct {
-		name         string
-		image        string
-		otherVersion string
-		wantBool     bool
-		wantErr      bool
-	}{
-		{
-			name:         "empty",
-			image:        "mariadb:10.11.8",
-			otherVersion: "",
-			wantBool:     false,
-			wantErr:      true,
-		},
-		{
-			name:         "non semver",
-			image:        "mariadb:10.11.8",
-			otherVersion: "latest",
-			wantBool:     false,
-			wantErr:      true,
-		},
-		{
-			name:         "greater than",
-			image:        "mariadb:10.11.8",
-			otherVersion: "10.6",
-			wantBool:     true,
-			wantErr:      false,
-		},
-		{
-			name:         "greater than minor",
-			image:        "mariadb:10.11.8",
-			otherVersion: "10.11",
-			wantBool:     true,
-			wantErr:      false,
-		},
-		{
-			name:         "equal",
-			image:        "mariadb:10.11.8",
-			otherVersion: "10.11.8",
-			wantBool:     true,
-			wantErr:      false,
-		},
-		{
-			name:         "less than",
-			image:        "mariadb:10.11.8",
-			otherVersion: "11.4.3",
-			wantBool:     false,
-			wantErr:      false,
-		},
-	}
+var _ = Describe("GreaterThanOrEqual", func() {
+	DescribeTable("returns whether the version is greater than or equal to another",
+		func(image, otherVersion string, wantBool, wantErr bool) {
+			version, err := NewVersion(image)
+			Expect(err).NotTo(HaveOccurred())
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			version, err := NewVersion(tt.image)
-			if err != nil {
-				t.Errorf("unexpected error creating version: %v", err)
+			gotBool, err := version.GreaterThanOrEqual(otherVersion)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
 			}
 
-			gotBool, err := version.GreaterThanOrEqual(tt.otherVersion)
-			if tt.wantErr && err == nil {
-				t.Error("expected error but got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("unexpected error checking version: %v", err)
-			}
-
-			if diff := cmp.Diff(tt.wantBool, gotBool); diff != "" {
-				t.Errorf("unexpected bool (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
+			Expect(gotBool).To(Equal(wantBool))
+		},
+		Entry("empty", "mariadb:10.11.8", "", false, true),
+		Entry("non semver", "mariadb:10.11.8", "latest", false, true),
+		Entry("greater than", "mariadb:10.11.8", "10.6", true, false),
+		Entry("greater than minor", "mariadb:10.11.8", "10.11", true, false),
+		Entry("equal", "mariadb:10.11.8", "10.11.8", true, false),
+		Entry("less than", "mariadb:10.11.8", "11.4.3", false, false),
+	)
+})
