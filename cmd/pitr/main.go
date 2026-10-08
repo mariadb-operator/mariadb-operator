@@ -351,5 +351,5 @@ func writeTargetFile(binlogPath []string) error {
 	for i, binlog := range binlogPath {
 		targetBinlogsWithLocalPath[i] = filepath.Join(path, binlog)
 	}
-	return os.WriteFile(targetFilePath, []byte(strings.Join(targetBinlogsWithLocalPath, " ")), 0777)
+	return os.WriteFile(targetFilePath, []byte(strings.Join(targetBinlogsWithLocalPath, " ")), 0600)
 }
