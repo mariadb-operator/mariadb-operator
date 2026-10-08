@@ -1,129 +1,47 @@
 package pki
 
 import (
-	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestRenewalDuration(t *testing.T) {
-	tests := []struct {
-		name                  string
-		duration              time.Duration
-		renewBeforePercentage int32
-		expectedDuration      time.Duration
-		expectError           bool
-	}{
-		{
-			name:                  "invalid percentage zero",
-			duration:              24 * time.Hour,
-			renewBeforePercentage: 0,
-			expectedDuration:      0,
-			expectError:           true,
-		},
-		{
-			name:                  "invalid percentage 100",
-			duration:              24 * time.Hour,
-			renewBeforePercentage: 100,
-			expectedDuration:      0,
-			expectError:           true,
-		},
-		{
-			name:                  "50% of 1 day",
-			duration:              24 * time.Hour,
-			renewBeforePercentage: 50,
-			expectedDuration:      12 * time.Hour,
-			expectError:           false,
-		},
-		{
-			name:                  "30% of 3 months",
-			duration:              3 * 730 * time.Hour, // 3 months
-			renewBeforePercentage: 30,
-			expectedDuration:      3 * 219 * time.Hour, // 30% of 3 months
-			expectError:           false,
-		},
-		{
-			name:                  "30% of 3 years",
-			duration:              3 * 12 * 730 * time.Hour, // 3 years
-			renewBeforePercentage: 30,
-			expectedDuration:      3 * 12 * 219 * time.Hour, // 30% of 3 years
-			expectError:           false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			renewalDuration, err := RenewalDuration(tt.duration, tt.renewBeforePercentage)
-			if (err != nil) != tt.expectError {
-				t.Errorf("expected error: %v, got: %v", tt.expectError, err)
+var _ = Describe("RenewalDuration", func() {
+	DescribeTable("calculates the renewal duration",
+		func(duration time.Duration, renewBeforePercentage int32, expectedDuration time.Duration, expectError bool) {
+			renewalDuration, err := RenewalDuration(duration, renewBeforePercentage)
+			if expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(*renewalDuration).To(Equal(expectedDuration))
 			}
-			if !tt.expectError && *renewalDuration != tt.expectedDuration {
-				t.Errorf("expected renewal duration: %v, got: %v", tt.expectedDuration, *renewalDuration)
-			}
-		})
-	}
-}
+		},
+		Entry("invalid percentage zero", 24*time.Hour, int32(0), time.Duration(0), true),
+		Entry("invalid percentage 100", 24*time.Hour, int32(100), time.Duration(0), true),
+		Entry("50% of 1 day", 24*time.Hour, int32(50), 12*time.Hour, false),
+		Entry("30% of 3 months", 3*730*time.Hour, int32(30), 3*219*time.Hour, false),
+		Entry("30% of 3 years", 3*12*730*time.Hour, int32(30), 3*12*219*time.Hour, false),
+	)
+})
 
-func TestRenewalTime(t *testing.T) {
+var _ = Describe("RenewalTime", func() {
 	now := time.Now()
-	tests := []struct {
-		name                  string
-		notBefore             time.Time
-		notAfter              time.Time
-		renewBeforePercentage int32
-		expectedRenewalTime   time.Time
-		expectError           bool
-	}{
-		{
-			name:                  "invalid percentage zero",
-			notBefore:             now,
-			notAfter:              now.Add(24 * time.Hour),
-			renewBeforePercentage: 0,
-			expectedRenewalTime:   time.Time{},
-			expectError:           true,
-		},
-		{
-			name:                  "invalid percentage 100",
-			notBefore:             now,
-			notAfter:              now.Add(24 * time.Hour),
-			renewBeforePercentage: 100,
-			expectedRenewalTime:   time.Time{},
-			expectError:           true,
-		},
-		{
-			name:                  "50% of 1 day",
-			notBefore:             now,
-			notAfter:              now.Add(24 * time.Hour),
-			renewBeforePercentage: 50,
-			expectedRenewalTime:   now.Add(12 * time.Hour),
-			expectError:           false,
-		},
-		{
-			name:                  "30% of 3 months",
-			notBefore:             now,
-			notAfter:              now.Add(3 * 730 * time.Hour), // 3 months
-			renewBeforePercentage: 30,
-			expectedRenewalTime:   now.Add(3 * 511 * time.Hour), // 70% of 3 months
-			expectError:           false,
-		},
-		{
-			name:                  "30% of 3 years",
-			notBefore:             now,
-			notAfter:              now.Add(3 * 12 * 730 * time.Hour), // 3 years
-			renewBeforePercentage: 30,
-			expectedRenewalTime:   now.Add(3 * 12 * 511 * time.Hour), // 70% of 3 years
-			expectError:           false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			renewalTime, err := RenewalTime(tt.notBefore, tt.notAfter, tt.renewBeforePercentage)
-			if (err != nil) != tt.expectError {
-				t.Errorf("expected error: %v, got: %v", tt.expectError, err)
+	DescribeTable("calculates the renewal time",
+		func(notBefore, notAfter time.Time, renewBeforePercentage int32, expectedRenewalTime time.Time, expectError bool) {
+			renewalTime, err := RenewalTime(notBefore, notAfter, renewBeforePercentage)
+			if expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(renewalTime.Truncate(time.Second).Equal(expectedRenewalTime.Truncate(time.Second))).To(BeTrue())
 			}
-			if !tt.expectError && !renewalTime.Truncate(time.Second).Equal(tt.expectedRenewalTime.Truncate(time.Second)) {
-				t.Errorf("expected renewal time: %v, got: %v", tt.expectedRenewalTime, renewalTime)
-			}
-		})
-	}
-}
+		},
+		Entry("invalid percentage zero", now, now.Add(24*time.Hour), int32(0), time.Time{}, true),
+		Entry("invalid percentage 100", now, now.Add(24*time.Hour), int32(100), time.Time{}, true),
+		Entry("50% of 1 day", now, now.Add(24*time.Hour), int32(50), now.Add(12*time.Hour), false),
+		Entry("30% of 3 months", now, now.Add(3*730*time.Hour), int32(30), now.Add(3*511*time.Hour), false),
+		Entry("30% of 3 years", now, now.Add(3*12*730*time.Hour), int32(30), now.Add(3*12*511*time.Hour), false),
+	)
+})
