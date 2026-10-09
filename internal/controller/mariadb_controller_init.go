@@ -289,20 +289,27 @@ func (r *MariaDBReconciler) waitForReadyVolumeSnapshot(ctx context.Context, key 
 
 func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	fromIndex int, logger logr.Logger, restoreOpts ...builder.RestoreOpt) (ctrl.Result, error) {
+	// A Pod below the StatefulSet's replicas was restored before it was added and holds its volume, so its init Job is never created again.
+	restored, err := r.restoredPods(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return r.forEachMariaDBPod(mariadb, fromIndex, func(podIndex int) (ctrl.Result, error) {
 		physicalBackupKey := mariadb.PhysicalBackupInitJobKey(podIndex)
 		pod := stsobj.PodName(mariadb.ObjectMeta, podIndex)
 
-		if result, err := r.reconcileAndWaitForInitJob(
-			ctx,
-			mariadb,
-			physicalBackupKey,
-			podIndex,
-			logger,
-			restoreOpts...,
-		); !result.IsZero() || err != nil {
-			return result, err
+		if podIndex >= restored {
+			if result, err := r.reconcileAndWaitForInitJob(
+				ctx,
+				mariadb,
+				physicalBackupKey,
+				podIndex,
+				logger,
+				restoreOpts...,
+			); !result.IsZero() || err != nil {
+				return result, err
+			}
 		}
 
 		newReplicas := int32(podIndex + 1)
@@ -317,6 +324,17 @@ func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariad
 
 		return ctrl.Result{}, nil
 	})
+}
+
+func (r *MariaDBReconciler) restoredPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (int, error) {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
+		if apierrors.IsNotFound(err) {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("error getting StatefulSet: %v", err)
+	}
+	return int(ptr.Deref(sts.Spec.Replicas, 0)), nil
 }
 
 func (r *MariaDBReconciler) reconcileAndWaitForInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
