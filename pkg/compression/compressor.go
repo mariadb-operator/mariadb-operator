@@ -92,7 +92,13 @@ type ZstdCompressor struct {
 }
 
 func (c *ZstdCompressor) Compress(ctx context.Context, dst io.Writer, src io.Reader) error {
-	opts := []zstd.EOption{zstd.WithEncoderConcurrency(c.concurrency)}
+	opts := []zstd.EOption{
+		zstd.WithEncoderConcurrency(c.concurrency),
+		// WithEncoderConcurrency only sizes the worker pool. Block-level
+		// parallelism needs this option, which defaults to false, otherwise
+		// nextBlock waits for the previous block and one core does the work.
+		zstd.WithConcurrentBlocks(true),
+	}
 	writer, err := zstd.NewWriter(dst, opts...)
 	if err != nil {
 		return err
