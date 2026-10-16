@@ -2463,6 +2463,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `enabled` _boolean_ | Enabled is a flag to enable replica recovery. |  | Required: \{\} <br /> |
 | `errorDurationThreshold` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ErrorDurationThreshold defines the time duration after which, if a replica continues to report errors,<br />the operator will initiate the recovery process for that replica.<br />This threshold applies only to error codes not identified as recoverable by the operator.<br />Errors identified as recoverable will trigger the recovery process immediately.<br />It defaults to 5 minutes. |  |  |
+| `preserveVolumeSnapshotClassName` _string_ | PreserveVolumeSnapshotClassName is the VolumeSnapshotClass used to snapshot the storage of a replica right<br />before the recovery process deletes its data, so that transactions only that replica held can still be<br />retrieved. Use a class that copies the data out of the volume, as recovery may delete or rewrite it.<br />The newest snapshots of each replica are kept. When it is not set, a replica is only recovered when its binary<br />log proves that the primary holds every transaction the replica wrote itself. |  |  |
 
 
 #### ReplicaReplication

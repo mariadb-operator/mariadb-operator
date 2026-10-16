@@ -573,6 +573,15 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 		if err := r.setReplicaToRecover(ctx, mariadb, replica); err != nil {
 			return ctrl.Result{}, err
 		}
+		if result, err := r.preserveReplicaBeforeRecovery(
+			ctx,
+			mariadb,
+			replica,
+			physicalBackup,
+			replicaLogger.WithName("preserve"),
+		); !result.IsZero() || err != nil {
+			return result, err
+		}
 
 		if snapshotKey != nil {
 			if result, err := r.reconcileSnapshotReplicaRecovery(

@@ -90,6 +90,10 @@ const (
 
 	// ReasonMariaDBReplicaRecoveryDisabled indicates that a replica needs recovery but replica recovery is disabled.
 	ReasonMariaDBReplicaRecoveryDisabled = "MariaDBReplicaRecoveryDisabled"
+	// ReasonMariaDBReplicaRecoveryPreserved indicates that a replica storage snapshot was taken before recovering it.
+	ReasonMariaDBReplicaRecoveryPreserved = "MariaDBReplicaRecoveryPreserved"
+	// ReasonMariaDBReplicaRecoveryRefused indicates that a replica was not recovered because its data could not be preserved.
+	ReasonMariaDBReplicaRecoveryRefused = "MariaDBReplicaRecoveryRefused"
 	// ReasonMariaDBReplicaRecoveryStorageLeak indicates that the backups taken for a replica recovery could not be deleted.
 	ReasonMariaDBReplicaRecoveryStorageLeak = "MariaDBReplicaRecoveryStorageLeak"
 

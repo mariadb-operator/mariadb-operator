@@ -149,6 +149,14 @@ type ReplicaRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ErrorDurationThreshold *metav1.Duration `json:"errorDurationThreshold,omitempty"`
+	// PreserveVolumeSnapshotClassName is the VolumeSnapshotClass used to snapshot the storage of a replica right
+	// before the recovery process deletes its data, so that transactions only that replica held can still be
+	// retrieved. Use a class that copies the data out of the volume, as recovery may delete or rewrite it.
+	// The newest snapshots of each replica are kept. When it is not set, a replica is only recovered when its binary
+	// log proves that the primary holds every transaction the replica wrote itself.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PreserveVolumeSnapshotClassName *string `json:"preserveVolumeSnapshotClassName,omitempty"`
 }
 
 // ReplicaReplication is the replication configuration and operation parameters for the replicas.
