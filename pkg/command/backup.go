@@ -637,7 +637,10 @@ func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB) ([]s
 	}
 	mariadbArgs := b.mariadbArgs(mariadb)
 
-	mariadbCmd := fmt.Sprintf("mariadb %s", connFlags)
+	// Binary logs may carry raw binary data in the statements or in the annotations of row events (#Q> lines),
+	// for instance NUL bytes in a _binary literal. Without --binary-mode the client rejects them and the replay fails.
+	// See: https://github.com/mariadb-operator/mariadb-operator/issues/1954
+	mariadbCmd := fmt.Sprintf("mariadb --binary-mode %s", connFlags)
 	if len(mariadbArgs) > 0 {
 		mariadbCmd += fmt.Sprintf(" %s", strings.Join(mariadbArgs, " "))
 	}
