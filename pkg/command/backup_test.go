@@ -1523,7 +1523,7 @@ func TestMariadbBinlogArgs(t *testing.T) {
 				"set -euo pipefail",
 				"echo 💾 Restoring binlogs",
 				fmt.Sprintf(
-					"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" $(cat '/binlogs/file') | mariadb %s",
+					"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" $(cat '/binlogs/file') | mariadb --binary-mode %s",
 					startGtid.String(),
 					targetTime.UTC().Format(time.DateTime),
 					mdbFlags,
@@ -1556,7 +1556,7 @@ func TestMariadbBinlogArgs(t *testing.T) {
 				"set -euo pipefail",
 				"echo 💾 Restoring binlogs",
 				fmt.Sprintf(
-					"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" $(cat '/binlogs/file') | mariadb %s %s",
+					"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" $(cat '/binlogs/file') | mariadb --binary-mode %s %s",
 					startGtid.String(),
 					targetTime.UTC().Format(time.DateTime),
 					mdbFlags,
@@ -1590,7 +1590,8 @@ func TestMariadbBinlogArgs(t *testing.T) {
 				"set -euo pipefail",
 				"echo 💾 Restoring binlogs",
 				fmt.Sprintf(
-					"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" $(cat '/binlogs/file') | mariadb %s --log-level=debug",
+					"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" $(cat '/binlogs/file') | "+
+						"mariadb --binary-mode %s --log-level=debug",
 					startGtid.String(),
 					targetTime.UTC().Format(time.DateTime),
 					mdbFlags,
