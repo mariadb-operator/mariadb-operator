@@ -1492,7 +1492,9 @@ func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.Rep
 	// Replication can stall without reporting any errno: an IO thread stuck in "Connecting"
 	// (e.g. a zombie binlog dump thread on the primary) freezes the replica GTID while errnos read 0.
 	// LastErrorTransitionTime is reset on thread state transitions, so its age bounds the stall duration.
-	replicationStalled := !status.IsIOThreadRunning() || !status.IsSQLThreadRunning()
+	// A SQL thread stopped without an errno was stopped on purpose (mariadb-backup --safe-slave-backup
+	// during a physical backup of this replica) and is not a stall: recovering would wipe the backup source.
+	replicationStalled := !status.IsIOThreadRunning()
 
 	if (lastIOErrno != 0 || lastSQLErrno != 0 || replicationStalled) && !status.LastErrorTransitionTime.IsZero() {
 		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})

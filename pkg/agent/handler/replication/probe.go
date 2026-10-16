@@ -111,8 +111,11 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 			p.responseWriter.WriteErrorf(w, "Replica IO thread stuck in Connecting state for over %s", ioConnectingGrace)
 			return
 		}
-		if !status.IsSQLThreadRunning() {
-			p.livenessLogger.Error(nil, "Replica SQL thread not running")
+		// A SQL thread stopped without an error was stopped on purpose, for instance by mariadb-backup
+		// --safe-slave-backup while a physical backup is taken from this replica. Restarting the container
+		// would kill that backup; readiness still takes the replica out of the read pool meanwhile.
+		if replicaSQLThreadFailed(status) {
+			p.livenessLogger.Error(nil, "Replica SQL thread not running", "errno", ptr.Deref(status.LastSQLErrno, 0))
 			p.responseWriter.WriteError(w, "Replica SQL thread not running")
 			return
 		}
@@ -229,4 +232,9 @@ func (p *ReplicationProbe) getMaxLagSeconds(ctx context.Context) int {
 	replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
 	replica := replication.Replica
 	return ptr.Deref(replica.MaxLagSeconds, 0)
+}
+
+// replicaSQLThreadFailed reports whether the replica SQL thread stopped because of an error.
+func replicaSQLThreadFailed(status *mariadbv1alpha1.ReplicaStatusVars) bool {
+	return !status.IsSQLThreadRunning() && ptr.Deref(status.LastSQLErrno, 0) != 0
 }

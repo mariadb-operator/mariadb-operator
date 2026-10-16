@@ -2708,6 +2708,21 @@ func TestIsRecoverableErrorStalledThreadsWithoutErrno(t *testing.T) {
 			podState: freshPod,
 			want:     false,
 		},
+		{
+			name: "SQL thread stopped without errno by a physical backup past threshold",
+			status: mariadbv1alpha1.ReplicaStatus{
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastIOErrno:     ptr.To(0),
+					LastSQLErrno:    ptr.To(0),
+					SlaveIORunning:  ptr.To(true),
+					SlaveIOState:    ptr.To("Waiting for master to send event"),
+					SlaveSQLRunning: ptr.To(false),
+				},
+				LastErrorTransitionTime: metav1.NewTime(time.Now().Add(-30 * time.Minute)),
+			},
+			podState: runningPod,
+			want:     false,
+		},
 	}
 
 	for _, tc := range tests {
