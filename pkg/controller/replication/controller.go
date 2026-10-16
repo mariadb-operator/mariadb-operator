@@ -244,15 +244,19 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 			logger.V(1).Info("error getting current primary client", "err", err, "pod", pod)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
-		if role, ok := replRoles[pod]; ok && role == mariadbv1alpha1.ReplicationRolePrimary &&
-			req.mariadb.HasConfiguredReplication() {
+		// A Pod last observed as a replica is being promoted and is always configured. Otherwise the live state
+		// decides: the observed roles only cover the Pods the last status reconciliation could reach, and a Pod
+		// missed during an API or DNS outage must not be reconfigured because its role is momentarily unknown.
+		if shouldVerifyPrimaryState(req.mariadb, replRoles[pod]) {
 			skip, err := shouldSkipPrimaryConfiguration(ctx, client, logger)
 			if err != nil {
-				logger.V(1).Info("Primary state verification failed, reconfiguring primary", "err", err, "pod", pod)
-			} else if skip {
+				logger.Info("Unable to verify primary state. Requeuing...", "err", err, "pod", pod)
+				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			}
+			if skip {
 				return ctrl.Result{}, nil
 			}
-			logger.Info("Primary state drifted, reconfiguring primary", "pod", pod)
+			logger.Info("Primary state drifted, reconfiguring primary", "pod", pod, "observed-role", replRoles[pod])
 		}
 		logger.Info("Configuring primary", "pod", pod)
 		if err := r.replConfigClient.ConfigurePrimary(ctx, req.mariadb, client); err != nil {
@@ -267,22 +271,21 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	if !opts.forceReplicaConfiguration {
-		role, ok := replRoles[pod]
-		if ok && role == mariadbv1alpha1.ReplicationRoleReplica {
-			expectedMasterHost := statefulset.PodFQDNWithService(
-				req.mariadb.ObjectMeta,
-				primaryPodIndex,
-				req.mariadb.InternalServiceKey().Name,
-			)
-			skip, err := shouldSkipReplicaConfiguration(ctx, client, expectedMasterHost, logger)
-			if err != nil {
-				logger.V(1).Info("Replica state verification failed, reconfiguring replica", "err", err, "pod", pod)
-			} else if skip {
-				return ctrl.Result{}, nil
-			}
-			logger.Info("Replica state drifted, reconfiguring replica", "pod", pod)
+	if !opts.forceReplicaConfiguration && shouldVerifyReplicaState(req.mariadb, replRoles[pod]) {
+		expectedMasterHost := statefulset.PodFQDNWithService(
+			req.mariadb.ObjectMeta,
+			primaryPodIndex,
+			req.mariadb.InternalServiceKey().Name,
+		)
+		skip, err := shouldSkipReplicaConfiguration(ctx, client, expectedMasterHost, logger)
+		if err != nil {
+			logger.Info("Unable to verify replica state. Requeuing...", "err", err, "pod", pod)
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
+		if skip {
+			return ctrl.Result{}, nil
+		}
+		logger.Info("Replica state drifted, reconfiguring replica", "pod", pod, "observed-role", replRoles[pod])
 	}
 	logger.Info("Configuring replica", "pod", pod)
 
@@ -347,6 +350,16 @@ func shouldReconcilePrimaryDrift(mdb *mariadbv1alpha1.MariaDB) bool {
 		return false
 	}
 	return !mdb.IsSwitchingPrimary()
+}
+
+// shouldVerifyPrimaryState reports whether the live state of the current primary decides if it is reconfigured.
+func shouldVerifyPrimaryState(mdb *mariadbv1alpha1.MariaDB, observedRole mariadbv1alpha1.ReplicationRole) bool {
+	return mdb.HasConfiguredReplication() && observedRole != mariadbv1alpha1.ReplicationRoleReplica
+}
+
+// shouldVerifyReplicaState reports whether the live state of a replica decides if it is reconfigured.
+func shouldVerifyReplicaState(mdb *mariadbv1alpha1.MariaDB, observedRole mariadbv1alpha1.ReplicationRole) bool {
+	return mdb.HasConfiguredReplication() || observedRole == mariadbv1alpha1.ReplicationRoleReplica
 }
 
 type replicationPodStateClient interface {

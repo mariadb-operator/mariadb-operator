@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	conditions "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -387,6 +388,81 @@ func TestShouldReconcilePrimaryDrift(t *testing.T) {
 			got := shouldReconcilePrimaryDrift(mdb)
 			if got != tt.want {
 				t.Fatalf("unexpected drift reconcile decision: got %t, want %t", got, tt.want)
+			}
+		})
+	}
+}
+
+func configuredReplicationMariaDB(pitr bool) *mariadbv1alpha1.MariaDB {
+	mdb := &mariadbv1alpha1.MariaDB{
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replication: &mariadbv1alpha1.Replication{
+				Enabled: true,
+			},
+		},
+	}
+	if pitr {
+		mdb.Spec.PointInTimeRecoveryRef = &mariadbv1alpha1.LocalObjectReference{Name: "pitr"}
+	}
+	conditions.SetReplicationConfigured(&mdb.Status)
+	return mdb
+}
+
+func TestShouldVerifyPodState(t *testing.T) {
+	unconfigured := &mariadbv1alpha1.MariaDB{}
+	configured := configuredReplicationMariaDB(false)
+	var missing mariadbv1alpha1.ReplicationRole
+
+	tests := []struct {
+		name        string
+		mdb         *mariadbv1alpha1.MariaDB
+		role        mariadbv1alpha1.ReplicationRole
+		wantPrimary bool
+		wantReplica bool
+	}{
+		{
+			name:        "role missing after an unreachable status pass is verified live",
+			mdb:         configured,
+			role:        missing,
+			wantPrimary: true,
+			wantReplica: true,
+		},
+		{
+			name:        "observed primary is verified live",
+			mdb:         configured,
+			role:        mariadbv1alpha1.ReplicationRolePrimary,
+			wantPrimary: true,
+			wantReplica: true,
+		},
+		{
+			name:        "replica being promoted is always configured as primary",
+			mdb:         configured,
+			role:        mariadbv1alpha1.ReplicationRoleReplica,
+			wantPrimary: false,
+			wantReplica: true,
+		},
+		{
+			name:        "first configuration is never skipped",
+			mdb:         unconfigured,
+			role:        missing,
+			wantPrimary: false,
+			wantReplica: false,
+		},
+		{
+			name:        "observed replica before first configuration completes is verified live",
+			mdb:         unconfigured,
+			role:        mariadbv1alpha1.ReplicationRoleReplica,
+			wantPrimary: false,
+			wantReplica: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := shouldVerifyPrimaryState(tt.mdb, tt.role); got != tt.wantPrimary {
+				t.Fatalf("unexpected primary verification: got %t, want %t", got, tt.wantPrimary)
+			}
+			if got := shouldVerifyReplicaState(tt.mdb, tt.role); got != tt.wantReplica {
+				t.Fatalf("unexpected replica verification: got %t, want %t", got, tt.wantReplica)
 			}
 		})
 	}
