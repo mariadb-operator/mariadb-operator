@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
@@ -126,4 +128,36 @@ func (f *fakePromotionCandidateSQLClient) ReplicaStatus(context.Context, logr.Lo
 
 func (f *fakePromotionCandidateSQLClient) GtidDomainId(context.Context) (*uint32, error) {
 	return f.gtidDomainID, f.gtidErr
+}
+
+func TestDivergedReplica(t *testing.T) {
+	divergedSince := metav1.NewTime(time.Date(2026, 10, 14, 21, 37, 0, 0, time.UTC))
+	mdb := &mariadbv1alpha1.MariaDB{
+		Status: mariadbv1alpha1.MariaDBStatus{
+			Replication: &mariadbv1alpha1.ReplicationStatus{
+				Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+					"mariadb-1": {GtidDelta: ptr.To[uint64](22000), DivergedSince: &divergedSince},
+					"mariadb-2": {GtidDelta: ptr.To[uint64](3)},
+				},
+			},
+		},
+	}
+	tests := []struct {
+		pod  string
+		want bool
+	}{
+		{pod: "mariadb-1", want: true},
+		{pod: "mariadb-2", want: false},
+		{pod: "mariadb-3", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.pod, func(t *testing.T) {
+			if got, _ := divergedReplica(mdb, tt.pod); got != tt.want {
+				t.Fatalf("unexpected divergence for %s: got %t, want %t", tt.pod, got, tt.want)
+			}
+		})
+	}
+	if diverged, _ := divergedReplica(&mariadbv1alpha1.MariaDB{}, "mariadb-1"); diverged {
+		t.Fatal("expected no divergence without replication status")
+	}
 }

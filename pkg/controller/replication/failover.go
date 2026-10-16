@@ -15,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	mdbsts "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -59,6 +60,15 @@ func (f *FailoverHandler) FurthestAdvancedReplica(ctx context.Context) (string, 
 	return furthestAdvanced.name, nil
 }
 
+// divergedReplica reports whether a replica stayed above the GTID delta threshold. Promoting it would discard
+// every transaction it is missing: with a single replica the "furthest advanced" one is always that replica,
+// however stale, so a diverged replica is never a promotion candidate.
+func divergedReplica(mdb *mariadbv1alpha1.MariaDB, pod string) (bool, mariadbv1alpha1.ReplicaStatus) {
+	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+	status, ok := replication.Replicas[pod]
+	return ok && status.DivergedSince != nil, status
+}
+
 type promotionCandidate struct {
 	name           string
 	gtidCurrentPos *replication.Gtid
@@ -82,6 +92,11 @@ func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod)
 		podIndex, err := mdbsts.PodIndex(pod.Name)
 		if err != nil {
 			podLogger.Info("Invalid Pod name. Skipping...", "err", err)
+			continue
+		}
+		if diverged, status := divergedReplica(f.mariadb, pod.Name); diverged {
+			podLogger.Info("Replica diverged from the primary. Skipping...",
+				"diverged-since", status.DivergedSince, "gtid-delta", ptr.Deref(status.GtidDelta, 0))
 			continue
 		}
 
