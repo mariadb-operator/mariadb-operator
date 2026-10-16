@@ -78,7 +78,12 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		return ctrl.Result{}, err
 	}
 	replicaRecoveryEnabled := mariadb.IsReplicaRecoveryEnabled()
-	immediateRecoveryReplicas := getReplicasWithImmediateRecoverableErrors(mariadb, logger)
+	immediateRecoveryReplicas := r.gateErroredReplicaRecovery(
+		mariadb,
+		replicaRecoveryEnabled,
+		getReplicasWithImmediateRecoverableErrors(mariadb, logger),
+		logger,
+	)
 	activeRecoveryReplicas := getActiveReplicaRecoveryReplicas(mariadb)
 
 	if handled, err := r.resetReplicaRecoveryIfNotNeeded(
@@ -216,7 +221,12 @@ func (r *MariaDBReconciler) getPVCRecoveryReplicas(ctx context.Context, mariadb 
 	}
 	replicas := mergeReplicasToRecover(
 		getReplicasWithLostPVC(mariadb, pvcUIDs, logger),
-		getReplicasWithFreshPVCReplicationErrors(mariadb, pvcStates, podStates, logger),
+		r.gateErroredReplicaRecovery(
+			mariadb,
+			mariadb.IsReplicaRecoveryEnabled(),
+			getReplicasWithFreshPVCReplicationErrors(mariadb, pvcStates, podStates, logger),
+			logger,
+		),
 	)
 	return pvcStates, pvcUIDs, podStates, replicas, nil
 }
@@ -242,6 +252,29 @@ func (r *MariaDBReconciler) resetReplicaRecoveryIfNotNeeded(ctx context.Context,
 		return false, fmt.Errorf("error cleaning replica recovery artifacts: %v", err)
 	}
 	return true, nil
+}
+
+// gateErroredReplicaRecovery drops replicas scheduled for recovery because of replication errors when replica
+// recovery is disabled. Their storage still holds data: recovery would delete it, and a replication error is
+// also what a demoted primary reports while it still holds the newest transactions. "enabled: false" therefore
+// stops every recovery that would wipe existing data. A lost PVC holds no data and an in-flight recovery has
+// already wiped it, so both keep being recovered.
+func (r *MariaDBReconciler) gateErroredReplicaRecovery(mariadb *mariadbv1alpha1.MariaDB, replicaRecoveryEnabled bool,
+	replicas []string, logger logr.Logger) []string {
+	if replicaRecoveryEnabled || len(replicas) == 0 {
+		return replicas
+	}
+	logger.V(1).Info("Replica recovery disabled, not recovering replicas with replication errors", "replicas", replicas)
+	if r.Recorder != nil {
+		r.Recorder.Eventf(mariadb,
+			nil,
+			corev1.EventTypeWarning,
+			mariadbv1alpha1.ReasonMariaDBReplicaRecoveryDisabled,
+			mariadbv1alpha1.ActionReconciling,
+			"Replicas %v report replication errors that require recovery, but replica recovery is disabled", replicas,
+		)
+	}
+	return nil
 }
 
 // replicaRecoveryHasSource reports whether at least one Pod stays out of the recovery set. Recovering

@@ -140,6 +140,11 @@ func TestReconcileReplicaRecoveryDetectsFreshErroredReplicaAfterPVCUIDSync(t *te
 					Primary: mariadbv1alpha1.PrimaryReplication{
 						PodIndex: ptr.To(1),
 					},
+					Replica: mariadbv1alpha1.ReplicaReplication{
+						ReplicaRecovery: &mariadbv1alpha1.ReplicaRecovery{
+							Enabled: true,
+						},
+					},
 				},
 			},
 		},
@@ -244,6 +249,11 @@ func TestReconcileReplicaRecoveryDetectsFreshErroredConfiguredReplicaAfterPVCUID
 				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
 					Primary: mariadbv1alpha1.PrimaryReplication{
 						PodIndex: ptr.To(1),
+					},
+					Replica: mariadbv1alpha1.ReplicaReplication{
+						ReplicaRecovery: &mariadbv1alpha1.ReplicaRecovery{
+							Enabled: true,
+						},
 					},
 				},
 			},
@@ -463,6 +473,11 @@ func TestReconcileReplicaRecoveryDetectsRecreatedReplicaPVCOlderThanRecreatedMar
 				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
 					Primary: mariadbv1alpha1.PrimaryReplication{
 						PodIndex: ptr.To(0),
+					},
+					Replica: mariadbv1alpha1.ReplicaReplication{
+						ReplicaRecovery: &mariadbv1alpha1.ReplicaRecovery{
+							Enabled: true,
+						},
 					},
 				},
 			},

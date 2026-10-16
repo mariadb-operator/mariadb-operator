@@ -88,6 +88,8 @@ const (
 	// ReasonMariaDBReplicaRecoveryError indicates that an error has occurred during the MariaDB instance replica recovery operation.
 	ReasonMariaDBReplicaRecoveryError = "MariaDBReplicaRecoveryError"
 
+	// ReasonMariaDBReplicaRecoveryDisabled indicates that a replica needs recovery but replica recovery is disabled.
+	ReasonMariaDBReplicaRecoveryDisabled = "MariaDBReplicaRecoveryDisabled"
 	// ReasonMariaDBReplicaRecoveryStorageLeak indicates that the backups taken for a replica recovery could not be deleted.
 	ReasonMariaDBReplicaRecoveryStorageLeak = "MariaDBReplicaRecoveryStorageLeak"
 
