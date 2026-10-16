@@ -289,7 +289,7 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	}
 	logger.Info("Configuring replica", "pod", pod)
 
-	replicaOpts, err := r.getReplicaOpts(ctx, req, pod, podIndex, logger, reconcilePodOpts...)
+	replicaOpts, err := r.getReplicaOpts(ctx, req, client, pod, podIndex, logger, reconcilePodOpts...)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting replica opts: %v", err)
 	}
@@ -422,18 +422,57 @@ func shouldSkipReplicaConfiguration(ctx context.Context, client replicationPodSt
 	return true, nil
 }
 
-func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *ReconcileRequest, pod string, index int,
-	logger logr.Logger, reconcilePodOpts ...ReconcilePodOpt) ([]ConfigureReplicaOpt, error) {
+type gtidPositionClient interface {
+	GtidCurrentPos(ctx context.Context) (string, error)
+}
+
+// rejoinReplicaOpts returns the options that reattach an existing member of the cluster as a replica.
+// Before replication is first configured, a member only holds the local writes of its own bootstrap, so its
+// binary log is reset and it replicates from the beginning. Afterwards, RESET MASTER discards the member's
+// binary log and gtid_current_pos falls back to the gtid_slave_pos it kept from an earlier role, which can be
+// hours old: a demoted primary then replays transactions it already holds (duplicate key errors) or asks for
+// a GTID the new primary no longer has. The member therefore keeps its binary log and resumes from its own
+// gtid_current_pos, captured before anything is changed, like the old primary does during a switchover.
+func rejoinReplicaOpts(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, client gtidPositionClient, pod string,
+	logger logr.Logger) ([]ConfigureReplicaOpt, error) {
+	var replicaOpts []ConfigureReplicaOpt
+	// avoid deleting binary logs during archival to prevent drifting from object storage
+	if mdb.IsPointInTimeRecoveryEnabled() {
+		replicaOpts = append(replicaOpts, WithResetMaster(false))
+	}
+	if !mdb.HasConfiguredReplication() {
+		return replicaOpts, nil
+	}
+
+	gtid, err := client.GtidCurrentPos(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error getting GTID current position: %v", err)
+	}
+	changeMasterGtid, err := mariadbv1alpha1.GtidSlavePos.MariaDBFormat()
+	if err != nil {
+		return nil, fmt.Errorf("error getting change master GTID: %v", err)
+	}
+	replicaOpts = append(replicaOpts,
+		WithResetMaster(false),
+		WithChangeMasterOpts(sql.WithChangeMasterGtid(changeMasterGtid)),
+	)
+	if gtid != "" {
+		replicaOpts = append(replicaOpts, WithGtidSlavePos(gtid))
+	} else {
+		replicaOpts = append(replicaOpts, WithResetGtidSlavePos())
+	}
+	logger.Info("Rejoining replica from its own GTID position", "pod", pod, "gtid", gtid)
+	return replicaOpts, nil
+}
+
+func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *ReconcileRequest, client gtidPositionClient,
+	pod string, index int, logger logr.Logger, reconcilePodOpts ...ReconcilePodOpt) ([]ConfigureReplicaOpt, error) {
 	opts := ReconcilePodOpts{}
 	for _, setOpt := range reconcilePodOpts {
 		setOpt(&opts)
 	}
 	if !opts.forceReplicaConfiguration {
-		// avoid deleting binary logs during archival to prevent drifting from object storage
-		if req.mariadb.IsPointInTimeRecoveryEnabled() {
-			return []ConfigureReplicaOpt{WithResetMaster(false)}, nil
-		}
-		return nil, nil
+		return rejoinReplicaOpts(ctx, req.mariadb, client, pod, logger)
 	}
 
 	var gtid string
