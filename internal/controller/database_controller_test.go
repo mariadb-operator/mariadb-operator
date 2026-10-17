@@ -69,7 +69,7 @@ var _ = Describe("Database on external MariaDB", func() {
 	It("should reconcile", func() {
 		By("Creating a Database")
 		databaseKey := types.NamespacedName{
-			Name:      "database-create-test",
+			Name:      "database-external-create-test",
 			Namespace: testNamespace,
 		}
 		database := mariadbv1alpha1.Database{
