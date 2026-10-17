@@ -598,6 +598,10 @@ type MaxScalePodTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	// SidecarContainers to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SidecarContainers []Container `json:"sidecarContainers,omitempty"`
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
