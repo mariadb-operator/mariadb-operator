@@ -25,6 +25,7 @@ To better understand what MaxScale is capable of you may check the [product page
 - [Primary server switchover](#primary-server-switchover)
 - [Server maintenance](#server-maintenance)
 - [Filter configuration](#filter-configuration)
+- [Sidecar containers](#sidecar-containers)
 - [Configuration](#configuration)
 - [Authentication](#authentication)
 - [Kubernetes <code>Services</code>](#kubernetes-services)
@@ -355,6 +356,45 @@ spec:
       listener:
         port: 3306
 ```
+
+## Sidecar containers
+
+Use `spec.sidecarContainers` to run extra containers, such as a log shipper, alongside MaxScale. This example tails query logs from a shared `emptyDir`:
+
+```yaml
+spec:
+  filters:
+    - name: qla
+      module: qlafilter
+      params:
+        filebase: /var/log/maxscale/qla/queries
+        log_type: unified
+        flush: "true"
+  services:
+    - name: rw-router
+      router: readwritesplit
+      filters: [qla]
+      listener:
+        port: 3306
+  volumes:
+    - name: qla-logs
+      emptyDir: {}
+  volumeMounts:
+    - name: qla-logs
+      mountPath: /var/log/maxscale/qla
+  sidecarContainers:
+    - name: query-logs
+      image: busybox:1.37
+      command: [sh, -c]
+      args:
+        - until [ -f /logs/queries.unified ]; do sleep 1; done; exec tail -f /logs/queries.unified
+      volumeMounts:
+        - name: qla-logs
+          mountPath: /logs
+          readOnly: true
+```
+
+Unlike MariaDB sidecars, MaxScale sidecars do not inherit the MaxScale container's environment variables or volume mounts; configure each explicitly. See the complete [example](../examples/manifests/maxscale_sidecar.yaml).
 
 ## Configuration
 

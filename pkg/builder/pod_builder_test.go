@@ -1353,6 +1353,57 @@ func TestMaxscalePodBuilder(t *testing.T) {
 	}
 }
 
+func TestMaxscalePodBuilderSidecarContainers(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	tests := []struct {
+		name           string
+		sidecars       []mariadbv1alpha1.Container
+		wantContainers []string
+	}{
+		{
+			name:           "no sidecars",
+			sidecars:       nil,
+			wantContainers: []string{MaxScaleContainerName},
+		},
+		{
+			name: "named and unnamed sidecars",
+			sidecars: []mariadbv1alpha1.Container{
+				{Name: "query-logs", Image: "busybox:1.37"},
+				{Image: "busybox:1.37"},
+			},
+			wantContainers: []string{MaxScaleContainerName, "query-logs", "sidecar-1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mxs := &mariadbv1alpha1.MaxScale{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-maxscale-sidecars",
+				},
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Image: "mariadb/maxscale:23.08.13-2",
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
+						SidecarContainers: tt.sidecars,
+					},
+				},
+			}
+			podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+			}
+			got := make([]string, len(podTpl.Spec.Containers))
+			for i, container := range podTpl.Spec.Containers {
+				got[i] = container.Name
+			}
+			if !reflect.DeepEqual(got, tt.wantContainers) {
+				t.Errorf("unexpected container names, got: %v, want: %v", got, tt.wantContainers)
+			}
+		})
+	}
+}
+
 func TestMaxscalePodBuilderVolumes(t *testing.T) {
 	d, err := discovery.NewFakeDiscovery()
 	if err != nil {
