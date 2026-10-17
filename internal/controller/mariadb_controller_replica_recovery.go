@@ -141,7 +141,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	logger.V(1).Info("Recovering replicas")
-	if result, err := r.quiescePVCRecoveryReplicas(ctx, mariadb, replicasToRecover, logger); !result.IsZero() || err != nil {
+	if result, err := r.preserveAndQuiesceRecoveryReplicas(ctx, mariadb, replicasToRecover, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 	physicalBackupKey := mariadb.PhysicalBackupReplicaRecoveryKey()
@@ -573,15 +573,6 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 		if err := r.setReplicaToRecover(ctx, mariadb, replica); err != nil {
 			return ctrl.Result{}, err
 		}
-		if result, err := r.preserveReplicaBeforeRecovery(
-			ctx,
-			mariadb,
-			replica,
-			physicalBackup,
-			replicaLogger.WithName("preserve"),
-		); !result.IsZero() || err != nil {
-			return result, err
-		}
 
 		if snapshotKey != nil {
 			if result, err := r.reconcileSnapshotReplicaRecovery(
@@ -639,6 +630,16 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 	}
 	// Requeue to track replication status
 	return ctrl.Result{Requeue: true}, nil
+}
+
+// preserveAndQuiesceRecoveryReplicas preserves the replica data before the recovery stops the replica Pods: the
+// preserve check without a snapshot class needs the replica to still answer.
+func (r *MariaDBReconciler) preserveAndQuiesceRecoveryReplicas(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	replicas []string, logger logr.Logger) (ctrl.Result, error) {
+	if result, err := r.preserveReplicasBeforeRecovery(ctx, mariadb, replicas, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+	return r.quiescePVCRecoveryReplicas(ctx, mariadb, replicas, logger)
 }
 
 func (r *MariaDBReconciler) quiescePVCRecoveryReplicas(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

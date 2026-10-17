@@ -19,6 +19,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,6 +31,8 @@ const (
 	replicaRecoveryPreservePodIndexLabel = "k8s.mariadb.com/replica-recovery-pod-index"
 	replicaRecoveryPreserveIDLabel       = "k8s.mariadb.com/replica-recovery-id"
 
+	replicaRecoveryPreservedAnnotationPrefix = "k8s.mariadb.com/replica-recovery-preserved-"
+
 	replicaRecoveryPreserveKeep          = 3
 	replicaRecoveryPreservePollDelay     = 5 * time.Second
 	replicaRecoveryPreserveRetryDelay    = 30 * time.Second
@@ -38,13 +41,27 @@ const (
 	replicaRecoveryPreserveTimestampForm = "20060102150405"
 )
 
+func (r *MariaDBReconciler) preserveReplicasBeforeRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	replicas []string, logger logr.Logger) (ctrl.Result, error) {
+	for _, replica := range replicas {
+		result, err := r.preserveReplicaBeforeRecovery(ctx, mariadb, replica,
+			logger.WithValues("replica", replica).WithName("preserve"))
+		if !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
 // preserveReplicaBeforeRecovery keeps the data of a replica that is about to be wiped by the recovery process.
 // A replica in error is frequently a demoted primary, and a demoted primary can hold transactions the new primary
-// never received. With a preserve VolumeSnapshotClass configured, the replica storage is snapshotted right before
-// the wipe and the recovery goes on once the snapshot is ready. Without one, the replica is only recovered when its
-// binary log proves that the primary already holds every transaction the replica wrote itself.
+// never received. With a preserve VolumeSnapshotClass configured, the replica storage is snapshotted and the recovery
+// goes on once the snapshot is ready. Without one, the replica is only recovered when its binary log proves that the
+// primary already holds every transaction the replica wrote itself. Both run before the recovery stops the replica
+// Pod, and the outcome is recorded for the recovery episode: re-checking later found the Pod already gone and
+// refused every recovery without a snapshot class.
 func (r *MariaDBReconciler) preserveReplicaBeforeRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	replica string, physicalBackup *mariadbv1alpha1.PhysicalBackup, logger logr.Logger) (ctrl.Result, error) {
+	replica string, logger logr.Logger) (ctrl.Result, error) {
 	podIndex, err := stsobj.PodIndex(replica)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting replica Pod index: %v", err)
@@ -57,7 +74,10 @@ func (r *MariaDBReconciler) preserveReplicaBeforeRecovery(ctx context.Context, m
 		return ctrl.Result{}, nil
 	}
 
-	recoveryID := string(physicalBackup.UID)
+	recoveryID := replicaRecoveryPreserveEpisode(mariadb, pvc)
+	if mariadb.Annotations[replicaRecoveryPreservedAnnotationKey(*podIndex)] == recoveryID {
+		return ctrl.Result{}, nil
+	}
 	snapshots, err := r.listReplicaRecoveryPreserveSnapshots(ctx, mariadb, *podIndex)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -67,12 +87,20 @@ func (r *MariaDBReconciler) preserveReplicaBeforeRecovery(ctx context.Context, m
 		if snapshot.Labels[replicaRecoveryPreserveIDLabel] != recoveryID {
 			continue
 		}
-		return r.waitForReplicaRecoveryPreserveSnapshot(ctx, mariadb, snapshot, snapshots, logger)
+		result, err := r.waitForReplicaRecoveryPreserveSnapshot(ctx, mariadb, snapshot, snapshots, logger)
+		if !result.IsZero() || err != nil {
+			return result, err
+		}
+		return ctrl.Result{}, r.recordReplicaRecoveryPreserved(ctx, mariadb, *podIndex, recoveryID)
 	}
 
 	className := preserveVolumeSnapshotClassName(mariadb)
 	if className == "" {
-		return r.verifyReplicaHoldsNoUniqueTransactions(ctx, mariadb, replica, *podIndex, logger)
+		result, err := r.verifyReplicaHoldsNoUniqueTransactions(ctx, mariadb, replica, *podIndex, logger)
+		if !result.IsZero() || err != nil {
+			return result, err
+		}
+		return ctrl.Result{}, r.recordReplicaRecoveryPreserved(ctx, mariadb, *podIndex, recoveryID)
 	}
 
 	snapshot := buildReplicaRecoveryPreserveSnapshot(mariadb, pvc, *podIndex, recoveryID, className, time.Now())
@@ -90,6 +118,34 @@ func (r *MariaDBReconciler) preserveReplicaBeforeRecovery(ctx context.Context, m
 		)
 	}
 	return ctrl.Result{RequeueAfter: replicaRecoveryPreservePollDelay}, nil
+}
+
+// replicaRecoveryPreserveEpisode identifies one recovery of one replica storage generation: the PVC UID plus the
+// time the ReplicaRecovered condition turned false, which stays fixed until the recovery ends.
+func replicaRecoveryPreserveEpisode(mariadb *mariadbv1alpha1.MariaDB, pvc *corev1.PersistentVolumeClaim) string {
+	recovering := meta.FindStatusCondition(mariadb.Status.Conditions, mariadbv1alpha1.ConditionTypeReplicaRecovered)
+	if recovering == nil || recovering.Status != metav1.ConditionFalse || recovering.LastTransitionTime.IsZero() {
+		return string(pvc.UID)
+	}
+	return fmt.Sprintf("%s-%d", pvc.UID, recovering.LastTransitionTime.Unix())
+}
+
+func replicaRecoveryPreservedAnnotationKey(podIndex int) string {
+	return fmt.Sprintf("%s%d", replicaRecoveryPreservedAnnotationPrefix, podIndex)
+}
+
+func (r *MariaDBReconciler) recordReplicaRecoveryPreserved(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	podIndex int, recoveryID string) error {
+	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
+		if mdb.Annotations == nil {
+			mdb.Annotations = map[string]string{}
+		}
+		mdb.Annotations[replicaRecoveryPreservedAnnotationKey(podIndex)] = recoveryID
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error recording replica recovery preserve: %v", err)
+	}
+	return nil
 }
 
 // replicaStorageToPreserve returns the storage PVC that still holds the replica data. A missing or recreated PVC

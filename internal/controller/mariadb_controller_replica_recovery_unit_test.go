@@ -747,6 +747,7 @@ func TestReconcileReplicaRecoveryQuiescesErroredReplicaDespiteCompletedMarker(t 
 				storagePVCUIDAnnotationKey(0):                  "replica-pvc-uid",
 				storagePVCUIDAnnotationKey(1):                  "primary-pvc-uid",
 				replicaRecoveryCompletedPVCUIDAnnotationKey(0): "replica-pvc-uid",
+				replicaRecoveryPreservedAnnotationKey(0):       "replica-pvc-uid-1774300440",
 			},
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
@@ -772,6 +773,14 @@ func TestReconcileReplicaRecoveryQuiescesErroredReplicaDespiteCompletedMarker(t 
 		},
 		Status: mariadbv1alpha1.MariaDBStatus{
 			CurrentPrimaryPodIndex: ptr.To(1),
+			Conditions: []metav1.Condition{
+				{
+					Type:               mariadbv1alpha1.ConditionTypeReplicaRecovered,
+					Status:             metav1.ConditionFalse,
+					Reason:             mariadbv1alpha1.ConditionReasonReplicaRecovered,
+					LastTransitionTime: metav1.NewTime(time.Unix(1774300440, 0)),
+				},
+			},
 			Replication: &mariadbv1alpha1.ReplicationStatus{
 				Roles: map[string]mariadbv1alpha1.ReplicationRole{
 					"mariadb-0": mariadbv1alpha1.ReplicationRoleReplica,

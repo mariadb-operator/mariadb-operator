@@ -100,8 +100,9 @@ func TestHoldsUnreplicatedOwnTransactions(t *testing.T) {
 }
 
 const (
-	preserveTestClass      = "longhorn-b2-bak"
-	preserveTestRecoveryID = "6f1d0a52-3c1e-4e57-9d55-0e7a3f7f5c11"
+	preserveTestClass         = "longhorn-b2-bak"
+	preserveTestRecoveryStart = 1792126800
+	preserveTestRecoveryID    = "replica-uid-1792126800"
 )
 
 func preserveTestScheme(t *testing.T) *runtime.Scheme {
@@ -145,6 +146,14 @@ func preserveTestMariaDB(className *string) *mariadbv1alpha1.MariaDB {
 		},
 		Status: mariadbv1alpha1.MariaDBStatus{
 			CurrentPrimaryPodIndex: ptr.To(1),
+			Conditions: []metav1.Condition{
+				{
+					Type:               mariadbv1alpha1.ConditionTypeReplicaRecovered,
+					Status:             metav1.ConditionFalse,
+					Reason:             mariadbv1alpha1.ConditionReasonReplicaRecovered,
+					LastTransitionTime: metav1.NewTime(time.Unix(preserveTestRecoveryStart, 0)),
+				},
+			},
 		},
 	}
 }
@@ -170,12 +179,6 @@ func preserveTestSnapshot(mariadb *mariadbv1alpha1.MariaDB, name, recoveryID str
 	return snapshot
 }
 
-func preserveTestRecoveryBackup() *mariadbv1alpha1.PhysicalBackup {
-	return &mariadbv1alpha1.PhysicalBackup{
-		ObjectMeta: metav1.ObjectMeta{Name: "db-cluster-pb-recovery", Namespace: "darkflare", UID: preserveTestRecoveryID},
-	}
-}
-
 var preserveTestBase = time.Date(2026, 10, 16, 6, 0, 0, 0, time.UTC)
 
 func TestPreserveReplicaSnapshotsStorageBeforeWipe(t *testing.T) {
@@ -185,7 +188,7 @@ func TestPreserveReplicaSnapshotsStorageBeforeWipe(t *testing.T) {
 	recorder := events.NewFakeRecorder(10)
 	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder}
 
-	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", preserveTestRecoveryBackup(), logr.Discard())
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -217,7 +220,7 @@ func TestPreserveReplicaWaitsForSnapshot(t *testing.T) {
 			preserveTestSnapshot(mariadb, "db-cluster-preserve-0-a", preserveTestRecoveryID, preserveTestBase, nil)).Build()
 	r := &MariaDBReconciler{Client: fakeClient}
 
-	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", preserveTestRecoveryBackup(), logr.Discard())
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || result.RequeueAfter != replicaRecoveryPreservePollDelay {
 		t.Fatalf("expected to keep waiting, got %+v, %v", result, err)
 	}
@@ -234,7 +237,7 @@ func TestPreserveReplicaFailedSnapshotBlocksWipe(t *testing.T) {
 	recorder := events.NewFakeRecorder(10)
 	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder}
 
-	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", preserveTestRecoveryBackup(), logr.Discard())
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || result.RequeueAfter != replicaRecoveryPreserveRetryDelay {
 		t.Fatalf("expected the wipe to be blocked, got %+v, %v", result, err)
 	}
@@ -255,7 +258,7 @@ func TestPreserveReplicaReadySnapshotPrunesOldest(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).WithObjects(objects...).Build()
 	r := &MariaDBReconciler{Client: fakeClient}
 
-	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", preserveTestRecoveryBackup(), logr.Discard())
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || !result.IsZero() {
 		t.Fatalf("expected the recovery to go on, got %+v, %v", result, err)
 	}
@@ -278,7 +281,7 @@ func TestPreserveReplicaSkipsRecreatedPVC(t *testing.T) {
 		WithObjects(mariadb, preserveTestPVC(mariadb, "recreated-uid")).Build()
 	r := &MariaDBReconciler{Client: fakeClient}
 
-	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", preserveTestRecoveryBackup(), logr.Discard())
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || !result.IsZero() {
 		t.Fatalf("expected the recovery to go on, got %+v, %v", result, err)
 	}
@@ -292,7 +295,7 @@ func TestPreserveReplicaSkipsStartedRestore(t *testing.T) {
 		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid"), initJob).Build()
 	r := &MariaDBReconciler{Client: fakeClient}
 
-	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", preserveTestRecoveryBackup(), logr.Discard())
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || !result.IsZero() {
 		t.Fatalf("expected the recovery to go on, got %+v, %v", result, err)
 	}
@@ -305,7 +308,7 @@ func TestPreserveReplicaRefusesUnverifiableReplica(t *testing.T) {
 	recorder := events.NewFakeRecorder(10)
 	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder, RefResolver: refresolver.New(fakeClient)}
 
-	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", preserveTestRecoveryBackup(), logr.Discard())
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || result.RequeueAfter != replicaRecoveryPreserveRefusedDelay {
 		t.Fatalf("expected the recovery to be refused, got %+v, %v", result, err)
 	}
@@ -316,4 +319,64 @@ func TestPreserveReplicaRefusesUnverifiableReplica(t *testing.T) {
 
 func preserveTestReady() *volumesnapshotv1.VolumeSnapshotStatus {
 	return &volumesnapshotv1.VolumeSnapshotStatus{ReadyToUse: ptr.To(true)}
+}
+
+func TestReplicaRecoveryPreserveEpisode(t *testing.T) {
+	recovering := preserveTestMariaDB(nil)
+	recovered := preserveTestMariaDB(nil)
+	recovered.Status.Conditions = nil
+	pvc := preserveTestPVC(recovering, "replica-uid")
+
+	if got := replicaRecoveryPreserveEpisode(recovering, pvc); got != preserveTestRecoveryID {
+		t.Fatalf("unexpected episode while recovering: %s", got)
+	}
+	if got := replicaRecoveryPreserveEpisode(recovered, pvc); got != "replica-uid" {
+		t.Fatalf("unexpected episode without a recovery condition: %s", got)
+	}
+}
+
+func TestPreserveReplicaSkipsRecordedEpisode(t *testing.T) {
+	mariadb := preserveTestMariaDB(nil)
+	mariadb.Annotations[replicaRecoveryPreservedAnnotationKey(0)] = preserveTestRecoveryID
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid")).Build()
+	r := &MariaDBReconciler{Client: fakeClient}
+
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
+	if err != nil || !result.IsZero() {
+		t.Fatalf("expected the verified episode to go on without the replica Pod, got %+v, %v", result, err)
+	}
+}
+
+func TestPreserveReplicaRechecksEarlierEpisode(t *testing.T) {
+	mariadb := preserveTestMariaDB(nil)
+	mariadb.Annotations[replicaRecoveryPreservedAnnotationKey(0)] = "replica-uid-1"
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid")).Build()
+	r := &MariaDBReconciler{Client: fakeClient, RefResolver: refresolver.New(fakeClient)}
+
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
+	if err != nil || result.RequeueAfter != replicaRecoveryPreserveRefusedDelay {
+		t.Fatalf("expected an earlier recovery not to count, got %+v, %v", result, err)
+	}
+}
+
+func TestPreserveReplicaRecordsReadySnapshot(t *testing.T) {
+	mariadb := preserveTestMariaDB(ptr.To(preserveTestClass))
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid"),
+			preserveTestSnapshot(mariadb, "db-cluster-preserve-0-a", preserveTestRecoveryID, preserveTestBase, preserveTestReady())).Build()
+	r := &MariaDBReconciler{Client: fakeClient}
+
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
+	if err != nil || !result.IsZero() {
+		t.Fatalf("expected the recovery to go on, got %+v, %v", result, err)
+	}
+	var stored mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &stored); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if stored.Annotations[replicaRecoveryPreservedAnnotationKey(0)] != preserveTestRecoveryID {
+		t.Fatalf("expected the preserved episode to be recorded, got %v", stored.Annotations)
+	}
 }
