@@ -122,3 +122,50 @@ func TestWaitForMariaDBServiceUnhealthy(t *testing.T) {
 		t.Fatalf("expected 1s requeue, got %+v", result)
 	}
 }
+
+type fakeReadOnlyClient struct {
+	readOnly bool
+	err      error
+	calls    int
+}
+
+func (f *fakeReadOnlyClient) IsSystemVariableEnabled(context.Context, string) (bool, error) {
+	f.calls++
+	return f.readOnly, f.err
+}
+
+func TestTargetIsReadOnly(t *testing.T) {
+	replicated := &mariadbv1alpha1.MariaDB{
+		Spec: mariadbv1alpha1.MariaDBSpec{Replication: &mariadbv1alpha1.Replication{Enabled: true}},
+	}
+	standalone := &mariadbv1alpha1.MariaDB{}
+
+	tests := []struct {
+		name      string
+		mdb       *mariadbv1alpha1.MariaDB
+		client    *fakeReadOnlyClient
+		want      bool
+		wantCalls int
+	}{
+		{
+			name:      "demoted primary still behind the primary Service",
+			mdb:       replicated,
+			client:    &fakeReadOnlyClient{readOnly: true},
+			want:      true,
+			wantCalls: 1,
+		},
+		{name: "writable primary", mdb: replicated, client: &fakeReadOnlyClient{readOnly: false}, want: false, wantCalls: 1},
+		{name: "standalone MariaDB is never checked", mdb: standalone, client: &fakeReadOnlyClient{readOnly: true}, want: false, wantCalls: 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := targetIsReadOnly(context.Background(), tt.mdb, tt.client)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want || tt.client.calls != tt.wantCalls {
+				t.Fatalf("got read-only %t after %d checks, want %t after %d", got, tt.client.calls, tt.want, tt.wantCalls)
+			}
+		})
+	}
+}

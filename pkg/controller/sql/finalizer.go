@@ -85,6 +85,15 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 	}
 	defer mdbClient.Close()
 
+	readOnly, err := targetIsReadOnly(ctx, mariadb, mdbClient)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking read_only: %v", err)
+	}
+	if readOnly {
+		log.FromContext(ctx).Info("MariaDB primary Service reaches a read-only node. Requeuing...")
+		return ctrl.Result{RequeueAfter: readOnlyTargetRequeueDelay}, nil
+	}
+
 	cleanupPolicy := ptr.Deref(resource.CleanupPolicy(), mariadbv1alpha1.CleanupPolicyDelete)
 	if cleanupPolicy == mariadbv1alpha1.CleanupPolicyDelete {
 		log.FromContext(ctx).Info("Cleaning up SQL resource")

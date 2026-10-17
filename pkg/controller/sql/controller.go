@@ -18,6 +18,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const (
+	readOnlyTargetMessage      = "MariaDB primary Service reaches a read-only node"
+	readOnlyTargetRequeueDelay = 5 * time.Second
+)
+
+type readOnlyClient interface {
+	IsSystemVariableEnabled(ctx context.Context, variable string) (bool, error)
+}
+
+// targetIsReadOnly reports whether the connection reached a read-only node of a replicated MariaDB. SQL resources
+// reach it through the primary Service, whose selector follows status.currentPrimary and lags a primary change made
+// by MaxScale. Until it catches up the Service still points at the demoted primary, where the superuser bypasses
+// read_only: every statement then becomes a transaction only that node holds, and the demoted primary can no longer
+// rejoin the new one from its own position.
+func targetIsReadOnly(ctx context.Context, mariadb interfaces.MariaDBObject, client readOnlyClient) (bool, error) {
+	mdb, ok := mariadb.(*mariadbv1alpha1.MariaDB)
+	if !ok || !mdb.IsReplicationEnabled() {
+		return false, nil
+	}
+	return client.IsSystemVariableEnabled(ctx, "read_only")
+}
+
 type SqlOptions struct {
 	RequeueInterval  time.Duration
 	RequeueMaxOffset time.Duration
@@ -129,6 +151,18 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		return r.retryResult(ctx, resource, errBundle)
 	}
 	defer mdbClient.Close()
+
+	readOnly, err := targetIsReadOnly(ctx, mariadb, mdbClient)
+	if err != nil {
+		return r.retryResult(ctx, resource, fmt.Errorf("error checking read_only: %v", err))
+	}
+	if readOnly {
+		log.FromContext(ctx).Info("MariaDB primary Service reaches a read-only node. Requeuing...", "resource", resource.GetName())
+		if err := r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherFailed(readOnlyTargetMessage)); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
+		}
+		return ctrl.Result{RequeueAfter: readOnlyTargetRequeueDelay}, nil
+	}
 
 	err = r.WrappedReconciler.Reconcile(ctx, mdbClient)
 	var errBundle *multierror.Error
