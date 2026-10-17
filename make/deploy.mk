@@ -112,6 +112,19 @@ MINIO_VERSION ?= "5.4.0"
 install-minio: helm cert-minio ## Install minio helm chart.
 	@MINIO_VERSION=$(MINIO_VERSION) HELM=$(HELM) ./hack/install_minio.sh
 
+MINIO_IMAGE ?= quay.io/minio/minio:RELEASE.2024-12-18T13-15-44Z
+MINIO_MC_IMAGE ?= quay.io/minio/mc:RELEASE.2024-11-21T17-21-54Z
+MINIO_MIRROR ?=
+.PHONY: kind-load-minio
+kind-load-minio: kind ## Load the minio chart images into kind, pulling them from MINIO_MIRROR when set.
+	@for image in $(MINIO_IMAGE) $(MINIO_MC_IMAGE); do \
+		if [ -n "$(MINIO_MIRROR)" ]; then \
+			docker pull "$(MINIO_MIRROR)/$${image##*/}" || exit 1; \
+			docker tag "$(MINIO_MIRROR)/$${image##*/}" "$$image" || exit 1; \
+		fi; \
+		$(KIND) load docker-image --name $(CLUSTER) "$$image" || exit 1; \
+	done
+
 .PHONY: install-snapshotter
 install-snapshotter: ## Install external-snapshotter.
 	$(KUBECTL) create namespace external-snapshotter --dry-run=client -o yaml | $(KUBECTL) apply -f -

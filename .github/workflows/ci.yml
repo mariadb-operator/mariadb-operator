@@ -130,9 +130,17 @@ jobs:
             echo "type=basic" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Login to Harbor
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ secrets.HARBOR_URL }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
       - name: Cluster
         run: |
           make cluster
+          make kind-load-minio MINIO_MIRROR=${{ secrets.HARBOR_URL }}/yacodedev-internal
           make install
           make install-csi-hostpath
           make install-minio
