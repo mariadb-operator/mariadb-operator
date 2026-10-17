@@ -228,7 +228,7 @@ func TestGetReplicaOptsPreservesBinlogsOnPITRDriftRepair(t *testing.T) {
 		},
 	}
 
-	replicaOpts, err := reconciler.getReplicaOpts(context.Background(), req, nil, "mariadb-1", 1, logr.Discard())
+	replicaOpts, err := reconciler.getReplicaOpts(context.Background(), req, "mariadb-1", 1, logr.Discard())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -250,7 +250,7 @@ func TestGetReplicaOptsResetsMasterWithoutPITR(t *testing.T) {
 		mariadb: &mariadbv1alpha1.MariaDB{},
 	}
 
-	replicaOpts, err := reconciler.getReplicaOpts(context.Background(), req, nil, "mariadb-1", 1, logr.Discard())
+	replicaOpts, err := reconciler.getReplicaOpts(context.Background(), req, "mariadb-1", 1, logr.Discard())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -394,15 +394,6 @@ func TestShouldReconcilePrimaryDrift(t *testing.T) {
 	}
 }
 
-type fakeGtidPositionClient struct {
-	gtid string
-	err  error
-}
-
-func (f *fakeGtidPositionClient) GtidCurrentPos(context.Context) (string, error) {
-	return f.gtid, f.err
-}
-
 func configuredReplicationMariaDB(pitr bool) *mariadbv1alpha1.MariaDB {
 	mdb := &mariadbv1alpha1.MariaDB{
 		Spec: mariadbv1alpha1.MariaDBSpec{
@@ -419,64 +410,37 @@ func configuredReplicationMariaDB(pitr bool) *mariadbv1alpha1.MariaDB {
 }
 
 func TestRejoinReplicaOpts(t *testing.T) {
-	const demotedPrimaryPos = "0-11-22825293"
 	tests := []struct {
 		name            string
 		mdb             *mariadbv1alpha1.MariaDB
-		client          *fakeGtidPositionClient
-		wantErr         bool
 		wantResetMaster bool
-		wantSlavePos    *string
-		wantResetSlave  bool
+		wantRejoin      bool
 		wantChangeGtid  string
 	}{
 		{
 			name:            "replication never configured resets the bootstrap binary log",
 			mdb:             &mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{Replication: &mariadbv1alpha1.Replication{Enabled: true}}},
-			client:          &fakeGtidPositionClient{gtid: "0-10-3"},
 			wantResetMaster: true,
 		},
 		{
-			name:            "demoted primary resumes from its own position and keeps its binary log",
+			name:            "configured member keeps its binary log and resumes from its own position",
 			mdb:             configuredReplicationMariaDB(false),
-			client:          &fakeGtidPositionClient{gtid: demotedPrimaryPos},
 			wantResetMaster: false,
-			wantSlavePos:    ptr.To(demotedPrimaryPos),
-			wantChangeGtid:  "slave_pos",
-		},
-		{
-			name:            "member without any GTID history starts from an empty position",
-			mdb:             configuredReplicationMariaDB(false),
-			client:          &fakeGtidPositionClient{gtid: ""},
-			wantResetMaster: false,
-			wantResetSlave:  true,
+			wantRejoin:      true,
 			wantChangeGtid:  "slave_pos",
 		},
 		{
 			name:            "point in time recovery keeps the binary log",
 			mdb:             configuredReplicationMariaDB(true),
-			client:          &fakeGtidPositionClient{gtid: demotedPrimaryPos},
 			wantResetMaster: false,
-			wantSlavePos:    ptr.To(demotedPrimaryPos),
+			wantRejoin:      true,
 			wantChangeGtid:  "slave_pos",
-		},
-		{
-			name:    "unreadable position is an error, nothing is reset",
-			mdb:     configuredReplicationMariaDB(false),
-			client:  &fakeGtidPositionClient{err: errors.New("connection refused")},
-			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			replicaOpts, err := rejoinReplicaOpts(context.Background(), tt.mdb, tt.client, "mariadb-1", logr.Discard())
-			if tt.wantErr {
-				if err == nil {
-					t.Fatal("expected error")
-				}
-				return
-			}
+			replicaOpts, err := rejoinReplicaOpts(tt.mdb)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -487,12 +451,11 @@ func TestRejoinReplicaOpts(t *testing.T) {
 			if opts.ResetMaster != tt.wantResetMaster {
 				t.Fatalf("unexpected ResetMaster: got %t, want %t", opts.ResetMaster, tt.wantResetMaster)
 			}
-			if ptr.Deref(opts.GtidSlavePos, "<nil>") != ptr.Deref(tt.wantSlavePos, "<nil>") {
-				t.Fatalf("unexpected gtid_slave_pos: got %s, want %s",
-					ptr.Deref(opts.GtidSlavePos, "<nil>"), ptr.Deref(tt.wantSlavePos, "<nil>"))
+			if opts.RejoinFromCurrentPos != tt.wantRejoin {
+				t.Fatalf("unexpected RejoinFromCurrentPos: got %t, want %t", opts.RejoinFromCurrentPos, tt.wantRejoin)
 			}
-			if opts.ResetGtidSlavePos != tt.wantResetSlave {
-				t.Fatalf("unexpected ResetGtidSlavePos: got %t, want %t", opts.ResetGtidSlavePos, tt.wantResetSlave)
+			if opts.GtidSlavePos != nil {
+				t.Fatalf("the position must be read inside ConfigureReplica, got %q up front", *opts.GtidSlavePos)
 			}
 			changeMaster := sql.ChangeMasterOpts{}
 			for _, setOpt := range opts.ChangeMasterOpts {

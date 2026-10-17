@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"text/template"
 
+	"sigs.k8s.io/controller-runtime/pkg/log"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
@@ -70,10 +72,11 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 }
 
 type ConfigureReplicaOpts struct {
-	GtidSlavePos      *string
-	ResetGtidSlavePos bool
-	ChangeMasterOpts  []sql.ChangeMasterOpt
-	ResetMaster       bool
+	GtidSlavePos         *string
+	ResetGtidSlavePos    bool
+	RejoinFromCurrentPos bool
+	ChangeMasterOpts     []sql.ChangeMasterOpt
+	ResetMaster          bool
 }
 
 type ConfigureReplicaOpt func(*ConfigureReplicaOpts)
@@ -87,6 +90,16 @@ func WithGtidSlavePos(gtid string) ConfigureReplicaOpt {
 func WithResetGtidSlavePos() ConfigureReplicaOpt {
 	return func(cro *ConfigureReplicaOpts) {
 		cro.ResetGtidSlavePos = true
+	}
+}
+
+// WithRejoinFromCurrentPos resumes replication from the member's own gtid_current_pos. The position is read only
+// after the replication threads are stopped: read while they run, the SQL thread can apply another transaction
+// in between, and writing the older position back makes it replay that transaction, which gtid_strict_mode
+// refuses (error 1950) on every reconfiguration from then on.
+func WithRejoinFromCurrentPos() ConfigureReplicaOpt {
+	return func(cro *ConfigureReplicaOpts) {
+		cro.RejoinFromCurrentPos = true
 	}
 }
 
@@ -111,13 +124,25 @@ func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb 
 		setOpt(&opts)
 	}
 
+	if err := client.StopAllSlaves(ctx); err != nil {
+		return fmt.Errorf("error stopping slaves: %v", err)
+	}
+	if opts.RejoinFromCurrentPos {
+		gtid, err := client.GtidCurrentPos(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting GTID current position: %v", err)
+		}
+		log.FromContext(ctx).Info("Replica GTID position read after stopping replication", "gtid", gtid)
+		if gtid != "" {
+			opts.GtidSlavePos = &gtid
+		} else {
+			opts.ResetGtidSlavePos = true
+		}
+	}
 	if opts.ResetMaster {
 		if err := client.ResetMaster(ctx); err != nil {
 			return fmt.Errorf("error resetting master: %v", err)
 		}
-	}
-	if err := client.StopAllSlaves(ctx); err != nil {
-		return fmt.Errorf("error stopping slaves: %v", err)
 	}
 	if opts.GtidSlavePos != nil {
 		if err := client.SetGtidSlavePos(ctx, *opts.GtidSlavePos); err != nil {
