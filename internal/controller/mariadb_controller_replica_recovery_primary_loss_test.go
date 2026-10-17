@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -29,8 +30,9 @@ var _ = Describe("MariaDB replica recovery primary loss", Ordered, func() {
 	)
 
 	const (
-		markerDB    = "primarylossdb"
-		markerTable = "marker"
+		markerDB              = "primarylossdb"
+		markerTable           = "marker"
+		preserveSnapshotClass = "csi-hostpath-snapclass"
 	)
 
 	BeforeAll(func() {
@@ -49,14 +51,19 @@ var _ = Describe("MariaDB replica recovery primary loss", Ordered, func() {
 				PhysicalBackupTemplateRef: mariadbv1alpha1.LocalObjectReference{Name: backupKey.Name},
 			},
 			ReplicaRecovery: &mariadbv1alpha1.ReplicaRecovery{
-				Enabled:                true,
-				ErrorDurationThreshold: ptr.To(metav1.Duration{Duration: 15 * time.Second}),
+				Enabled:                         true,
+				ErrorDurationThreshold:          ptr.To(metav1.Duration{Duration: 15 * time.Second}),
+				PreserveVolumeSnapshotClassName: ptr.To(preserveSnapshotClass),
 			},
 		}
 		applyMariadbTestConfig(mdb)
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
 			deleteMariadb(mdbKey, true)
+			Expect(k8sClient.DeleteAllOf(testCtx, &volumesnapshotv1.VolumeSnapshot{},
+				client.InNamespace(mdbKey.Namespace),
+				client.MatchingLabels{replicaRecoveryPreserveLabel: mdbKey.Name},
+			)).To(Succeed())
 		})
 		Eventually(func() bool {
 			return k8sClient.Get(testCtx, mdbKey, mdb) == nil && mdb.IsReady()

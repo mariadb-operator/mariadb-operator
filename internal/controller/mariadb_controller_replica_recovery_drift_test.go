@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
@@ -14,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // This suite reproduces a deadlock between the replica recovery phase and the replication phase.
@@ -84,12 +86,19 @@ var _ = Describe("MariaDB Replica Recovery Primary Drift", Ordered, func() {
 					},
 				},
 				ReplicaRecovery: &mariadbv1alpha1.ReplicaRecovery{
-					Enabled:                true,
-					ErrorDurationThreshold: ptr.To(metav1.Duration{Duration: 15 * time.Second}),
+					Enabled:                         true,
+					ErrorDurationThreshold:          ptr.To(metav1.Duration{Duration: 15 * time.Second}),
+					PreserveVolumeSnapshotClassName: ptr.To("csi-hostpath-snapclass"),
 				},
 			}
 			return k8sClient.Update(testCtx, mdb) == nil
 		}, testTimeout, testInterval).Should(BeTrue())
+		DeferCleanup(func() {
+			Expect(k8sClient.DeleteAllOf(testCtx, &volumesnapshotv1.VolumeSnapshot{},
+				client.InNamespace(key.Namespace),
+				client.MatchingLabels{replicaRecoveryPreserveLabel: key.Name},
+			)).To(Succeed())
+		})
 
 		Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
 		primaryIndex := ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
