@@ -435,12 +435,23 @@ func (r *MaxScaleReconciler) primaryClient(ctx context.Context, mxs *mariadbv1al
 			logger.Info("error getting monitor", "monitor", mxs.Spec.Monitor.Name, "err", err)
 			continue
 		}
-		if monitor.Attributes != nil && monitor.Attributes.Diagnostics != nil &&
-			ptr.Deref(monitor.Attributes.Diagnostics.Primary, false) {
+		if isPrimaryMonitor(monitor) {
 			return client, nil
 		}
 	}
 	return nil, nil
+}
+
+// isPrimaryMonitor reports whether a MaxScale monitor is the one allowed to act on the cluster. With cooperative
+// monitoring locks MaxScale reports which instance holds the majority. Without them the diagnostics carry no primary
+// flag at all (null): the single monitor is the authority, and treating it as non-primary left every switchover the
+// operator requested through MaxScale waiting forever.
+func isPrimaryMonitor(monitor *mxsclient.Data[*mxsclient.MonitorAttributes]) bool {
+	if monitor == nil || monitor.Attributes == nil || monitor.Attributes.Diagnostics == nil {
+		return false
+	}
+	primary := monitor.Attributes.Diagnostics.Primary
+	return primary == nil || *primary
 }
 
 func (r *MaxScaleReconciler) healthyClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
