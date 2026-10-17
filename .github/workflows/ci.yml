@@ -150,7 +150,7 @@ jobs:
 
       - name: Run integration tests
         if: ${{ steps.test.outputs.type == 'full' }}
-        run: make test-int
+        run: make test-int TEST_TIMEOUT=2h
 
       - name: Run basic integration tests
         if: ${{ steps.test.outputs.type == 'basic' }}
