@@ -1,0 +1,42 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-sidecar
+spec:
+  image: mariadb/maxscale:23.08.13-2
+  mariaDbRef:
+    name: mariadb-repl
+  services:
+    - name: rw-router
+      router: readwritesplit
+      filters: [qla]
+      listener:
+        port: 3306
+  monitor:
+    interval: 2s
+    params:
+      auto_failover: "true"
+      auto_rejoin: "true"
+  filters:
+    - name: qla
+      module: qlafilter
+      params:
+        filebase: /var/log/maxscale/qla/queries
+        log_type: unified
+        flush: "true"
+  volumes:
+    - name: qla-logs
+      emptyDir: {}
+  volumeMounts:
+    - name: qla-logs
+      mountPath: /var/log/maxscale/qla
+  sidecarContainers:
+    - name: query-logs
+      image: busybox:1.37
+      command: [sh, -c]
+      args:
+        - until [ -f /logs/queries.unified ]; do sleep 1; done; exec tail -f /logs/queries.unified
+      volumeMounts:
+        - name: qla-logs
+          mountPath: /logs
+          readOnly: true
