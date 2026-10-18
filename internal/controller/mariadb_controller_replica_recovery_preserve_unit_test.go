@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -188,7 +189,7 @@ func TestPreserveReplicaSnapshotsStorageBeforeWipe(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
 		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid")).Build()
 	recorder := events.NewFakeRecorder(10)
-	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder}
+	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder, replicaRecoveryGtidsFn: preserveTestHealthyGtids()}
 
 	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil {
@@ -220,7 +221,7 @@ func TestPreserveReplicaWaitsForSnapshot(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
 		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid"),
 			preserveTestSnapshot(mariadb, "db-cluster-preserve-0-a", preserveTestRecoveryID, preserveTestBase, nil)).Build()
-	r := &MariaDBReconciler{Client: fakeClient}
+	r := &MariaDBReconciler{Client: fakeClient, replicaRecoveryGtidsFn: preserveTestHealthyGtids()}
 
 	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || result.RequeueAfter != replicaRecoveryPreservePollDelay {
@@ -237,7 +238,7 @@ func TestPreserveReplicaFailedSnapshotBlocksWipe(t *testing.T) {
 		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid"),
 			preserveTestSnapshot(mariadb, "db-cluster-preserve-0-a", preserveTestRecoveryID, preserveTestBase, failed)).Build()
 	recorder := events.NewFakeRecorder(10)
-	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder}
+	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder, replicaRecoveryGtidsFn: preserveTestHealthyGtids()}
 
 	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || result.RequeueAfter != replicaRecoveryPreserveRetryDelay {
@@ -258,7 +259,7 @@ func TestPreserveReplicaReadySnapshotPrunesOldest(t *testing.T) {
 	objects = append(objects,
 		preserveTestSnapshot(mariadb, "db-cluster-preserve-0-4", preserveTestRecoveryID, preserveTestBase.Add(5*time.Hour), preserveTestReady()))
 	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).WithObjects(objects...).Build()
-	r := &MariaDBReconciler{Client: fakeClient}
+	r := &MariaDBReconciler{Client: fakeClient, replicaRecoveryGtidsFn: preserveTestHealthyGtids()}
 
 	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || !result.IsZero() {
@@ -308,14 +309,270 @@ func TestPreserveReplicaRefusesUnverifiableReplica(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
 		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid")).Build()
 	recorder := events.NewFakeRecorder(10)
+	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder,
+		replicaRecoveryGtidsFn: preserveTestGtids(preserveTestPrimaryState, "", errors.New("connection refused"))}
+
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
+	if err != nil || result.RequeueAfter != replicaRecoveryPreserveRefusedDelay {
+		t.Fatalf("expected the recovery to be refused, got %+v, %v", result, err)
+	}
+	if event := <-recorder.Events; !strings.Contains(event, mariadbv1alpha1.ReasonMariaDBReplicaRecoveryRefused) ||
+		!strings.Contains(event, "preserveVolumeSnapshotClassName") {
+		t.Fatalf("unexpected event: %s", event)
+	}
+}
+
+func TestPreserveReplicaRefusesWithoutPrimaryConnection(t *testing.T) {
+	mariadb := preserveTestMariaDB(ptr.To(preserveTestClass))
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid")).Build()
+	recorder := events.NewFakeRecorder(10)
 	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder, RefResolver: refresolver.New(fakeClient)}
 
 	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || result.RequeueAfter != replicaRecoveryPreserveRefusedDelay {
 		t.Fatalf("expected the recovery to be refused, got %+v, %v", result, err)
 	}
-	if event := <-recorder.Events; !strings.Contains(event, mariadbv1alpha1.ReasonMariaDBReplicaRecoveryRefused) {
+	expectPrimaryRefusal(t, r, mariadb, recorder, "the primary could not be checked")
+}
+
+func TestPreserveReplicaRefusesReplacedPrimaryStorage(t *testing.T) {
+	tests := []struct {
+		name       string
+		primaryPVC *corev1.PersistentVolumeClaim
+	}{
+		{
+			name:       "recreated primary PVC",
+			primaryPVC: preserveTestPrimaryPVC("fresh-primary-uid"),
+		},
+		{
+			name: "missing primary PVC",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mariadb := preserveTestMariaDB(ptr.To(preserveTestClass))
+			mariadb.Annotations[storagePVCUIDAnnotationKey(1)] = "primary-uid"
+			objects := []client.Object{mariadb, preserveTestPVC(mariadb, "replica-uid")}
+			if tt.primaryPVC != nil {
+				objects = append(objects, tt.primaryPVC)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).WithObjects(objects...).Build()
+			recorder := events.NewFakeRecorder(10)
+			r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder,
+				replicaRecoveryGtidsFn: func(context.Context, *mariadbv1alpha1.MariaDB, int) (*replicaRecoveryGtids, error) {
+					t.Fatal("expected the replaced primary storage to be refused before reading GTIDs")
+					return nil, nil
+				}}
+
+			result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
+			if err != nil || result.RequeueAfter != replicaRecoveryPreserveRefusedDelay {
+				t.Fatalf("expected the recovery to be refused, got %+v, %v", result, err)
+			}
+			expectPrimaryRefusal(t, r, mariadb, recorder, "the storage PVC of the primary db-cluster-1 was replaced")
+		})
+	}
+}
+
+func TestPreserveReplicaRefusesPrimaryBehindReplica(t *testing.T) {
+	mariadb := preserveTestMariaDB(ptr.To(preserveTestClass))
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid")).Build()
+	recorder := events.NewFakeRecorder(10)
+	r := &MariaDBReconciler{Client: fakeClient, Recorder: recorder,
+		replicaRecoveryGtidsFn: preserveTestGtids("0-11-3", preserveTestReplicaState, nil)}
+
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
+	if err != nil || result.RequeueAfter != replicaRecoveryPreserveRefusedDelay {
+		t.Fatalf("expected the recovery to be refused, got %+v, %v", result, err)
+	}
+	expectPrimaryRefusal(t, r, mariadb, recorder, "the primary holds domain 0 only up to sequence 3, but the replica holds 0-11-850")
+}
+
+func TestPreserveReplicaSnapshotsUnreadableReplica(t *testing.T) {
+	mariadb := preserveTestMariaDB(ptr.To(preserveTestClass))
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid")).Build()
+	r := &MariaDBReconciler{Client: fakeClient,
+		replicaRecoveryGtidsFn: preserveTestGtids(preserveTestPrimaryState, "", errors.New("connection refused"))}
+
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
+	if err != nil || result.RequeueAfter != replicaRecoveryPreservePollDelay {
+		t.Fatalf("expected the replica to be snapshotted, got %+v, %v", result, err)
+	}
+	expectPreserveSnapshots(t, r, mariadb, 1)
+}
+
+func TestPreserveReplicaSnapshotsOwnWritesBeyondPrimary(t *testing.T) {
+	mariadb := preserveTestMariaDB(ptr.To(preserveTestClass))
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid")).Build()
+	r := &MariaDBReconciler{Client: fakeClient,
+		replicaRecoveryGtidsFn: preserveTestGtids(preserveTestPrimaryState, "0-11-899,0-10-905", nil)}
+
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
+	if err != nil || result.RequeueAfter != replicaRecoveryPreservePollDelay {
+		t.Fatalf("expected the replica to be snapshotted, got %+v, %v", result, err)
+	}
+	expectPreserveSnapshots(t, r, mariadb, 1)
+}
+
+func TestPreserveReplicaRecoversReplicaHoldingNothingUnique(t *testing.T) {
+	mariadb := preserveTestMariaDB(nil)
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid")).Build()
+	r := &MariaDBReconciler{Client: fakeClient, replicaRecoveryGtidsFn: preserveTestHealthyGtids()}
+
+	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
+	if err != nil || !result.IsZero() {
+		t.Fatalf("expected the recovery to go on, got %+v, %v", result, err)
+	}
+	expectPreserveSnapshots(t, r, mariadb, 0)
+}
+
+func TestPrimaryLacksReplicatedTransactions(t *testing.T) {
+	tests := []struct {
+		name         string
+		replica      string
+		primaryState string
+		primarySlave string
+		want         string
+		wantSeq      uint64
+		wantErr      bool
+	}{
+		{
+			name:         "replica behind the primary",
+			replica:      "0-11-850,0-10-400",
+			primaryState: "0-11-900,0-10-400",
+		},
+		{
+			name:    "primary recreated with empty storage",
+			replica: "0-11-850,0-10-400",
+			want:    "0-11-850",
+			wantSeq: 0,
+		},
+		{
+			name:         "primary recreated and wrote its own bootstrap transactions",
+			replica:      "0-11-850",
+			primaryState: "0-11-3",
+			want:         "0-11-850",
+			wantSeq:      3,
+		},
+		{
+			name:         "primary promoted while behind the replica on the old primary stream",
+			replica:      "0-12-905",
+			primaryState: "0-11-900,0-12-880",
+			want:         "0-12-905",
+			wantSeq:      900,
+		},
+		{
+			name:         "own writes of the replica are left to the preserve checks",
+			replica:      "0-11-899,0-10-905",
+			primaryState: "0-11-900",
+		},
+		{
+			name:         "primary holds a higher sequence of the domain through another server",
+			replica:      "0-12-30",
+			primarySlave: "0-11-500",
+		},
+		{
+			name:         "domain unknown to the primary",
+			replica:      "0-11-850,1-11-20",
+			primaryState: "0-11-900",
+			want:         "1-11-20",
+			wantSeq:      0,
+		},
+		{
+			name:    "replica holding nothing",
+			replica: "",
+		},
+		{
+			name:    "malformed replica GTID is an error",
+			replica: "0-11",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			missing, seq, err := primaryLacksReplicatedTransactions(preserveTestReplicaServerID, tt.replica,
+				tt.primaryState, tt.primarySlave)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			got := ""
+			if missing != nil {
+				got = missing.String()
+			}
+			if got != tt.want || seq != tt.wantSeq {
+				t.Fatalf("unexpected result: got %q at primary sequence %d, want %q at %d", got, seq, tt.want, tt.wantSeq)
+			}
+		})
+	}
+}
+
+const (
+	preserveTestReplicaServerID = 10
+	preserveTestPrimaryState    = "0-10-400,0-11-900"
+	preserveTestReplicaState    = "0-10-400,0-11-850"
+)
+
+func preserveTestGtids(primaryBinlogState, replicaBinlogState string,
+	replicaErr error) func(context.Context, *mariadbv1alpha1.MariaDB, int) (*replicaRecoveryGtids, error) {
+	return func(context.Context, *mariadbv1alpha1.MariaDB, int) (*replicaRecoveryGtids, error) {
+		gtids := &replicaRecoveryGtids{
+			PrimaryBinlogState: primaryBinlogState,
+			ReplicaErr:         replicaErr,
+		}
+		if replicaErr == nil {
+			gtids.ReplicaServerID = preserveTestReplicaServerID
+			gtids.ReplicaBinlogState = replicaBinlogState
+			gtids.ReplicaBinlogPos = replicaBinlogState
+		}
+		return gtids, nil
+	}
+}
+
+func preserveTestHealthyGtids() func(context.Context, *mariadbv1alpha1.MariaDB, int) (*replicaRecoveryGtids, error) {
+	return preserveTestGtids(preserveTestPrimaryState, preserveTestReplicaState, nil)
+}
+
+func preserveTestPrimaryPVC(uid types.UID) *corev1.PersistentVolumeClaim {
+	mariadb := preserveTestMariaDB(nil)
+	key := mariadb.PVCKey(builder.StorageVolume, 1)
+	return &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+			UID:       uid,
+		},
+	}
+}
+
+func expectPrimaryRefusal(t *testing.T, r *MariaDBReconciler, mariadb *mariadbv1alpha1.MariaDB,
+	recorder *events.FakeRecorder, reason string) {
+	t.Helper()
+	event := <-recorder.Events
+	if !strings.Contains(event, mariadbv1alpha1.ReasonMariaDBReplicaRecoveryRefused) || !strings.Contains(event, reason) ||
+		!strings.Contains(event, "A preserve snapshot does not lift this") {
 		t.Fatalf("unexpected event: %s", event)
+	}
+	expectPreserveSnapshots(t, r, mariadb, 0)
+}
+
+func expectPreserveSnapshots(t *testing.T, r *MariaDBReconciler, mariadb *mariadbv1alpha1.MariaDB, want int) {
+	t.Helper()
+	snapshots, err := r.listReplicaRecoveryPreserveSnapshots(context.Background(), mariadb, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(snapshots) != want {
+		t.Fatalf("expected %d preserve snapshots, got %d", want, len(snapshots))
 	}
 }
 
@@ -368,7 +625,7 @@ func TestPreserveReplicaRecordsReadySnapshot(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
 		WithObjects(mariadb, preserveTestPVC(mariadb, "replica-uid"),
 			preserveTestSnapshot(mariadb, "db-cluster-preserve-0-a", preserveTestRecoveryID, preserveTestBase, preserveTestReady())).Build()
-	r := &MariaDBReconciler{Client: fakeClient}
+	r := &MariaDBReconciler{Client: fakeClient, replicaRecoveryGtidsFn: preserveTestHealthyGtids()}
 
 	result, err := r.preserveReplicaBeforeRecovery(context.Background(), mariadb, "db-cluster-0", logr.Discard())
 	if err != nil || !result.IsZero() {

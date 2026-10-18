@@ -99,6 +99,8 @@ type MariaDBReconciler struct {
 
 	ReplicationReconciler *replication.ReplicationReconciler
 	GaleraReconciler      *galera.GaleraReconciler
+
+	replicaRecoveryGtidsFn func(context.Context, *mariadbv1alpha1.MariaDB, int) (*replicaRecoveryGtids, error)
 }
 
 type reconcilePhaseMariaDB struct {

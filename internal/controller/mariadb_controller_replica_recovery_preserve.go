@@ -79,6 +79,10 @@ func (r *MariaDBReconciler) preserveReplicaBeforeRecovery(ctx context.Context, m
 	if mariadb.Annotations[replicaRecoveryPreservedAnnotationKey(*podIndex)] == recoveryID {
 		return ctrl.Result{}, nil
 	}
+	gtids, result, err := r.verifyRecoveryPrimaryHoldsReplicaData(ctx, mariadb, replica, *podIndex, logger)
+	if !result.IsZero() || err != nil {
+		return result, err
+	}
 	snapshots, err := r.listReplicaRecoveryPreserveSnapshots(ctx, mariadb, *podIndex)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -97,9 +101,8 @@ func (r *MariaDBReconciler) preserveReplicaBeforeRecovery(ctx context.Context, m
 
 	className := preserveVolumeSnapshotClassName(mariadb)
 	if className == "" {
-		result, err := r.verifyReplicaHoldsNoUniqueTransactions(ctx, mariadb, replica, *podIndex, logger)
-		if !result.IsZero() || err != nil {
-			return result, err
+		if result := r.verifyReplicaHoldsNoUniqueTransactions(mariadb, replica, gtids, logger); !result.IsZero() {
+			return result, nil
 		}
 		return ctrl.Result{}, r.recordReplicaRecoveryPreserved(ctx, mariadb, *podIndex, recoveryID)
 	}
@@ -311,13 +314,92 @@ func preserveVolumeSnapshotClassName(mariadb *mariadbv1alpha1.MariaDB) string {
 	return ptr.Deref(recovery.PreserveVolumeSnapshotClassName, "")
 }
 
+// replicaRecoveryGtids is the GTID state the recovery checks compare. ReplicaErr records why the replica variables
+// could not be read; the primary variables are always set.
+type replicaRecoveryGtids struct {
+	ReplicaServerID    uint32
+	ReplicaBinlogPos   string
+	ReplicaBinlogState string
+	ReplicaSlavePos    string
+	PrimaryBinlogState string
+	PrimarySlavePos    string
+	ReplicaErr         error
+}
+
+// verifyRecoveryPrimaryHoldsReplicaData refuses to rebuild a replica from a primary that may miss data the replica
+// holds: a primary whose storage PVC was replaced, a primary that cannot be read, or a primary behind the transactions
+// the replica received through replication. A rebuilt replica serves the data of the primary, so a preserve snapshot
+// does not lift the refusal. The writes of the replica itself are left to the preserve snapshot or to
+// verifyReplicaHoldsNoUniqueTransactions.
+func (r *MariaDBReconciler) verifyRecoveryPrimaryHoldsReplicaData(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	replica string, podIndex int, logger logr.Logger) (*replicaRecoveryGtids, ctrl.Result, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, "the current primary is unknown", logger), nil
+	}
+	primary := *mariadb.Status.CurrentPrimaryPodIndex
+	var primaryPVC corev1.PersistentVolumeClaim
+	primaryPVCUIDs := map[int]string{}
+	if err := r.Get(ctx, mariadb.PVCKey(builder.StorageVolume, primary), &primaryPVC); err == nil {
+		primaryPVCUIDs[primary] = string(primaryPVC.UID)
+	} else if !apierrors.IsNotFound(err) {
+		return nil, ctrl.Result{}, fmt.Errorf("error getting primary storage PVC: %v", err)
+	}
+	if change, ok := getPrimaryPVCChange(mariadb, primaryPVCUIDs); ok {
+		reason := fmt.Sprintf("the storage PVC of the primary %s was replaced (previous UID %s, current UID %q)",
+			stsobj.PodName(mariadb.ObjectMeta, primary), change.StoredUID, change.CurrentUID)
+		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger), nil
+	}
+
+	gtids, err := r.readReplicaRecoveryGtids(ctx, mariadb, podIndex)
+	if err != nil {
+		reason := fmt.Sprintf("the primary could not be checked: %v", err)
+		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger), nil
+	}
+	if gtids.ReplicaErr != nil {
+		return gtids, ctrl.Result{}, nil
+	}
+	missing, primarySeq, err := primaryLacksReplicatedTransactions(gtids.ReplicaServerID,
+		gtids.ReplicaBinlogState+","+gtids.ReplicaSlavePos, gtids.PrimaryBinlogState, gtids.PrimarySlavePos)
+	if err != nil {
+		reason := fmt.Sprintf("the replica transactions could not be compared with the primary: %v", err)
+		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger), nil
+	}
+	if missing != nil {
+		reason := fmt.Sprintf("the primary holds domain %d only up to sequence %d, but the replica holds %s",
+			missing.DomainID, primarySeq, missing)
+		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger), nil
+	}
+	return gtids, ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) refuseReplicaRecoveryFromPrimary(mariadb *mariadbv1alpha1.MariaDB, replica, reason string,
+	logger logr.Logger) ctrl.Result {
+	logger.Info("Refusing to rebuild replica from a primary that may miss its data", "reason", reason)
+	if r.Recorder != nil {
+		r.Recorder.Eventf(mariadb,
+			nil,
+			corev1.EventTypeWarning,
+			mariadbv1alpha1.ReasonMariaDBReplicaRecoveryRefused,
+			mariadbv1alpha1.ActionReconciling,
+			"Refusing to recover replica %s: %s. A preserve snapshot does not lift this: the replica would be rebuilt "+
+				"from the primary data", replica, reason,
+		)
+	}
+	return ctrl.Result{RequeueAfter: replicaRecoveryPreserveRefusedDelay}
+}
+
 // verifyReplicaHoldsNoUniqueTransactions lets a recovery without preserve snapshots go on only when the replica
 // provably holds nothing the primary lacks. Any doubt, including an unreachable replica, refuses the recovery.
-func (r *MariaDBReconciler) verifyReplicaHoldsNoUniqueTransactions(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	replica string, podIndex int, logger logr.Logger) (ctrl.Result, error) {
-	unique, err := r.replicaHoldsUniqueTransactions(ctx, mariadb, podIndex)
+func (r *MariaDBReconciler) verifyReplicaHoldsNoUniqueTransactions(mariadb *mariadbv1alpha1.MariaDB, replica string,
+	gtids *replicaRecoveryGtids, logger logr.Logger) ctrl.Result {
+	unique := false
+	err := gtids.ReplicaErr
+	if err == nil {
+		unique, err = holdsUnreplicatedOwnTransactions(gtids.ReplicaServerID, gtids.ReplicaBinlogPos,
+			gtids.PrimaryBinlogState, gtids.PrimarySlavePos)
+	}
 	if err == nil && !unique {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}
 	}
 	reason := "it may hold transactions the primary lacks"
 	if err != nil {
@@ -334,48 +416,101 @@ func (r *MariaDBReconciler) verifyReplicaHoldsNoUniqueTransactions(ctx context.C
 				"to snapshot it before recovery", replica, reason,
 		)
 	}
-	return ctrl.Result{RequeueAfter: replicaRecoveryPreserveRefusedDelay}, nil
+	return ctrl.Result{RequeueAfter: replicaRecoveryPreserveRefusedDelay}
 }
 
-func (r *MariaDBReconciler) replicaHoldsUniqueTransactions(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	podIndex int) (bool, error) {
+// readReplicaRecoveryGtids reads the GTID state of the primary and of the replica. An error means the primary could
+// not be read; a replica that could not be read is reported through ReplicaErr.
+func (r *MariaDBReconciler) readReplicaRecoveryGtids(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	podIndex int) (*replicaRecoveryGtids, error) {
+	if r.replicaRecoveryGtidsFn != nil {
+		return r.replicaRecoveryGtidsFn(ctx, mariadb, podIndex)
+	}
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return false, errors.New("current primary is unknown")
+		return nil, errors.New("current primary is unknown")
 	}
-	replicaClient, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, podIndex,
-		sql.WithTimeout(replicaRecoveryPreserveSQLTimeout))
-	if err != nil {
-		return false, fmt.Errorf("error connecting to replica: %v", err)
-	}
-	defer replicaClient.Close()
 	primaryClient, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver,
 		*mariadb.Status.CurrentPrimaryPodIndex, sql.WithTimeout(replicaRecoveryPreserveSQLTimeout))
 	if err != nil {
-		return false, fmt.Errorf("error connecting to primary: %v", err)
+		return nil, fmt.Errorf("error connecting to primary: %v", err)
 	}
 	defer primaryClient.Close()
+	gtids := &replicaRecoveryGtids{}
+	if gtids.PrimaryBinlogState, err = primaryClient.SystemVariable(ctx, "gtid_binlog_state"); err != nil {
+		return nil, fmt.Errorf("error getting primary gtid_binlog_state: %v", err)
+	}
+	if gtids.PrimarySlavePos, err = primaryClient.SystemVariable(ctx, "gtid_slave_pos"); err != nil {
+		return nil, fmt.Errorf("error getting primary gtid_slave_pos: %v", err)
+	}
+	gtids.ReplicaErr = r.readReplicaGtids(ctx, mariadb, podIndex, gtids)
+	return gtids, nil
+}
 
+func (r *MariaDBReconciler) readReplicaGtids(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podIndex int,
+	gtids *replicaRecoveryGtids) error {
+	replicaClient, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, podIndex,
+		sql.WithTimeout(replicaRecoveryPreserveSQLTimeout))
+	if err != nil {
+		return fmt.Errorf("error connecting to replica: %v", err)
+	}
+	defer replicaClient.Close()
 	rawServerID, err := replicaClient.SystemVariable(ctx, "server_id")
 	if err != nil {
-		return false, fmt.Errorf("error getting replica server_id: %v", err)
+		return fmt.Errorf("error getting replica server_id: %v", err)
 	}
 	serverID, err := strconv.ParseUint(rawServerID, 10, 32)
 	if err != nil {
-		return false, fmt.Errorf("error parsing replica server_id %q: %v", rawServerID, err)
+		return fmt.Errorf("error parsing replica server_id %q: %v", rawServerID, err)
 	}
-	replicaBinlogPos, err := replicaClient.SystemVariable(ctx, "gtid_binlog_pos")
+	gtids.ReplicaServerID = uint32(serverID)
+	if gtids.ReplicaBinlogPos, err = replicaClient.SystemVariable(ctx, "gtid_binlog_pos"); err != nil {
+		return fmt.Errorf("error getting replica gtid_binlog_pos: %v", err)
+	}
+	if gtids.ReplicaBinlogState, err = replicaClient.SystemVariable(ctx, "gtid_binlog_state"); err != nil {
+		return fmt.Errorf("error getting replica gtid_binlog_state: %v", err)
+	}
+	if gtids.ReplicaSlavePos, err = replicaClient.SystemVariable(ctx, "gtid_slave_pos"); err != nil {
+		return fmt.Errorf("error getting replica gtid_slave_pos: %v", err)
+	}
+	return nil
+}
+
+// primaryLacksReplicatedTransactions returns the newest transaction the replica received from another server in a
+// replication domain where the primary holds a lower sequence number, together with that primary sequence number.
+// Under gtid_strict_mode the sequence numbers of a domain grow across servers, so holding a sequence number implies
+// every earlier transaction of the domain. A primary that lost its data, or a primary promoted while behind the
+// replica, holds a lower one. The transactions the replica wrote itself are skipped: the old primary rejoining as a
+// replica holds the ones the new primary never received.
+func primaryLacksReplicatedTransactions(serverID uint32, replicaGtids, primaryBinlogState,
+	primarySlavePos string) (*replication.Gtid, uint64, error) {
+	held, err := parseGtidList(replicaGtids)
 	if err != nil {
-		return false, fmt.Errorf("error getting replica gtid_binlog_pos: %v", err)
+		return nil, 0, fmt.Errorf("error parsing replica GTID state: %v", err)
 	}
-	primaryBinlogState, err := primaryClient.SystemVariable(ctx, "gtid_binlog_state")
+	primaryGtids, err := parseGtidList(primaryBinlogState + "," + primarySlavePos)
 	if err != nil {
-		return false, fmt.Errorf("error getting primary gtid_binlog_state: %v", err)
+		return nil, 0, fmt.Errorf("error parsing primary GTID state: %v", err)
 	}
-	primarySlavePos, err := primaryClient.SystemVariable(ctx, "gtid_slave_pos")
-	if err != nil {
-		return false, fmt.Errorf("error getting primary gtid_slave_pos: %v", err)
+	primarySeqs := map[uint32]uint64{}
+	for _, gtid := range primaryGtids {
+		if gtid.SequenceID > primarySeqs[gtid.DomainID] {
+			primarySeqs[gtid.DomainID] = gtid.SequenceID
+		}
 	}
-	return holdsUnreplicatedOwnTransactions(uint32(serverID), replicaBinlogPos, primaryBinlogState, primarySlavePos)
+	var missing *replication.Gtid
+	for _, gtid := range held {
+		if gtid.ServerID == serverID || gtid.SequenceID <= primarySeqs[gtid.DomainID] {
+			continue
+		}
+		if missing == nil || gtid.DomainID < missing.DomainID ||
+			(gtid.DomainID == missing.DomainID && gtid.SequenceID > missing.SequenceID) {
+			missing = gtid
+		}
+	}
+	if missing == nil {
+		return nil, 0, nil
+	}
+	return missing, primarySeqs[missing.DomainID], nil
 }
 
 // holdsUnreplicatedOwnTransactions reports whether a node wrote transactions that the primary does not hold.

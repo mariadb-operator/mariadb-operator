@@ -7026,8 +7026,10 @@ spec:
                               PreserveVolumeSnapshotClassName is the VolumeSnapshotClass used to snapshot the storage of a replica right
                               before the recovery process deletes its data, so that transactions only that replica held can still be
                               retrieved. Use a class that copies the data out of the volume, as recovery may delete or rewrite it.
-                              The newest snapshots of each replica are kept. When it is not set, a replica is only recovered when its binary
-                              log proves that the primary holds every transaction the replica wrote itself.
+                              The newest snapshots of each replica are kept, and every snapshot is deleted 7 days after its creation.
+                              When it is not set, a replica is only recovered when its binary log proves that the primary holds every
+                              transaction the replica wrote itself. Either way, a replica is never rebuilt from a primary whose storage PVC
+                              was replaced, that cannot be reached, or that lacks transactions the replica received through replication.
                             type: string
                         required:
                         - enabled
