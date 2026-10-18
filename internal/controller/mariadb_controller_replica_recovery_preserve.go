@@ -34,6 +34,7 @@ const (
 	replicaRecoveryPreservedAnnotationPrefix = "k8s.mariadb.com/replica-recovery-preserved-"
 
 	replicaRecoveryPreserveKeep          = 3
+	replicaRecoveryPreserveMaxAge        = 7 * 24 * time.Hour
 	replicaRecoveryPreservePollDelay     = 5 * time.Second
 	replicaRecoveryPreserveRetryDelay    = 30 * time.Second
 	replicaRecoveryPreserveRefusedDelay  = time.Minute
@@ -230,6 +231,41 @@ func replicaRecoveryPreserveSnapshotsToPrune(snapshots []volumesnapshotv1.Volume
 		return ready[j].CreationTimestamp.Before(&ready[i].CreationTimestamp)
 	})
 	return ready[keep:]
+}
+
+// expireReplicaRecoveryPreserveSnapshots deletes every preserve snapshot of the MariaDB older than
+// replicaRecoveryPreserveMaxAge, the newest ones included, so that no copy of a replica outlives it. It returns how
+// long until the next remaining snapshot expires, or zero when none remains. A cluster without the VolumeSnapshot
+// API holds no snapshots to expire.
+func (r *MariaDBReconciler) expireReplicaRecoveryPreserveSnapshots(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB, now time.Time, logger logr.Logger) (time.Duration, error) {
+	var list volumesnapshotv1.VolumeSnapshotList
+	if err := r.List(ctx, &list,
+		client.InNamespace(mariadb.Namespace),
+		client.MatchingLabels{replicaRecoveryPreserveLabel: mariadb.Name},
+	); err != nil {
+		if meta.IsNoMatchError(err) {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("error listing replica recovery preserve VolumeSnapshots: %v", err)
+	}
+	var next time.Duration
+	for i := range list.Items {
+		snapshot := &list.Items[i]
+		remaining := snapshot.CreationTimestamp.Add(replicaRecoveryPreserveMaxAge).Sub(now)
+		if remaining > 0 {
+			if next == 0 || remaining < next {
+				next = remaining
+			}
+			continue
+		}
+		logger.Info("Deleting expired replica recovery preserve VolumeSnapshot", "volume-snapshot", snapshot.Name,
+			"created", snapshot.CreationTimestamp.UTC())
+		if err := r.Delete(ctx, snapshot); err != nil && !apierrors.IsNotFound(err) {
+			return 0, fmt.Errorf("error deleting replica recovery preserve VolumeSnapshot %s: %v", snapshot.Name, err)
+		}
+	}
+	return next, nil
 }
 
 func (r *MariaDBReconciler) listReplicaRecoveryPreserveSnapshots(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

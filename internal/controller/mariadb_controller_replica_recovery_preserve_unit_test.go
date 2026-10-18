@@ -13,6 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 func TestHoldsUnreplicatedOwnTransactions(t *testing.T) {
@@ -378,5 +380,75 @@ func TestPreserveReplicaRecordsReadySnapshot(t *testing.T) {
 	}
 	if stored.Annotations[replicaRecoveryPreservedAnnotationKey(0)] != preserveTestRecoveryID {
 		t.Fatalf("expected the preserved episode to be recorded, got %v", stored.Annotations)
+	}
+}
+
+func TestExpireReplicaRecoveryPreserveSnapshots(t *testing.T) {
+	mariadb := preserveTestMariaDB(ptr.To(preserveTestClass))
+	other := preserveTestMariaDB(ptr.To(preserveTestClass))
+	other.Name = "other-cluster"
+	day := 24 * time.Hour
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(
+			preserveTestSnapshot(mariadb, "db-cluster-preserve-0-8d", "recovery-a", preserveTestBase.Add(-8*day), preserveTestReady()),
+			preserveTestSnapshot(mariadb, "db-cluster-preserve-0-7d", "recovery-b", preserveTestBase.Add(-7*day), preserveTestReady()),
+			preserveTestSnapshot(mariadb, "db-cluster-preserve-0-6d", "recovery-c", preserveTestBase.Add(-6*day), preserveTestReady()),
+			preserveTestSnapshot(other, "other-cluster-preserve-0-30d", "recovery-d", preserveTestBase.Add(-30*day), preserveTestReady()),
+		).Build()
+	r := &MariaDBReconciler{Client: fakeClient}
+
+	next, err := r.expireReplicaRecoveryPreserveSnapshots(context.Background(), mariadb, preserveTestBase, logr.Discard())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if next != day {
+		t.Fatalf("expected the next expiry in one day, got %v", next)
+	}
+	var list volumesnapshotv1.VolumeSnapshotList
+	if err := fakeClient.List(context.Background(), &list); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	names := map[string]bool{}
+	for _, s := range list.Items {
+		names[s.Name] = true
+	}
+	if len(names) != 2 || !names["db-cluster-preserve-0-6d"] || !names["other-cluster-preserve-0-30d"] {
+		t.Fatalf("unexpected snapshots after expiry: %v", names)
+	}
+}
+
+func TestExpireReplicaRecoveryPreserveSnapshotsDeletesNewest(t *testing.T) {
+	mariadb := preserveTestMariaDB(ptr.To(preserveTestClass))
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithObjects(preserveTestSnapshot(mariadb, "db-cluster-preserve-0-only", preserveTestRecoveryID,
+			preserveTestBase.Add(-replicaRecoveryPreserveMaxAge-time.Minute), preserveTestReady())).Build()
+	r := &MariaDBReconciler{Client: fakeClient}
+
+	next, err := r.expireReplicaRecoveryPreserveSnapshots(context.Background(), mariadb, preserveTestBase, logr.Discard())
+	if err != nil || next != 0 {
+		t.Fatalf("expected nothing left to expire, got %v, %v", next, err)
+	}
+	snapshots, err := r.listReplicaRecoveryPreserveSnapshots(context.Background(), mariadb, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(snapshots) != 0 {
+		t.Fatalf("expected the only snapshot to expire, got %d", len(snapshots))
+	}
+}
+
+func TestExpireReplicaRecoveryPreserveSnapshotsWithoutSnapshotAPI(t *testing.T) {
+	mariadb := preserveTestMariaDB(nil)
+	fakeClient := fake.NewClientBuilder().WithScheme(preserveTestScheme(t)).
+		WithInterceptorFuncs(interceptor.Funcs{
+			List: func(context.Context, client.WithWatch, client.ObjectList, ...client.ListOption) error {
+				return &meta.NoKindMatchError{GroupKind: volumesnapshotv1.SchemeGroupVersion.WithKind("VolumeSnapshot").GroupKind()}
+			},
+		}).Build()
+	r := &MariaDBReconciler{Client: fakeClient}
+
+	next, err := r.expireReplicaRecoveryPreserveSnapshots(context.Background(), mariadb, preserveTestBase, logr.Discard())
+	if err != nil || next != 0 {
+		t.Fatalf("expected no expiry without the VolumeSnapshot API, got %v, %v", next, err)
 	}
 }

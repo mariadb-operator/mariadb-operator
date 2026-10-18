@@ -144,6 +144,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	var preserveExpiry time.Duration
 	phases := []reconcilePhaseMariaDB{
 		{
 			Name:      "Spec",
@@ -184,6 +185,15 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Scale out",
 			Reconcile: r.reconcileScaleOut,
+		},
+		{
+			Name: "Replica recovery preserve expiry",
+			Reconcile: func(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+				var err error
+				preserveExpiry, err = r.expireReplicaRecoveryPreserveSnapshots(ctx, mdb, time.Now(),
+					log.FromContext(ctx).WithName("replica-recovery").WithName("preserve"))
+				return ctrl.Result{}, err
+			},
 		},
 		{
 			Name:      "Replica recovery",
@@ -268,7 +278,14 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return result, err
 		}
 	}
-	return requeueResult(ctx, &mariadb)
+	result, err := requeueResult(ctx, &mariadb)
+	if err != nil {
+		return result, err
+	}
+	if preserveExpiry > 0 && (result.RequeueAfter == 0 || preserveExpiry < result.RequeueAfter) {
+		result.RequeueAfter = preserveExpiry
+	}
+	return result, nil
 }
 
 func shouldSkipPhase(err error) bool {
