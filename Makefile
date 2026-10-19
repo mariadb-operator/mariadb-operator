@@ -14,7 +14,7 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-VERSION ?= 26.10.1
+VERSION ?= 26.10.2
 
 # mariadb-operator
 IMG_NAME ?= ghcr.io/mariadb-operator/mariadb-operator
