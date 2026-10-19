@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
@@ -1161,6 +1162,21 @@ func buildPhysicalBackupWithVolumeStorage(mariadbKey types.NamespacedName) physi
 				EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
 			},
 		})
+	}
+}
+
+// deleteVolumeSnapshots deletes the VolumeSnapshots of a PhysicalBackup. They outlive it, and a leftover from a previous run makes a
+// new PhysicalBackup with the same name immediately Complete, so the newest existing snapshot would be used as data source.
+func deleteVolumeSnapshots(backupKey types.NamespacedName) {
+	opts := []client.DeleteAllOfOption{
+		client.MatchingLabels{
+			metadata.PhysicalBackupNameLabel: backupKey.Name,
+		},
+		client.InNamespace(backupKey.Namespace),
+	}
+	if err := k8sClient.DeleteAllOf(testCtx, &volumesnapshotv1.VolumeSnapshot{}, opts...); err != nil {
+		// VolumeSnapshot CRDs are optional, they are only installed with 'make install-csi-hostpath'.
+		Expect(meta.IsNoMatchError(err)).To(BeTrue(), "error deleting VolumeSnapshots: %v", err)
 	}
 }
 
