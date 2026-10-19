@@ -1,3 +1,11 @@
+# Official MinIO images are no longer publicly available in quay.io nor docker.io.
+image:
+  repository: docker.io/pgsty/minio
+  tag: RELEASE.2026-08-04T00-00-00Z
+mcImage:
+  repository: docker.io/pgsty/mc
+  tag: RELEASE.2026-09-16T00-00-00Z
+
 minioAPIPort: "9000"
 minioConsolePort: "9001"
 

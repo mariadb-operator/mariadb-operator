@@ -24,6 +24,7 @@ To better understand what MaxScale is capable of you may check the [product page
 - [Server configuration](#server-configuration)
 - [Primary server switchover](#primary-server-switchover)
 - [Server maintenance](#server-maintenance)
+- [Filter configuration](#filter-configuration)
 - [Configuration](#configuration)
 - [Authentication](#authentication)
 - [Kubernetes <code>Services</code>](#kubernetes-services)
@@ -63,6 +64,10 @@ Depending on your requirements to route traffic, you may choose between the foll
 #### Listeners
 
 A listener specifies a port where MaxScale listens for incoming connections. It is associated with a service that handles the requests received on that port. For more detailed information, please consult the [listener reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener).
+
+#### Filters
+
+A filter allows MaxScale to reject, handle, alter or log information about a request before it reaches the router and before a response is sent back to the client. For more detailed information, please consult the [filter reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#filter).
 
 ## `MaxScale` CR
 
@@ -323,6 +328,32 @@ spec:
       port: 3306
       protocol: MariaDBBackend
       maintenance: true
+```
+
+## Filter configuration
+
+You can declare various [filters](https://mariadb.com/docs/maxscale/reference/maxscale-filters) and then reference them by name in the service definition:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-repl
+spec:
+...
+  filters:
+    - name: throttle
+      module: throttlefilter
+      params:
+        max_qps: "500"
+        throttling_duration: 60000ms
+  services:
+    - name: rw-router
+      filters:
+        - throttle
+      router: readwritesplit
+      listener:
+        port: 3306
 ```
 
 ## Configuration

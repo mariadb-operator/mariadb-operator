@@ -246,7 +246,9 @@ func (r *singleClusterTopology) changeMaster(ctx context.Context, mariadb *maria
 	// A node that retained self-originated GTIDs from a previous primary term (a
 	// non-empty gtid_binlog_pos) is being demoted to a replica, not freshly
 	// configured. MASTER_USE_GTID cannot reconcile those self-owned GTIDs, so
-	// emit MASTER_DEMOTE_TO_SLAVE=1 instead, which merges gtid_binlog_pos in gtid_slave_pos.
+	// emit MASTER_DEMOTE_TO_SLAVE=1, which merges gtid_binlog_pos in gtid_slave_pos.
+	// MASTER_DEMOTE_TO_SLAVE requires Using_Gtid=Slave_Pos, and the connection may be on Current_Pos
+	// (e.g. after a MaxScale switchover), so MASTER_USE_GTID=slave_pos is set in the same statement.
 	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_demote_to_slave
 	gtidBinlogPos, err := client.GtidBinlogPos(ctx)
 	if err != nil {
