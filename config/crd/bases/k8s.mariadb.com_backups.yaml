@@ -299,11 +299,13 @@ spec:
                 - none
                 - bzip2
                 - gzip
+                - pigz
                 - zstd
                 type: string
               compressionThreads:
                 description: |-
-                  CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.
+                  CompressionThreads defines the number of CPU threads to use for compression.
+                  It only has effect when compression is set to zstd or pigz.
                   Defaults to all available CPUs.
                 format: int32
                 minimum: 1

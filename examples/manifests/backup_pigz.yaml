@@ -1,0 +1,23 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-pigz
+spec:
+  mariaDbRef:
+    name: mariadb
+  compression: pigz
+  compressionThreads: 4
+  storage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 1Gi
+      accessModes:
+        - ReadWriteOnce
+  resources:
+    requests:
+      cpu: "4"
+      memory: 128Mi
+    limits:
+      cpu: "4"
+      memory: 512Mi

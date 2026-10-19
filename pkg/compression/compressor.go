@@ -23,6 +23,8 @@ func NewCompressor(calg mariadbv1alpha1.CompressAlgorithm, threads int) (Compres
 		return &NopCompressor{}, nil
 	case mariadbv1alpha1.CompressGzip:
 		return &GzipCompressor{}, nil
+	case mariadbv1alpha1.CompressPigz:
+		return &PigzCompressor{concurrency: threads}, nil
 	case mariadbv1alpha1.CompressBzip2:
 		return &Bzip2Compressor{}, nil
 	case mariadbv1alpha1.CompressZstd:

@@ -169,9 +169,23 @@ spec:
 Currently the following compression algorithms are supported:
 - `bzip2`: Good compression ratio, but slower compression/decompression speed compared to gzip.
 - `gzip`: Good compression/decompression speed, but worse compression ratio compared to bzip2.
+- `pigz`: Parallel gzip compression, producing gzip-compatible `.sql.gz` backups.
+- `zstd`: Fast compression/decompression with a good compression ratio.
 - `none`: No compression.
 
 `compression` is defaulted to `none` by the operator.
+
+Use `compressionThreads` with `pigz` or `zstd` to control the number of compression threads. By default, all available CPUs are used:
+
+```yaml
+spec:
+  compression: pigz
+  compressionThreads: 4
+```
+
+Ensure the backup Job's CPU requests and limits allow the desired parallelism. Pigz is included in the operator image; when running the backup CLI locally, install `pigz` on your PATH. Restores automatically detect `.gz` files and use the existing gzip decompressor, with no additional configuration.
+
+See [the pigz backup example](../examples/manifests/backup_pigz.yaml) for a complete manifest.
 
 #### Server-Side Encryption with Customer-Provided Keys (SSE-C)
 
