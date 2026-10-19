@@ -25,6 +25,8 @@ func NewBackupCompressor(calg mariadbv1alpha1.CompressAlgorithm, threads int, ba
 		return NewNopBackupCompressor(basePath, getUncompressedFilename, logger.WithName("nop-compressor")), nil
 	case mariadbv1alpha1.CompressGzip:
 		return NewGzipBackupCompressor(basePath, getUncompressedFilename, logger.WithName("gzip-compressor")), nil
+	case mariadbv1alpha1.CompressPigz:
+		return NewPigzBackupCompressor(threads, basePath, getUncompressedFilename, logger.WithName("pigz-compressor")), nil
 	case mariadbv1alpha1.CompressBzip2:
 		return NewBzip2BackupCompressor(basePath, getUncompressedFilename, logger.WithName("bzip2-compressor")), nil
 	case mariadbv1alpha1.CompressZstd:
@@ -74,6 +76,31 @@ func (c *GzipBackupCompressor) Compress(fileName string) error {
 }
 
 func (c *GzipBackupCompressor) Decompress(fileName string) (string, error) {
+	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, c.compressor)
+}
+
+type PigzBackupCompressor struct {
+	compressor              *PigzCompressor
+	basePath                string
+	getUncompressedFilename GetBackupUncompressedFilenameFn
+	logger                  logr.Logger
+}
+
+func NewPigzBackupCompressor(threads int, basePath string, getUncompressedFilename GetBackupUncompressedFilenameFn,
+	logger logr.Logger) BackupCompressor {
+	return &PigzBackupCompressor{
+		compressor:              &PigzCompressor{concurrency: threads},
+		basePath:                basePath,
+		getUncompressedFilename: getUncompressedFilename,
+		logger:                  logger,
+	}
+}
+
+func (c *PigzBackupCompressor) Compress(fileName string) error {
+	return compressFile(c.basePath, fileName, c.logger, c.compressor)
+}
+
+func (c *PigzBackupCompressor) Decompress(fileName string) (string, error) {
 	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, c.compressor)
 }
 

@@ -129,6 +129,26 @@ var _ = Describe("Backup webhook", func() {
 				false,
 			),
 			Entry(
+				"Pigz compression",
+				&v1alpha1.Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-pigz",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.BackupSpec{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{Name: "mariadb-webhook"},
+						},
+						Compression:        v1alpha1.CompressPigz,
+						CompressionThreads: ptr.To(int32(4)),
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{Bucket: "test", Endpoint: "test"},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
 				"Invalid compression",
 				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{

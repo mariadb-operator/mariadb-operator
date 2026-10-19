@@ -28,10 +28,11 @@ type BackupSpec struct {
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
 	// Compression algorithm to be used in the Backup.
 	// +optional
-	// +kubebuilder:validation:Enum=none;bzip2;gzip;zstd
+	// +kubebuilder:validation:Enum=none;bzip2;gzip;pigz;zstd
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Compression CompressAlgorithm `json:"compression,omitempty"`
-	// CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.
+	// CompressionThreads defines the number of CPU threads to use for compression.
+	// It only has effect when compression is set to zstd or pigz.
 	// Defaults to all available CPUs.
 	// +optional
 	// +kubebuilder:validation:Minimum=1

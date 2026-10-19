@@ -954,6 +954,37 @@ func TestMariadbOperatorBackup(t *testing.T) {
 			},
 		},
 		{
+			name: "pigz with compression threads",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					Path:                 "/backups",
+					BackupContentType:    mariadbv1alpha1.BackupContentTypeLogical,
+					TargetFilePath:       "/backups/0-backup-target.txt",
+					MaxRetentionDuration: 24 * time.Hour,
+					Compression:          mariadbv1alpha1.CompressPigz,
+					CompressionThreads:   ptr.To(int32(4)),
+					LogLevel:             "info",
+				},
+			},
+			wantArgs: []string{
+				"backup",
+				"--path",
+				"/backups",
+				"--target-file-path",
+				"/backups/0-backup-target.txt",
+				"--backup-content-type",
+				string(mariadbv1alpha1.BackupContentTypeLogical),
+				"--max-retention",
+				"24h0m0s",
+				"--compression",
+				"pigz",
+				"--compression-threads",
+				"4",
+				"--log-level",
+				"info",
+			},
+		},
+		{
 			name: "physical S3 and meta",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{

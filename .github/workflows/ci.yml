@@ -81,6 +81,9 @@ jobs:
       - name: Build Docker
         run: make docker-build
 
+      - name: Check pigz in image
+        run: docker run --rm --entrypoint /bin/pigz "ghcr.io/mariadb-operator/mariadb-operator:$(make version)" --version
+
   unit-test:
     name: Unit tests
     runs-on: ubuntu-latest
@@ -95,6 +98,9 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
+
+      - name: Install pigz
+        run: sudo apt-get update && sudo apt-get install -y pigz
 
       - name: Test
         run: |
