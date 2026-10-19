@@ -2451,6 +2451,22 @@ var _ = Describe("MariaDB types", func() {
 		)
 	})
 
+	Describe("MaxScaleServerReplicas", func() {
+		DescribeTable("should hold back new Pods while scaling out",
+			func(replicas int32, scaleOutInitialIndex *int, expected int) {
+				mdb := &MariaDB{
+					Spec:   MariaDBSpec{Replicas: replicas},
+					Status: MariaDBStatus{ScaleOutInitialIndex: scaleOutInitialIndex},
+				}
+				Expect(mdb.MaxScaleServerReplicas()).To(Equal(expected))
+			},
+			Entry("not scaling out", int32(3), nil, 3),
+			Entry("scaling out 2 -> 3", int32(3), ptr.To(2), 2),
+			Entry("scaling out 2 -> 4", int32(4), ptr.To(2), 2),
+			Entry("scale out rolled back below the initial index", int32(2), ptr.To(3), 2),
+		)
+	})
+
 	Describe("IsSemiSyncEnabled", func() {
 		DescribeTable("should determine whether semi-sync is enabled",
 			func(mdb *MariaDB, expected bool) {
