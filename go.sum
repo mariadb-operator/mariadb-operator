@@ -190,8 +190,8 @@ github.com/go-openapi/testify/enable/yaml/v2 v2.4.2 h1:5zRca5jw7lzVREKCZVNBpysDN
 github.com/go-openapi/testify/enable/yaml/v2 v2.4.2/go.mod h1:XVevPw5hUXuV+5AkI1u1PeAm27EQVrhXTTCPAF85LmE=
 github.com/go-openapi/testify/v2 v2.4.2 h1:tiByHpvE9uHrrKjOszax7ZvKB7QOgizBWGBLuq0ePx4=
 github.com/go-openapi/testify/v2 v2.4.2/go.mod h1:SgsVHtfooshd0tublTtJ50FPKhujf47YRqauXXOUxfw=
-github.com/go-sql-driver/mysql v1.9.3 h1:U/N249h2WzJ3Ukj8SowVFjdtZKfu9vlLZxjPXV1aweo=
-github.com/go-sql-driver/mysql v1.9.3/go.mod h1:qn46aNg1333BRMNU69Lq93t8du/dwxI64Gl8i5p1WMU=
+github.com/go-sql-driver/mysql v1.10.1 h1:arlSnNLq6a5yxGxV7qg9lF4j0C+KwD6NbQyKr9QL6ME=
+github.com/go-sql-driver/mysql v1.10.1/go.mod h1:M+cqaI7+xxXGG9swrdeUIoPG3Y3KCkF0pZej+SK+nWk=
 github.com/go-task/slim-sprig/v3 v3.0.0 h1:sUs3vkvUymDpBKi3qH1YSqBQk9+9D/8M2mN1vB6EwHI=
 github.com/go-task/slim-sprig/v3 v3.0.0/go.mod h1:W848ghGpv3Qj3dhTPRyJypKRiqCdHZiAzKg9hl15HA8=
 github.com/go-viper/mapstructure/v2 v2.4.0 h1:EBsztssimR/CONLSZZ04E8qAkxNYq4Qp9LvH92wZUgs=
