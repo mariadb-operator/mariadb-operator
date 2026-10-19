@@ -176,6 +176,14 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
+	// On the first bootstrap, the primary must be configured before the replicas are pointed at it, as 'ConfigurePrimary' creates
+	// the replication user, and before it is armed in 'reconcileSemiSync'. A primary without role is skipped by
+	// 'ReconcileReplicationInPod', and carrying on would leave the replicas unable to authenticate and the armed primary waiting
+	// for an ACK that can not come, which is forever with a high semiSyncAckTimeout. Wait for the Status phase to assign its role.
+	if shouldWaitForPrimaryRole(req.mariadb, *req.mariadb.Status.CurrentPrimaryPodIndex) {
+		logger.V(1).Info("Primary Pod role not yet assigned and replication not configured yet. Requeuing...")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
 	for _, i := range r.replicationPodIndexes(req, *req.currentPrimaryPodIndex) {
 		if result, err := r.ReconcileReplicationInPod(
 			ctx,
@@ -385,6 +393,17 @@ func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariad
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
+}
+
+// shouldWaitForPrimaryRole indicates whether replication has never been configured and the primary Pod has no role assigned yet.
+// Once replication has been configured, a primary without role does not stop the reconciliation.
+func shouldWaitForPrimaryRole(mariadb *mariadbv1alpha1.MariaDB, primaryPodIndex int) bool {
+	if mariadb.HasConfiguredReplication() {
+		return false
+	}
+	replStatus := ptr.Deref(mariadb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+	_, ok := replStatus.Roles[statefulset.PodName(mariadb.ObjectMeta, primaryPodIndex)]
+	return !ok
 }
 
 func shouldSkipPrimaryReconciliation(mariadb *mariadbv1alpha1.MariaDB, replRoles map[string]mariadbv1alpha1.ReplicationRole,
