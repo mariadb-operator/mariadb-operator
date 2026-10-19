@@ -345,8 +345,9 @@ func (r *MaxScaleReconciler) setMariadbDefaults(ctx context.Context, req *reques
 	if err != nil {
 		return err
 	}
-	servers := make([]mariadbv1alpha1.MaxScaleServer, mdb.Spec.Replicas)
-	for i := 0; i < int(mdb.Spec.Replicas); i++ {
+	replicas := mdb.MaxScaleServerReplicas()
+	servers := make([]mariadbv1alpha1.MaxScaleServer, replicas)
+	for i := 0; i < replicas; i++ {
 		name := stsobj.PodName(mdb.ObjectMeta, i)
 		address := stsobj.PodFQDNWithService(mdb.ObjectMeta, i, mdb.InternalServiceKey().Name)
 

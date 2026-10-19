@@ -137,6 +137,9 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 		mdb = buildTestMariaDBRecovery(key)
 		applyMariadbTestConfig(mdb)
 
+		By("Deleting leftover replica recovery VolumeSnapshots")
+		deleteVolumeSnapshots(mdb.PhysicalBackupReplicaRecoveryKey())
+
 		By("Creating MariaDB with replication")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {

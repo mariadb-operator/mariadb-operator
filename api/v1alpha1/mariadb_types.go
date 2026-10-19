@@ -1073,6 +1073,17 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 	return m.Spec.MaxScaleRef != nil
 }
 
+// MaxScaleServerReplicas returns the number of Pods that MaxScale should have registered as servers. While scaling out, new
+// Pods are held back until the operator has configured replication on them: otherwise MaxScale's auto_rejoin would start
+// replication on them first, and the operator's GTID position would then conflict with it (errno 1950 under gtid_strict_mode).
+func (m *MariaDB) MaxScaleServerReplicas() int {
+	replicas := int(m.Spec.Replicas)
+	if m.Status.ScaleOutInitialIndex != nil && *m.Status.ScaleOutInitialIndex < replicas {
+		return *m.Status.ScaleOutInitialIndex
+	}
+	return replicas
+}
+
 // IsPointInTimeRecoveryEnabled indicates whether binary log archival is activated to enable point-in-time recovery.
 func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
 	if !m.IsReplicationEnabled() {
