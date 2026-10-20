@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -300,4 +301,31 @@ func getBinlogTimeline(binlogMetas []BinlogMetadata) []string {
 		path[i] = binlogMeta.ObjectStoragePath()
 	}
 	return path
+}
+
+func TestBuildTimelineTargetWithinLastBinlog(t *testing.T) {
+	binlogIndex := &BinlogIndex{
+		APIVersion: BinlogIndexV1,
+		Binlogs: map[string][]BinlogMetadata{
+			"server-10": {
+				{
+					ServerId:       10,
+					BinlogFilename: "mariadb-repl-bin.000001",
+					FirstTime:      metav1.NewTime(mustParseDate(t, "2026-01-09T11:00:00Z")),
+					LastTime:       metav1.NewTime(mustParseDate(t, "2026-01-09T12:00:00Z")),
+					FirstGtid:      mustParseGtid(t, "0-10-1"),
+					LastGtid:       mustParseGtid(t, "0-10-7"),
+				},
+			},
+		},
+	}
+
+	binlogs, err := binlogIndex.BuildTimeline(
+		mustParseGtid(t, "0-10-1"),
+		mustParseDate(t, "2026-01-09T11:30:00Z"),
+		true,
+		logr.Discard(),
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"server-10/mariadb-repl-bin.000001"}, getBinlogTimeline(binlogs))
 }
