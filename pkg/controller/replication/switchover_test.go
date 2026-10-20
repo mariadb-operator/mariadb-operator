@@ -1,9 +1,12 @@
 package replication
 
 import (
+	"context"
 	"testing"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -238,6 +241,56 @@ func TestSwitchoverAbandonReason(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := switchoverAbandonReason(tt.mdb, tt.podExists); got != tt.want {
 				t.Fatalf("unexpected abandon reason: got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConfigureReplicaOptsWithoutSyncedReplicas(t *testing.T) {
+	tests := []struct {
+		name string
+		mdb  *mariadbv1alpha1.MariaDB
+	}{
+		{
+			name: "failover keeps each replica's binary log and position",
+			mdb:  configuredReplicationMariaDB(false),
+		},
+		{
+			name: "failover with point in time recovery keeps each replica's binary log and position",
+			mdb:  configuredReplicationMariaDB(true),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reconciler := &ReplicationReconciler{}
+			req := &ReconcileRequest{mariadb: tt.mdb}
+
+			replicaOpts, err := reconciler.configureReplicaOpts(context.Background(), req, nil, logr.Discard())
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			opts := ConfigureReplicaOpts{ResetMaster: true}
+			for _, setOpt := range replicaOpts {
+				setOpt(&opts)
+			}
+			if opts.ResetMaster {
+				t.Fatal("expected failover to keep the replica binary log")
+			}
+			if opts.ResetGtidSlavePos {
+				t.Fatal("expected failover to keep the replica GTID position")
+			}
+			if !opts.RejoinFromCurrentPos {
+				t.Fatal("expected failover to resume the replica from its own GTID position")
+			}
+			if opts.GtidSlavePos != nil {
+				t.Fatalf("the position must be read inside ConfigureReplica, got %q up front", *opts.GtidSlavePos)
+			}
+			changeMaster := sql.ChangeMasterOpts{}
+			for _, setOpt := range opts.ChangeMasterOpts {
+				setOpt(&changeMaster)
+			}
+			if changeMaster.Gtid != "slave_pos" {
+				t.Fatalf("unexpected CHANGE MASTER GTID mode: got %q, want %q", changeMaster.Gtid, "slave_pos")
 			}
 		})
 	}

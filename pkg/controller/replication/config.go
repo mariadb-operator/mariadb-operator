@@ -87,12 +87,6 @@ func WithGtidSlavePos(gtid string) ConfigureReplicaOpt {
 	}
 }
 
-func WithResetGtidSlavePos() ConfigureReplicaOpt {
-	return func(cro *ConfigureReplicaOpts) {
-		cro.ResetGtidSlavePos = true
-	}
-}
-
 // WithRejoinFromCurrentPos resumes replication from the member's own gtid_current_pos. The position is read only
 // after the replication threads are stopped: read while they run, the SQL thread can apply another transaction
 // in between, and writing the older position back makes it replay that transaction, which gtid_strict_mode
