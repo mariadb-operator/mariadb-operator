@@ -299,6 +299,7 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	tpl := createTpl("replication", `[mariadb]
 log_bin
 log_basename={{.LogName }}
+log_slave_updates
 {{- with .GtidStrictMode }}
 gtid_strict_mode
 {{- end }}

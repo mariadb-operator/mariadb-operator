@@ -1521,6 +1521,7 @@ func buildTestMariaDBWithRepl(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				bind-address=*
 				default_storage_engine=InnoDB
 				binlog_format=row
+				log_slave_updates=ON
 				innodb_autoinc_lock_mode=2
 				max_allowed_packet=256M`,
 			),

@@ -83,6 +83,7 @@ func TestNewReplicationConfig(t *testing.T) {
 			wantConfig: `[mariadb]
 log_bin
 log_basename=mariadb
+log_slave_updates
 server_id=10
 `,
 			wantErr: false,
@@ -98,6 +99,7 @@ server_id=10
 			wantConfig: `[mariadb]
 log_bin
 log_basename=mariadb
+log_slave_updates
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
 server_id=10
@@ -119,6 +121,7 @@ server_id=10
 			wantConfig: `[mariadb]
 log_bin
 log_basename=mariadb
+log_slave_updates
 gtid_strict_mode
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
@@ -143,6 +146,7 @@ sync_binlog=1
 			wantConfig: `[mariadb]
 log_bin
 log_basename=mariadb
+log_slave_updates
 gtid_strict_mode
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
@@ -166,6 +170,7 @@ sync_binlog=1
 			wantConfig: `[mariadb]
 log_bin
 log_basename=mariadb
+log_slave_updates
 gtid_strict_mode
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
