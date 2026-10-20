@@ -15,6 +15,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -312,6 +313,16 @@ func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, key types
 			return nil
 		}
 		return err
+	}
+	// The storage PVC has no owner reference, so it must be deleted explicitly to avoid leaking it.
+	if physicalBackup.Spec.Storage.PersistentVolumeClaim != nil {
+		pvcKey := physicalBackup.StoragePVCKey()
+		pvc := corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{Name: pvcKey.Name, Namespace: pvcKey.Namespace},
+		}
+		if err := r.Delete(ctx, &pvc); err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error deleting PhysicalBackup storage PVC: %v", err)
+		}
 	}
 	return r.Delete(ctx, &physicalBackup)
 }
