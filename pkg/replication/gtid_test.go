@@ -357,3 +357,70 @@ func TestParseRawGtidInMetaFile(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeGtidPositions(t *testing.T) {
+	tests := []struct {
+		name      string
+		positions []string
+		want      string
+		wantErr   bool
+	}{
+		{
+			name:      "all empty",
+			positions: []string{"", ""},
+			want:      "",
+		},
+		{
+			name:      "binlog empty keeps current position",
+			positions: []string{"0-10-14", ""},
+			want:      "0-10-14",
+		},
+		{
+			name:      "binlog ahead of a lagging slave position",
+			positions: []string{"0-10-14", "0-11-16"},
+			want:      "0-11-16",
+		},
+		{
+			name:      "current position ahead of the binlog",
+			positions: []string{"0-11-17", "0-10-15"},
+			want:      "0-11-17",
+		},
+		{
+			name:      "equal sequence keeps the first position",
+			positions: []string{"0-10-15", "0-11-15"},
+			want:      "0-10-15",
+		},
+		{
+			name:      "furthest per domain",
+			positions: []string{"0-10-14,1-10-9", "1-11-12,0-11-3,2-12-1"},
+			want:      "0-10-14,1-11-12,2-12-1",
+		},
+		{
+			name:      "whitespace between domains",
+			positions: []string{"0-10-14,\n1-10-9", ""},
+			want:      "0-10-14,1-10-9",
+		},
+		{
+			name:      "invalid GTID",
+			positions: []string{"0-10-14", "foo"},
+			wantErr:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := MergeGtidPositions(tt.positions...)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got %q", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("unexpected merged position: got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

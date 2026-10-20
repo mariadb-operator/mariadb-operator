@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"time"
 
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
@@ -180,6 +181,87 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 			readOnly, err := readOnlyInPodByIndex(mdb, replicaPodIndex)
 			return err == nil && readOnly
 		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should rejoin a replica whose GTID position lags its binary log", func() {
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.Status.CurrentPrimaryPodIndex != nil
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		primaryPodIndex := *mdb.Status.CurrentPrimaryPodIndex
+		replicaPodIndex := -1
+		for i := 0; i < int(mdb.Spec.Replicas); i++ {
+			if i != primaryPodIndex {
+				replicaPodIndex = i
+				break
+			}
+		}
+		Expect(replicaPodIndex).ToNot(Equal(-1))
+
+		clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
+		defer clientSet.Close()
+		systemVariable := func(podIndex int, variable string) (string, error) {
+			client, err := clientSet.ClientForIndex(testCtx, podIndex)
+			if err != nil {
+				return "", err
+			}
+			return client.SystemVariable(testCtx, variable)
+		}
+
+		By("Recording the replica GTID position")
+		var laggingPos string
+		Eventually(func(g Gomega) {
+			pos, err := systemVariable(replicaPodIndex, "gtid_slave_pos")
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(pos).ToNot(BeEmpty())
+			laggingPos = pos
+		}, testTimeout, testInterval).Should(Succeed())
+
+		By("Writing on the primary and expecting the replica to apply it")
+		executeSqlInPodByIndex(mdb, primaryPodIndex, "CREATE DATABASE IF NOT EXISTS gtid_lag_rejoin;")
+		Eventually(func(g Gomega) {
+			primaryPos, err := systemVariable(primaryPodIndex, "gtid_binlog_pos")
+			g.Expect(err).ToNot(HaveOccurred())
+			replicaPos, err := systemVariable(replicaPodIndex, "gtid_slave_pos")
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(replicaPos).ToNot(Equal(laggingPos))
+			g.Expect(replicaPos).To(Equal(primaryPos))
+		}, testTimeout, testInterval).Should(Succeed())
+
+		By("Rewinding the replica GTID position behind its binary log")
+		executeSqlInPodByIndex(mdb, replicaPodIndex, "STOP SLAVE;")
+		executeSqlInPodByIndex(mdb, replicaPodIndex, fmt.Sprintf("SET GLOBAL gtid_slave_pos='%s';", laggingPos))
+		executeSqlInPodByIndex(mdb, replicaPodIndex, "START SLAVE;")
+
+		By("Triggering MariaDB reconciliation")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			if mdb.Annotations == nil {
+				mdb.Annotations = make(map[string]string)
+			}
+			mdb.Annotations["k8s.mariadb.com/test-reconcile-at"] = time.Now().Format(time.RFC3339Nano)
+			g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting the replica to resume from its binary log position")
+		Eventually(func(g Gomega) {
+			client, err := clientSet.ClientForIndex(testCtx, replicaPodIndex)
+			g.Expect(err).ToNot(HaveOccurred())
+			status, err := client.ReplicaStatus(testCtx, testLogger)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(status.IsSQLThreadRunning()).To(BeTrue())
+			g.Expect(ptr.Deref(status.LastSQLErrno, 0)).To(Equal(0))
+			primaryPos, err := systemVariable(primaryPodIndex, "gtid_binlog_pos")
+			g.Expect(err).ToNot(HaveOccurred())
+			replicaPos, err := client.SystemVariable(testCtx, "gtid_slave_pos")
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(replicaPos).To(Equal(primaryPos))
+		}, testHighTimeout, testInterval).Should(Succeed())
 	})
 
 	It("should fail and switch over primary", func() {

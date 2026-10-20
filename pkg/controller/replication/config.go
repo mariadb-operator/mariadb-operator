@@ -15,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/secret"
 	env "github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"k8s.io/utils/ptr"
@@ -122,11 +123,20 @@ func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb 
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
 	if opts.RejoinFromCurrentPos {
-		gtid, err := client.GtidCurrentPos(ctx)
+		currentPos, err := client.GtidCurrentPos(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting GTID current position: %v", err)
 		}
-		log.FromContext(ctx).Info("Replica GTID position read after stopping replication", "gtid", gtid)
+		binlogPos, err := client.GtidBinlogPos(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting GTID binlog position: %v", err)
+		}
+		gtid, err := replication.MergeGtidPositions(currentPos, binlogPos)
+		if err != nil {
+			return fmt.Errorf("error merging GTID positions: %v", err)
+		}
+		log.FromContext(ctx).Info("Replica GTID position read after stopping replication", "gtid", gtid,
+			"current-pos", currentPos, "binlog-pos", binlogPos)
 		if gtid != "" {
 			opts.GtidSlavePos = &gtid
 		} else {

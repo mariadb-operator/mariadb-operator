@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -184,6 +186,31 @@ func ParseGtidsWithDomainId(rawGtid string, domainId uint32, logger logr.Logger)
 		return gtids, nil
 	}
 	return nil, fmt.Errorf("GTID for domain ID %d not found", domainId)
+}
+
+func MergeGtidPositions(positions ...string) (string, error) {
+	furthest := make(map[uint32]*Gtid)
+	for _, position := range positions {
+		for part := range strings.SplitSeq(position, ",") {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			gtid, err := ParseGtid(part)
+			if err != nil {
+				return "", fmt.Errorf("error parsing GTID %q: %v", part, err)
+			}
+			if current, ok := furthest[gtid.DomainID]; !ok || gtid.SequenceID > current.SequenceID {
+				furthest[gtid.DomainID] = gtid
+			}
+		}
+	}
+	domainIDs := slices.Sorted(maps.Keys(furthest))
+	merged := make([]string, 0, len(domainIDs))
+	for _, domainID := range domainIDs {
+		merged = append(merged, furthest[domainID].String())
+	}
+	return strings.Join(merged, ","), nil
 }
 
 func ParseGtid(rawGtid string) (*Gtid, error) {
