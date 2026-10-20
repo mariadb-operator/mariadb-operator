@@ -2213,6 +2213,7 @@ _Appears in:_
 | `selector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#labelselector-v1-meta)_ |  |  |  |
 | `resources` _[VolumeResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumeresourcerequirements-v1-core)_ |  |  |  |
 | `storageClassName` _string_ |  |  |  |
+| `volumeAttributesClassName` _string_ | VolumeAttributesClassName references a VolumeAttributesClass for the PVC. |  |  |
 
 
 #### PersistentVolumeClaimVolumeSource
@@ -3577,6 +3578,7 @@ _Appears in:_
 | `selector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#labelselector-v1-meta)_ |  |  |  |
 | `resources` _[VolumeResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumeresourcerequirements-v1-core)_ |  |  |  |
 | `storageClassName` _string_ |  |  |  |
+| `volumeAttributesClassName` _string_ | VolumeAttributesClassName references a VolumeAttributesClass for the PVC. |  |  |
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 
 
