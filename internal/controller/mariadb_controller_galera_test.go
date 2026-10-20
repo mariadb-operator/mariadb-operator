@@ -7,6 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -323,6 +324,100 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 			}
 			return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(mdb.ObjectMeta, podIndex)
 		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should reconcile storage and Galera PVC metadata", Label("basic"), func() {
+		expectMariadbReady(testCtx, k8sClient, key)
+		Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+
+		var originalSts appsv1.StatefulSet
+		Expect(k8sClient.Get(testCtx, key, &originalSts)).To(Succeed())
+		podUIDs := make(map[types.NamespacedName]types.UID)
+		var originalPVCs []corev1.PersistentVolumeClaim
+		const metadataKey = "velero.io/exclude-from-backup"
+		const externalKey = "test.mariadb.com/external"
+
+		By("Recording existing workloads and adding independently managed PVC metadata")
+		for i := 0; i < int(mdb.Spec.Replicas); i++ {
+			podKey := types.NamespacedName{Name: statefulset.PodName(mdb.ObjectMeta, i), Namespace: mdb.Namespace}
+			var pod corev1.Pod
+			Expect(k8sClient.Get(testCtx, podKey, &pod)).To(Succeed())
+			podUIDs[podKey] = pod.UID
+			for _, volume := range []string{builder.StorageVolume, galeraresources.GaleraConfigVolume} {
+				var pvc corev1.PersistentVolumeClaim
+				Eventually(func(g Gomega) bool {
+					g.Expect(k8sClient.Get(testCtx, mdb.PVCKey(volume, i), &pvc)).To(Succeed())
+					patch := client.MergeFrom(pvc.DeepCopy())
+					if pvc.Labels == nil {
+						pvc.Labels = make(map[string]string)
+					}
+					if pvc.Annotations == nil {
+						pvc.Annotations = make(map[string]string)
+					}
+					pvc.Labels[externalKey] = "keep"
+					pvc.Annotations[externalKey] = "keep"
+					g.Expect(k8sClient.Patch(testCtx, &pvc, patch)).To(Succeed())
+					return true
+				}, testTimeout, testInterval).Should(BeTrue())
+				originalPVCs = append(originalPVCs, pvc)
+			}
+		}
+
+		for _, value := range []string{"true", "false", ""} {
+			By("Patching both PVC templates with metadata value: " + value)
+			Eventually(func(g Gomega) bool {
+				g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+				patch := client.MergeFrom(mdb.DeepCopy())
+				for _, template := range []*mariadbv1alpha1.VolumeClaimTemplate{
+					mdb.Spec.Storage.VolumeClaimTemplate, mdb.Spec.Galera.Config.VolumeClaimTemplate,
+				} {
+					g.Expect(template).ToNot(BeNil())
+					template.Metadata = nil
+					if value != "" {
+						template.Metadata = &mariadbv1alpha1.Metadata{
+							Labels:      map[string]string{metadataKey: value},
+							Annotations: map[string]string{metadataKey: value},
+						}
+					}
+				}
+				g.Expect(k8sClient.Patch(testCtx, mdb, patch)).To(Succeed())
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting metadata additions, updates and removals on every existing PVC")
+			Eventually(func(g Gomega) bool {
+				for _, original := range originalPVCs {
+					var pvc corev1.PersistentVolumeClaim
+					g.Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&original), &pvc)).To(Succeed())
+					g.Expect(pvc.UID).To(Equal(original.UID))
+					g.Expect(pvc.Spec).To(Equal(original.Spec))
+					g.Expect(pvc.Labels).To(HaveKeyWithValue(externalKey, "keep"))
+					g.Expect(pvc.Annotations).To(HaveKeyWithValue(externalKey, "keep"))
+					if value == "" {
+						g.Expect(pvc.Labels).ToNot(HaveKey(metadataKey))
+						g.Expect(pvc.Annotations).ToNot(HaveKey(metadataKey))
+					} else {
+						g.Expect(pvc.Labels).To(HaveKeyWithValue(metadataKey, value))
+						g.Expect(pvc.Annotations).To(HaveKeyWithValue(metadataKey, value))
+					}
+				}
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
+		}
+
+		By("Expecting metadata-only changes to preserve the StatefulSet and Pods")
+		Consistently(func(g Gomega) bool {
+			var sts appsv1.StatefulSet
+			g.Expect(k8sClient.Get(testCtx, key, &sts)).To(Succeed())
+			g.Expect(sts.UID).To(Equal(originalSts.UID))
+			g.Expect(sts.Spec.Template).To(Equal(originalSts.Spec.Template))
+			for podKey, uid := range podUIDs {
+				var pod corev1.Pod
+				g.Expect(k8sClient.Get(testCtx, podKey, &pod)).To(Succeed())
+				g.Expect(pod.UID).To(Equal(uid))
+			}
+			return true
+		}, 5*time.Second, testInterval).Should(BeTrue())
 	})
 
 	It("should recover after Galera cluster crash", func() {

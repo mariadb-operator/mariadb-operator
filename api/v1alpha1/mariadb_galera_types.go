@@ -233,7 +233,7 @@ type GaleraConfig struct {
 	// VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty" webhook:"inmutableinit"`
+	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
 }
 
 // SetDefaults sets reasonable defaults.
