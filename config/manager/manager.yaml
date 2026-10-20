@@ -49,7 +49,7 @@ spec:
             - name: RELATED_IMAGE_MARIADB_NAME
               value: mariadb
             - name: RELATED_IMAGE_MAXSCALE
-              value: mariadb/maxscale:23.08.5
+              value: mariadb/maxscale:23.08.13-2
             - name: RELATED_IMAGE_EXPORTER
               value: prom/mysqld-exporter:v0.15.1
             - name: RELATED_IMAGE_EXPORTER_MAXSCALE

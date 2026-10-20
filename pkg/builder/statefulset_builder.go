@@ -55,10 +55,17 @@ const (
 	ABSPKI          = "pki-abs"
 	ABSPKIMountPath = "/etc/abs/pki"
 
-	mysqlUser     = int64(999)
-	mysqlGroup    = int64(999)
-	maxscaleUser  = int64(998)
-	maxscaleGroup = int64(996)
+	mysqlUser  = int64(999)
+	mysqlGroup = int64(999)
+
+	// MaxScale images previous to 23.08.6 ship the 'maxscale' user as 998:996, newer ones as 997:995.
+	// The '-0' suffix in the version makes image tags with a build suffix (e.g. 23.08.13-2), which are
+	// interpreted as semver pre-releases, compare greater than the version they are built from.
+	maxscaleUserGroupVersion = "23.08.6-0"
+	maxscaleLegacyUser       = int64(998)
+	maxscaleLegacyGroup      = int64(996)
+	maxscaleUser             = int64(997)
+	maxscaleGroup            = int64(995)
 )
 
 func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,

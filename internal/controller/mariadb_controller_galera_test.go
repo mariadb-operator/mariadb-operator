@@ -206,8 +206,12 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 
 		By("Creating MariaDB Galera")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+		// Wait for the PVCs to be gone: "MariaDB Galera disaster recovery" reuses this MariaDB name, and leftover
+		// PVCs make the operator treat the new MariaDB as an existing cluster to recover (see 'ReconcileInit'),
+		// skipping the Galera cluster bootstrap and leaving empty Pods that recovery cannot bootstrap from:
+		// https://github.com/mariadb-operator/mariadb-operator/actions/runs/35097412446/job/104798146649?pr=1897
 		DeferCleanup(func() {
-			deleteMariadb(key, false)
+			deleteMariadb(key, true)
 		})
 	})
 

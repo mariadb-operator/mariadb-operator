@@ -126,7 +126,7 @@ func (p *Complete) PatcherRefResolver(err error, obj runtime.Object) Patcher {
 }
 
 func getType(obj interface{}) string {
-	if t := reflect.TypeOf(obj); t.Kind() == reflect.Ptr {
+	if t := reflect.TypeOf(obj); t.Kind() == reflect.Pointer {
 		return t.Elem().Name()
 	} else {
 		return t.Name()

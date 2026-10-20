@@ -61,7 +61,7 @@ func (r *PodController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	if mariadbpod.PodReady(&pod) {
 		if err := r.podReadinessController.ReconcilePodReady(ctx, pod, mariadb); err != nil {
 			log.FromContext(ctx).V(1).Info("Error reconciling Pod in Ready state", "pod", pod.Name)
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 		}
 	} else {
 		if err := r.podReadinessController.ReconcilePodNotReady(ctx, pod, mariadb); err != nil {
@@ -70,7 +70,7 @@ func (r *PodController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 			}
 			log.FromContext(ctx).V(1).Info("Error reconciling Pod in non Ready state", "pod", pod.Name)
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 		}
 	}
 	return ctrl.Result{}, nil

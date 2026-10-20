@@ -124,6 +124,28 @@ helm install mariadb-operator \
   mariadb-operator/mariadb-operator
 ```
 
+#### Specific namespaces
+
+To watch a set of namespaces rather than all of them or just the operator's own, set the `WATCH_NAMESPACE` environment variable to a comma-separated list. RBAC stays cluster-wide, so leave `currentNamespaceOnly` at its default:
+
+```bash
+helm install mariadb-operator \
+  -n databases --create-namespace \
+  --set 'extraEnv[0].name=WATCH_NAMESPACE' \
+  --set 'extraEnv[0].value=app-a\,app-b' \
+  mariadb-operator/mariadb-operator
+```
+
+The operator logs the namespaces it ends up watching on startup:
+
+```json
+{"level":"info","ts":1756742400.123,"logger":"setup","msg":"Watching namespaces","namespaces":["app-a","app-b"]}
+```
+
+The timestamp and encoding follow the `--log-time-encoder` and `--log-dev` flags, so grep for `Watching namespaces` rather than the whole line.
+
+Setting `currentNamespaceOnly=true` is equivalent to setting `WATCH_NAMESPACE` to the release namespace.
+
 ## Updates
 
 > [!IMPORTANT]  

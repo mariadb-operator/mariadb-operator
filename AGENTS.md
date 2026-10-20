@@ -299,16 +299,24 @@ Implications when writing integration tests: `make net` is a hard prerequisite (
 
 The integration suite runs the operator **in-process** against the existing cluster: `suite_test.go` sets `UseExistingCluster: true` (it does not bring up its own control plane) and starts the manager with `k8sManager.Start` (`internal/controller/suite_test.go:103,365`). So `make cluster`, `make install`, `make install-minio` and `make net` must all be in place before `make test-int`. A focused single-spec run still takes several minutes (BeforeSuite boots the initial fixtures and each switchover/failover spec has a 300s `Eventually` window) — don't call it hung early.
 
-Before each run, clear the two setup failures that masquerade as test regressions:
+Before each run, clear the three setup failures that masquerade as test regressions:
 
 - **A stray process holding `:8080` breaks BeforeSuite.** The in-process manager binds `:8080` (controller-runtime's default metrics address; the operator binary's `--metrics-addr` defaults to the same, `cmd/controller/main.go:118`). A leftover `make run`, `make webhook` or `cert-controller` — or another agent's task sharing the host — makes `k8sManager.Start` fail. Find it with `lsof -i:8080 -sTCP:LISTEN` and kill it before re-running.
 - **Interrupted runs leave orphan fixtures → `already exists` (409) on the next run.** `testCreateInitialData` (`internal/controller/suite_test.go:372`) seeds shared CRs and Secrets; a run killed mid-flight can leave a `MariaDB` (e.g. `mdb-test`) plus the Secrets it generated (`password`, SSEC, cert) behind, which the next run cannot re-create. Delete the leftover CR and Secrets, or delete and recreate the test namespace. Nuclear reset: `make cluster-delete && make cluster && make install && make install-minio && make net`.
+- **A missing operator SA token masquerades as a replication bug.** The in-process manager authenticates to the in-cluster agent over the token file at `MARIADB_OPERATOR_SA_PATH` (`make/dev.mk:3`, default `/tmp/mariadb-operator/token`). `make serviceaccount` (`hack/create_serviceaccount.sh`) creates it — it is part of `make install` but **not** a prerequisite of the `test-int*` targets. When it is missing or stale (e.g. after `make cluster`), every agent-client call fails at V(1) once a second, the 60s poll in `ensureReplicationConfiguredInPod` (`internal/controller/mariadb_controller_init.go:440`) burns its budget, and the replica-cluster spec dies with `context deadline exceeded` — nothing in the operator log points at the cause. Re-run `make serviceaccount` (it re-extracts the token from the current cluster's SA secret).
 
 kubectl gotchas that burn cycles:
 
 - **Use the real CRD short names** — `mdb` (MariaDB), `emdb` (ExternalMariaDB), `mxs` (MaxScale), `pitr` (PointInTimeRecovery); also `umdb`, `gmdb`, `dmdb`, `bmdb`, `pbmdb`, `rmdb`, `smdb`, `cmdb`. `msx` and `ext` **do not exist**: `kubectl get mdb,msx,ext` errors on the bad name, and piping stderr to `/dev/null` hides it so it looks like "no CRs". Don't mask kubectl stderr while hunting for state.
 - **`make dump`** dumps CRs, pods, events and operator logs in one shot — the first stop when a spec is stuck.
 - **A wedged rejoin is not in the operator log.** `StartSlave` returns success while the replica SQL thread fails asynchronously, so a stuck switchover shows no operator-level error. The real signal is in the rejoining pod's `SHOW REPLICA STATUS` (`Last_Errno`/`Last_Error`), which the agent liveness probe reads (a failing probe restarts the pod and loops `Enabling readonly`). Compare `status.currentPrimary` against the expected ordinal to tell "switchover never happened" from "primary moved but the old primary won't rejoin".
+
+When a spec appears stuck with no error in the log:
+
+- **The suite logs at InfoLevel.** The controller's per-second poll failures are V(1) and invisible by default (`internal/controller/suite_test.go:76`). Temporarily bump that line to `zapcore.DebugLevel` to surface them, then revert before committing.
+- **A green run prints a compact log.** Ginkgo only dumps each spec's writer buffer (the controller logs) on failure or with `--v`; a few KB of log for a 10-spec run is a pass, not truncation. Pass `TEST_ARGS="... --v"` to confirm a flow actually executed in a green run.
+- **The multi-cluster describes are `Ordered`** (`internal/controller/mariadb_controller_multicluster_test.go:87`): each spec applies the fixtures the later ones consume, so an early failure blocks every later spec (including the switchover spec), and `--focus` must target the whole container, not a single later spec.
+- **`kind load` may fail with containerd "content digest not found"** on some host Docker/containerd combinations. Workaround for data-plane images (`RELATED_IMAGE_*`): pull them into the node's containerd directly — `docker exec mdb-control-plane crictl pull <image>`.
 
 ## CI — what a PR must pass
 

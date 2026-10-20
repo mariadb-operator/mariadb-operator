@@ -227,7 +227,7 @@ func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, backu
 				if err := r.deleteJobSync(ctx, &job, logger); err != nil {
 					return ctrl.Result{}, fmt.Errorf("error deleting expired Job: %v", err)
 				}
-				return ctrl.Result{Requeue: true}, nil
+				return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 			}
 
 			logger.V(1).Info("PhysicalBackup Job is still running. Requeuing...", "job", job.Name)

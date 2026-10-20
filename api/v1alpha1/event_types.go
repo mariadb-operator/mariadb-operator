@@ -21,6 +21,10 @@ const (
 	ReasonReplicationReplicaConn = "ReplicaConn"
 	// ReasonReplicationPrimaryToReplica indicates that current primary is being unlocked to become a replica.
 	ReasonReplicationPrimaryToReplica = "PrimaryToReplica"
+	// ReasonReplicationSemiSyncEnabled indicates that primary-side semi-synchronous replication has been enabled in a Pod.
+	ReasonReplicationSemiSyncEnabled = "SemiSyncEnabled"
+	// ReasonReplicationSemiSyncDisabled indicates that primary-side semi-synchronous replication has been disabled in a Pod.
+	ReasonReplicationSemiSyncDisabled = "SemiSyncDisabled"
 
 	// ReasonGaleraClusterHealthy indicates that the cluster is healthy,
 	ReasonGaleraClusterHealthy = "GaleraClusterHealthy"

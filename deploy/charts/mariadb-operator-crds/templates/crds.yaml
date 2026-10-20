@@ -7565,6 +7565,19 @@ spec:
                       It requires semi-synchronous replication to be enabled.
                       See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
                     type: string
+                  semiSyncBootAsReplica:
+                    description: |-
+                      SemiSyncBootAsReplica determines whether a node boots read-only and with primary-side semi-synchronous replication
+                      disabled, so that it is never writable while it is unable to require a replica acknowledgement.
+                      Both read_only and rpl_semi_sync_master_enabled are dynamic global variables that do not survive a restart, so setting
+                      this to true renders them as ON and OFF respectively in the configuration file. The operator then enables
+                      primary-side semi-synchronous replication in the current primary and hands write traffic back to it, in this order.
+                      Setting it to false renders rpl_semi_sync_master_enabled=ON and omits read_only, so every node boots as a writable
+                      semi-synchronous primary.
+                      See: https://mariadb.com/docs/maxscale/mariadb-maxscale-tutorials/failure-tolerant-replication-and-failover#enable-semi-synchronous-replication
+                      It requires semi-synchronous replication to be enabled.
+                      It is disabled by default.
+                    type: boolean
                   semiSyncEnabled:
                     description: |-
                       SemiSyncEnabled determines whether semi-synchronous replication is enabled.
@@ -7576,9 +7589,8 @@ spec:
                   semiSyncWaitNoSlave:
                     description: |-
                       SemiSyncWaitNoSlave determines whether the primary waits for the semi-synchronous ACK timeout to expire when it has
-                      no semi-synchronous replicas connected. Since the operator configures every node as a semi-synchronous primary, replicas
-                      with log_slave_updates enabled also hit this wait when applying transactions. Disabling it makes them fall back to
-                      asynchronous commit immediately instead of stalling for the whole semiSyncAckTimeout.
+                      no semi-synchronous replicas connected. Disabling it makes it fall back to asynchronous commit immediately instead of
+                      stalling for the whole semiSyncAckTimeout.
                       It requires semi-synchronous replication to be enabled.
                       It is enabled by default by the server.
                       See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_no_slave
@@ -8489,6 +8501,11 @@ spec:
                     description: |-
                       AutoUpdateDataPlane indicates whether the Galera data-plane version (agent and init containers) should be automatically updated based on the operator version. It defaults to false.
                       Updating the operator will trigger updates on all the MariaDB instances that have this flag set to true. Thus, it is recommended to progressively set this flag after having updated the operator.
+                    type: boolean
+                  mariadbAutoUpgradeEnabled:
+                    description: |-
+                      MariaDBAutoUpgradeEnabled indicates whether the official `mariadb` image entrypoint should run `mariadb-upgrade` on start, by setting `MARIADB_AUTO_UPGRADE=true` in the `mariadb` container env. It defaults to false.
+                      Set this to true before bumping `spec.image` to a new major version, so that the server schema is migrated when the Pods roll. Leaving it set afterwards is safe: `mariadb-upgrade` is a no-op when there is nothing to migrate.
                     type: boolean
                   rollingUpdate:
                     description: RollingUpdate defines parameters for the RollingUpdate
@@ -9889,6 +9906,34 @@ spec:
                       type: object
                   type: object
                 type: array
+              filters:
+                description: |-
+                  Filters are the filters to load into MaxScale. They are not applied automatically, they must be
+                  referenced explicitly from 'spec.services[].filters'.
+                items:
+                  description: |-
+                    MaxScaleFilter defines a MaxScale filter to be applied to services.
+                    Filters must be referenced explicitly from 'spec.services[].filters'.
+                  properties:
+                    module:
+                      description: Module is the filter module to load.
+                      type: string
+                    name:
+                      description: Name is the identifier of the MaxScale filter.
+                      type: string
+                    params:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        Params defines extra parameters to pass to the filter.
+                        Any parameter supported by the filter module may be specified here. See reference:
+                        https://mariadb.com/docs/maxscale/reference/maxscale-filters
+                      type: object
+                  required:
+                  - module
+                  - name
+                  type: object
+                type: array
               guiKubernetesService:
                 description: GuiKubernetesService defines a template for a Kubernetes
                   Service object to connect to MaxScale's GUI.
@@ -11082,6 +11127,12 @@ spec:
                   description: Services define how the traffic is forwarded to the
                     MariaDB servers.
                   properties:
+                    filters:
+                      description: Filters are the names of the filters defined in
+                        'spec.filters' to apply to this service, in order.
+                      items:
+                        type: string
+                      type: array
                     listener:
                       description: MaxScaleListener defines how the MaxScale server
                         will listen for connections.
@@ -11520,6 +11571,106 @@ spec:
                   - name
                   type: object
                 type: array
+              volumes:
+                description: Volumes to be used in the Pod.
+                items:
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.'
+                  properties:
+                    configMap:
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#configmapvolumesource-v1-core.'
+                      properties:
+                        defaultMode:
+                          format: int32
+                          type: integer
+                        name:
+                          default: ""
+                          type: string
+                      type: object
+                    csi:
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#csivolumesource-v1-core.'
+                      properties:
+                        driver:
+                          type: string
+                        fsType:
+                          type: string
+                        nodePublishSecretRef:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#localobjectreference-v1-core.'
+                          properties:
+                            name:
+                              default: ""
+                              type: string
+                          type: object
+                        readOnly:
+                          type: boolean
+                        volumeAttributes:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      required:
+                      - driver
+                      type: object
+                    emptyDir:
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#emptydirvolumesource-v1-core.'
+                      properties:
+                        medium:
+                          description: StorageMedium defines ways that storage can
+                            be allocated to a volume.
+                          type: string
+                        sizeLimit:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                      type: object
+                    hostPath:
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#hostpathvolumesource-v1-core'
+                      properties:
+                        path:
+                          type: string
+                        type:
+                          type: string
+                      required:
+                      - path
+                      type: object
+                    name:
+                      type: string
+                    nfs:
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nfsvolumesource-v1-core.'
+                      properties:
+                        path:
+                          type: string
+                        readOnly:
+                          type: boolean
+                        server:
+                          type: string
+                      required:
+                      - path
+                      - server
+                      type: object
+                    persistentVolumeClaim:
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#persistentvolumeclaimvolumesource-v1-core.'
+                      properties:
+                        claimName:
+                          type: string
+                        readOnly:
+                          type: boolean
+                      required:
+                      - claimName
+                      type: object
+                    secret:
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#secretvolumesource-v1-core.'
+                      properties:
+                        defaultMode:
+                          format: int32
+                          type: integer
+                        secretName:
+                          type: string
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
             type: object
           status:
             description: MaxScaleStatus defines the observed state of MaxScale
@@ -11592,6 +11743,10 @@ spec:
                 - databaseVersion
                 - maxScaleVersion
                 type: object
+              filtersSpec:
+                description: FiltersSpec is a hashed version of spec.filters to be
+                  able to track changes during reconciliation.
+                type: string
               listeners:
                 description: Listeners is the state of the listeners in the MaxScale
                   API.

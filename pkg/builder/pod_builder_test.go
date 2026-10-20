@@ -2,6 +2,7 @@ package builder
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -1258,33 +1259,200 @@ func TestMaxscalePodBuilder(t *testing.T) {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
 	builder := newTestBuilder(d)
-	mxs := &mariadbv1alpha1.MaxScale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-maxscale-builder",
+
+	tests := []struct {
+		name      string
+		image     string
+		wantUser  int64
+		wantGroup int64
+	}{
+		{
+			name:      "no image",
+			image:     "",
+			wantUser:  maxscaleLegacyUser,
+			wantGroup: maxscaleLegacyGroup,
+		},
+		{
+			name:      "image without version",
+			image:     "mariadb/maxscale:latest",
+			wantUser:  maxscaleLegacyUser,
+			wantGroup: maxscaleLegacyGroup,
+		},
+		{
+			name:      "image with digest",
+			image:     "mariadb/maxscale@sha256:02171471b9431fd8b19aa150ed56f28ece316e13fe1fb5cda9d16c1601cee103",
+			wantUser:  maxscaleLegacyUser,
+			wantGroup: maxscaleLegacyGroup,
+		},
+		{
+			name:      "legacy version",
+			image:     "mariadb/maxscale:23.08.5",
+			wantUser:  maxscaleLegacyUser,
+			wantGroup: maxscaleLegacyGroup,
+		},
+		{
+			name:      "first version with new user and group",
+			image:     "mariadb/maxscale:23.08.6",
+			wantUser:  maxscaleUser,
+			wantGroup: maxscaleGroup,
+		},
+		{
+			name:      "first version with new user and group and build suffix",
+			image:     "mariadb/maxscale:23.08.6-1",
+			wantUser:  maxscaleUser,
+			wantGroup: maxscaleGroup,
+		},
+		{
+			name:      "newer version",
+			image:     "mariadb/maxscale:23.08.13-2",
+			wantUser:  maxscaleUser,
+			wantGroup: maxscaleGroup,
+		},
+		{
+			name:      "newer minor version",
+			image:     "mariadb/maxscale:24.02.6",
+			wantUser:  maxscaleUser,
+			wantGroup: maxscaleGroup,
 		},
 	}
 
-	podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mxs := &mariadbv1alpha1.MaxScale{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-maxscale-builder",
+				},
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Image: tt.image,
+				},
+			}
+
+			podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+			}
+
+			if podTpl.Spec.SecurityContext == nil {
+				t.Fatal("expected podSecurityContext to have been set")
+			}
+			sc := ptr.Deref(podTpl.Spec.SecurityContext, corev1.PodSecurityContext{})
+			runAsUser := ptr.Deref(sc.RunAsUser, 0)
+			runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
+			fsGroup := ptr.Deref(sc.FSGroup, 0)
+
+			if runAsUser != tt.wantUser {
+				t.Errorf("unexpected maxscale user, got: %d, want: %d", runAsUser, tt.wantUser)
+			}
+			if runAsGroup != tt.wantGroup {
+				t.Errorf("unexpected maxscale group, got: %d, want: %d", runAsGroup, tt.wantGroup)
+			}
+			if fsGroup != tt.wantGroup {
+				t.Errorf("unexpected maxscale fsGroup, got: %d, want: %d", fsGroup, tt.wantGroup)
+			}
+		})
+	}
+}
+
+func TestMaxscalePodBuilderVolumes(t *testing.T) {
+	d, err := discovery.NewFakeDiscovery()
 	if err != nil {
-		t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+		t.Fatalf("unexpected error getting discovery: %v", err)
+	}
+	builder := newTestBuilder(d)
+
+	defaultVolumes := []string{ConfigVolume, RunVolume, LogVolume, CacheVolume}
+
+	tests := []struct {
+		name        string
+		volumes     []mariadbv1alpha1.Volume
+		wantVolumes []string
+	}{
+		{
+			name:        "no volumes",
+			volumes:     nil,
+			wantVolumes: defaultVolumes,
+		},
+		{
+			name: "single volume",
+			volumes: []mariadbv1alpha1.Volume{
+				{
+					Name: "maxscale-extra-config",
+					VolumeSource: mariadbv1alpha1.VolumeSource{
+						ConfigMap: &mariadbv1alpha1.ConfigMapVolumeSource{
+							LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+								Name: "maxscale-extra-config",
+							},
+						},
+					},
+				},
+			},
+			wantVolumes: append(slices.Clone(defaultVolumes), "maxscale-extra-config"),
+		},
+		{
+			name: "multiple volumes",
+			volumes: []mariadbv1alpha1.Volume{
+				{
+					Name: "maxscale-extra-config",
+					VolumeSource: mariadbv1alpha1.VolumeSource{
+						ConfigMap: &mariadbv1alpha1.ConfigMapVolumeSource{
+							LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+								Name: "maxscale-extra-config",
+							},
+						},
+					},
+				},
+				{
+					Name: "maxscale-scratch",
+					VolumeSource: mariadbv1alpha1.VolumeSource{
+						StorageVolumeSource: mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			wantVolumes: append(slices.Clone(defaultVolumes), "maxscale-extra-config", "maxscale-scratch"),
+		},
 	}
 
-	if podTpl.Spec.SecurityContext == nil {
-		t.Error("expected podSecurityContext to have been set")
-	}
-	sc := ptr.Deref(podTpl.Spec.SecurityContext, corev1.PodSecurityContext{})
-	runAsUser := ptr.Deref(sc.RunAsUser, 0)
-	runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
-	fsGroup := ptr.Deref(sc.FSGroup, 0)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mxs := &mariadbv1alpha1.MaxScale{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-maxscale-builder",
+				},
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
+						Volumes: tt.volumes,
+					},
+				},
+			}
 
-	if runAsUser != maxscaleUser {
-		t.Errorf("expected to run as maxscale user, got user: %d", runAsUser)
-	}
-	if runAsGroup != maxscaleGroup {
-		t.Errorf("expected to run as maxscale group, got group: %d", runAsGroup)
-	}
-	if fsGroup != maxscaleGroup {
-		t.Errorf("expected to run as maxscale fsGroup, got fsGroup: %d", fsGroup)
+			podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+			}
+
+			gotVolumes := make([]string, len(podTpl.Spec.Volumes))
+			for i, v := range podTpl.Spec.Volumes {
+				gotVolumes[i] = v.Name
+			}
+			if !reflect.DeepEqual(gotVolumes, tt.wantVolumes) {
+				t.Errorf("unexpected volumes, got: %v, want: %v", gotVolumes, tt.wantVolumes)
+			}
+
+			// the user defined volumes must keep their source after being converted to the Kubernetes type
+			for _, volume := range tt.volumes {
+				idx := slices.IndexFunc(podTpl.Spec.Volumes, func(v corev1.Volume) bool {
+					return v.Name == volume.Name
+				})
+				if idx == -1 {
+					t.Fatalf("expected volume '%s' to have been added", volume.Name)
+				}
+				if got, want := podTpl.Spec.Volumes[idx], volume.ToKubernetesType(); !reflect.DeepEqual(got, want) {
+					t.Errorf("unexpected volume '%s', got: %v, want: %v", volume.Name, got, want)
+				}
+			}
+		})
 	}
 }
 

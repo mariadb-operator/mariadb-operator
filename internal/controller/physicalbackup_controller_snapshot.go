@@ -400,7 +400,7 @@ func (r *PhysicalBackupReconciler) waitForProvisionedSnapshots(ctx context.Conte
 			if err := r.Delete(ctx, &snapshot); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error deleting expired VolumeSnapshot: %v", err)
 			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 		}
 
 		logger.V(1).Info(

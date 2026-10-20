@@ -7,7 +7,7 @@ on:
   pull_request: {}
 
 env:
-  GOLANGCI_VERSION: "v2.11.2"
+  GOLANGCI_VERSION: "v2.13.2"
 
 jobs:
   detect-noop:
@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Find typos
-        uses: crate-ci/typos@v1.48.0
+        uses: crate-ci/typos@v1.51.1
         with:
           files: ./api ./cmd ./internal ./pkg
           config: ./.typos.toml

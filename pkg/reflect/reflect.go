@@ -9,7 +9,7 @@ func IsNil(i interface{}) bool {
 	v := reflect.ValueOf(i)
 
 	switch v.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.UnsafePointer, reflect.Slice, reflect.Interface:
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Pointer, reflect.UnsafePointer, reflect.Slice, reflect.Interface:
 		return v.IsNil()
 	default:
 		return false

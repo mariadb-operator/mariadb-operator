@@ -76,6 +76,7 @@ type PodEnvironment struct {
 	MariaDBReplSemiSyncMasterTimeout     string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT"`
 	MariaDBReplSemiSyncMasterWaitPoint   string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT"`
 	MariaDBReplSemiSyncMasterWaitNoSlave string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_NO_SLAVE"`
+	MariaDBReplSemiSyncBootAsReplica     string `env:"MARIADB_REPL_SEMI_SYNC_BOOT_AS_REPLICA"`
 	MariaDBReplMasterSyncBinlog          string `env:"MARIADB_REPL_SYNC_BINLOG"`
 
 	TLSEnabled        string `env:"TLS_ENABLED"`
@@ -164,6 +165,25 @@ func (e *PodEnvironment) ReplSemiSyncMasterWaitNoSlave() (*bool, error) {
 		return nil, fmt.Errorf("invalid replication master wait no slave: %w", err)
 	}
 	return &waitNoSlave, nil
+}
+
+func (e *PodEnvironment) ReplSemiSyncBootAsReplica() (bool, error) {
+	replEnabled, err := e.IsReplEnabled()
+	if err != nil {
+		return false, err
+	}
+	if !replEnabled {
+		return false, errors.New("replication must be enabled")
+	}
+
+	if e.MariaDBReplSemiSyncBootAsReplica == "" {
+		return false, nil
+	}
+	bootAsReplica, err := strconv.ParseBool(e.MariaDBReplSemiSyncBootAsReplica)
+	if err != nil {
+		return false, fmt.Errorf("invalid replication semi-sync boot as replica: %w", err)
+	}
+	return bootAsReplica, nil
 }
 
 func (e *PodEnvironment) ReplSyncBinlog() (*int, error) {

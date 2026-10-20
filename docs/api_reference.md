@@ -193,7 +193,8 @@ _Appears in:_
 | `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
-| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip zstd] <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[BackupStorage](#backupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
@@ -331,6 +332,7 @@ _Appears in:_
 | `none` | No compression<br /> |
 | `bzip2` | Bzip2 compression. Good compression ratio, but slower compression/decompression speed compared to gzip.<br /> |
 | `gzip` | Gzip compression. Good compression/decompression speed, but worse compression ratio compared to bzip2.<br /> |
+| `zstd` | Zstd compression. Excellent compression/decompression speed with good compression ratio.<br /> |
 
 
 #### ConfigMapKeySelector
@@ -1667,6 +1669,25 @@ _Appears in:_
 | `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | Interval defines the config synchronization timeout. It is defaulted if not provided. |  |  |
 
 
+#### MaxScaleFilter
+
+
+
+MaxScaleFilter defines a MaxScale filter to be applied to services.
+Filters must be referenced explicitly from 'spec.services[].filters'.
+
+
+
+_Appears in:_
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the identifier of the MaxScale filter. |  | Required: \{\} <br /> |
+| `module` _string_ | Module is the filter module to load. |  | Required: \{\} <br /> |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the filter.<br />Any parameter supported by the filter module may be specified here. See reference:<br />https://mariadb.com/docs/maxscale/reference/maxscale-filters |  |  |
+
+
 #### MaxScaleListener
 
 
@@ -1763,6 +1784,7 @@ _Appears in:_
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `volumes` _[Volume](#volume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
 | `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
@@ -1807,6 +1829,7 @@ _Appears in:_
 | `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |  | Enum: [readwritesplit readconnroute] <br />Required: \{\} <br /> |
 | `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |  | Required: \{\} <br /> |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the service.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.<br />Router specific parameter are also supported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration. |  |  |
+| `filters` _string array_ | Filters are the names of the filters defined in 'spec.filters' to apply to this service, in order. |  |  |
 
 
 #### MaxScaleSpec
@@ -1840,6 +1863,7 @@ _Appears in:_
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `volumes` _[Volume](#volume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
 | `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
@@ -1847,6 +1871,7 @@ _Appears in:_
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field. |  |  |
 | `primaryServer` _string_ | PrimaryServer specifies the desired primary server. Setting this field triggers a switchover operation in MaxScale to the desired server.<br />This option is only valid when using monitors that support switchover, currently limited to the MariaDB monitor. |  |  |
 | `servers` _[MaxScaleServer](#maxscaleserver) array_ | Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided. |  |  |
+| `filters` _[MaxScaleFilter](#maxscalefilter) array_ | Filters are the filters to load into MaxScale. They are not applied automatically, they must be<br />referenced explicitly from 'spec.services[].filters'. |  |  |
 | `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.<br />Only MaxScale official images are supported. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
@@ -2289,7 +2314,8 @@ _Appears in:_
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `target` _[PhysicalBackupTarget](#physicalbackuptarget)_ | Target defines in which Pod the physical backups will be taken. It defaults to "Replica", meaning that the physical backups will only be taken in ready replicas. |  | Enum: [Replica PreferReplica] <br /> |
-| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip zstd] <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the PhysicalBackup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[PhysicalBackupStorage](#physicalbackupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[PhysicalBackupSchedule](#physicalbackupschedule)_ | Schedule defines when the PhysicalBackup will be taken. |  |  |
@@ -2479,7 +2505,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `physicalBackupRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupRef is a reference to a PhysicalBackup object that will be used as base backup. |  | Required: \{\} <br /> |
 | `storage` _[PointInTimeRecoveryStorage](#pointintimerecoverystorage)_ | PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored |  | Required: \{\} <br /> |
-| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs.<br />This field is immutable, it cannot be updated after creation. |  | Enum: [none bzip2 gzip] <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs.<br />This field is immutable, it cannot be updated after creation. |  | Enum: [none bzip2 gzip zstd] <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
 | `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival.<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
 | `strictMode` _boolean_ | StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:<br />When enabled: Returns an error and avoids replaying binary logs if target time is not reached.<br />When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached. |  |  |
 
@@ -2680,6 +2707,8 @@ _Appears in:_
 | `semiSyncEnabled` _boolean_ | SemiSyncEnabled determines whether semi-synchronous replication is enabled.<br />Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node<br />before committing the transaction back to the client.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication<br />It is enabled by default |  |  |
 | `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
 | `semiSyncWaitPoint` _[WaitPoint](#waitpoint)_ | SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)<br />or after having committed to the storage engine (AfterCommit, the default).<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
+| `semiSyncWaitNoSlave` _boolean_ | SemiSyncWaitNoSlave determines whether the primary waits for the semi-synchronous ACK timeout to expire when it has<br />no semi-synchronous replicas connected. Disabling it makes it fall back to asynchronous commit immediately instead of<br />stalling for the whole semiSyncAckTimeout.<br />It requires semi-synchronous replication to be enabled.<br />It is enabled by default by the server.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_no_slave |  |  |
+| `semiSyncBootAsReplica` _boolean_ | SemiSyncBootAsReplica determines whether a node boots read-only and with primary-side semi-synchronous replication<br />disabled, so that it is never writable while it is unable to require a replica acknowledgement.<br />Both read_only and rpl_semi_sync_master_enabled are dynamic global variables that do not survive a restart, so setting<br />this to true renders them as ON and OFF respectively in the configuration file. The operator then enables<br />primary-side semi-synchronous replication in the current primary and hands write traffic back to it, in this order.<br />Setting it to false renders rpl_semi_sync_master_enabled=ON and omits read_only, so every node boots as a writable<br />semi-synchronous primary.<br />See: https://mariadb.com/docs/maxscale/mariadb-maxscale-tutorials/failure-tolerant-replication-and-failover#enable-semi-synchronous-replication<br />It requires semi-synchronous replication to be enabled.<br />It is disabled by default. |  |  |
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `agent` _[Agent](#agent)_ | Agent is a sidecar agent that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
@@ -2710,6 +2739,8 @@ _Appears in:_
 | `semiSyncEnabled` _boolean_ | SemiSyncEnabled determines whether semi-synchronous replication is enabled.<br />Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node<br />before committing the transaction back to the client.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication<br />It is enabled by default |  |  |
 | `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
 | `semiSyncWaitPoint` _[WaitPoint](#waitpoint)_ | SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)<br />or after having committed to the storage engine (AfterCommit, the default).<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
+| `semiSyncWaitNoSlave` _boolean_ | SemiSyncWaitNoSlave determines whether the primary waits for the semi-synchronous ACK timeout to expire when it has<br />no semi-synchronous replicas connected. Disabling it makes it fall back to asynchronous commit immediately instead of<br />stalling for the whole semiSyncAckTimeout.<br />It requires semi-synchronous replication to be enabled.<br />It is enabled by default by the server.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_no_slave |  |  |
+| `semiSyncBootAsReplica` _boolean_ | SemiSyncBootAsReplica determines whether a node boots read-only and with primary-side semi-synchronous replication<br />disabled, so that it is never writable while it is unable to require a replica acknowledgement.<br />Both read_only and rpl_semi_sync_master_enabled are dynamic global variables that do not survive a restart, so setting<br />this to true renders them as ON and OFF respectively in the configuration file. The operator then enables<br />primary-side semi-synchronous replication in the current primary and hands write traffic back to it, in this order.<br />Setting it to false renders rpl_semi_sync_master_enabled=ON and omits read_only, so every node boots as a writable<br />semi-synchronous primary.<br />See: https://mariadb.com/docs/maxscale/mariadb-maxscale-tutorials/failure-tolerant-replication-and-failover#enable-semi-synchronous-replication<br />It requires semi-synchronous replication to be enabled.<br />It is disabled by default. |  |  |
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `agent` _[Agent](#agent)_ | Agent is a sidecar agent that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
@@ -3431,6 +3462,7 @@ _Appears in:_
 | `type` _[UpdateType](#updatetype)_ | Type defines the type of updates. One of `ReplicasFirstPrimaryLast`, `RollingUpdate` or `OnDelete`. If not defined, it defaults to `ReplicasFirstPrimaryLast`. | ReplicasFirstPrimaryLast | Enum: [ReplicasFirstPrimaryLast RollingUpdate OnDelete Never] <br /> |
 | `rollingUpdate` _[RollingUpdateStatefulSetStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#rollingupdatestatefulsetstrategy-v1-apps)_ | RollingUpdate defines parameters for the RollingUpdate type. |  |  |
 | `autoUpdateDataPlane` _boolean_ | AutoUpdateDataPlane indicates whether the Galera data-plane version (agent and init containers) should be automatically updated based on the operator version. It defaults to false.<br />Updating the operator will trigger updates on all the MariaDB instances that have this flag set to true. Thus, it is recommended to progressively set this flag after having updated the operator. |  |  |
+| `mariadbAutoUpgradeEnabled` _boolean_ | MariaDBAutoUpgradeEnabled indicates whether the official `mariadb` image entrypoint should run `mariadb-upgrade` on start, by setting `MARIADB_AUTO_UPGRADE=true` in the `mariadb` container env. It defaults to false.<br />Set this to true before bumping `spec.image` to a new major version, so that the server schema is migrated when the Pods roll. Leaving it set afterwards is safe: `mariadb-upgrade` is a no-op when there is nothing to migrate. |  |  |
 
 
 #### UpdateType
@@ -3496,6 +3528,28 @@ _Appears in:_
 | `host` _string_ | Host related to the User. |  | MaxLength: 255 <br /> |
 
 
+#### Volume
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
+
+
+
+_Appears in:_
+- [MaxScalePodTemplate](#maxscalepodtemplate)
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ |  |  |  |
+| `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
+| `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
+| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
+| `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
+| `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
 
 
 #### VolumeClaimTemplate

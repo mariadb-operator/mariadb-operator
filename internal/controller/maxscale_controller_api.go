@@ -172,6 +172,29 @@ func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relat
 		Build(), nil
 }
 
+// MaxScale API - Filters
+
+func (m *maxScaleAPI) createFilter(ctx context.Context, filter *mariadbv1alpha1.MaxScaleFilter) error {
+	return m.client.Filter.Create(ctx, filter.Name, m.filterAttributes(filter))
+}
+
+func (m *maxScaleAPI) deleteFilter(ctx context.Context, name string) error {
+	return m.client.Filter.Delete(ctx, name, mxsclient.WithForceQuery())
+}
+
+func (m *maxScaleAPI) patchFilter(ctx context.Context, filter *mariadbv1alpha1.MaxScaleFilter) error {
+	return m.client.Filter.Patch(ctx, filter.Name, m.filterAttributes(filter))
+}
+
+func (m *maxScaleAPI) filterAttributes(filter *mariadbv1alpha1.MaxScaleFilter) *mxsclient.FilterAttributes {
+	return &mxsclient.FilterAttributes{
+		Module: filter.Module,
+		Parameters: mxsclient.FilterParameters{
+			Params: mxsclient.NewMapParams(filter.Params),
+		},
+	}
+}
+
 // MaxScale API - Monitors
 
 func (m *maxScaleAPI) createMonitor(ctx context.Context, rels *mxsclient.Relationships) error {
@@ -264,6 +287,16 @@ func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha
 			Params:   mxsclient.NewMapParams(svc.Params),
 		},
 	}, nil
+}
+
+// withServiceFilters returns rels extended with the service's filters relationship.
+// It is always set explicitly, even when empty, so a filter removed from the spec
+// is also cleared on the MaxScale side instead of being left stale.
+// A copy is returned so the shared rels passed in is not mutated across services.
+func (m *maxScaleAPI) withServiceFilters(rels *mxsclient.Relationships, svc *mariadbv1alpha1.MaxScaleService) *mxsclient.Relationships {
+	svcRels := *rels
+	svcRels.Filters = mxsclient.NewFilterRelationshipData(svc.Filters...)
+	return &svcRels
 }
 
 func (m *maxScaleAPI) serviceRelationships(service string) *mxsclient.Relationships {

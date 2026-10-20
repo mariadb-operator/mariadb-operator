@@ -676,7 +676,7 @@ func (r *GaleraReconciler) getJobLogs(ctx context.Context, key types.NamespacedN
 }
 
 func (r *GaleraReconciler) resetRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, rs *recoveryStatus) error {
-	rs.reset()
+	rs.resetBootstrap()
 	return r.patchRecoveryStatus(ctx, mariadb, rs)
 }
 

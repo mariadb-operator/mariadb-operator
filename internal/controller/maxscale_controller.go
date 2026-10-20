@@ -191,6 +191,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileChangedServers,
 		},
 		{
+			name:      "Filters",
+			reconcile: r.reconcileChangedFilters,
+		},
+		{
 			name:      "Monitor",
 			reconcile: r.reconcileChangedMonitor,
 		},
@@ -1033,6 +1037,9 @@ func (r *MaxScaleReconciler) reconcileInitInPod(ctx context.Context, mxs *mariad
 		client: client,
 	}
 	logger := log.FromContext(ctx)
+	reconcileFilters := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+		return r.reconcileFilters(ctx, req, logger)
+	}
 	reconcileServers := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 		return r.reconcileServers(ctx, req, logger)
 	}
@@ -1048,6 +1055,7 @@ func (r *MaxScaleReconciler) reconcileInitInPod(ctx context.Context, mxs *mariad
 
 	reconcileFns := []reconcileFnMaxScale{
 		reconcileServers,
+		reconcileFilters,
 		reconcileMonitor,
 		reconcileServices,
 		reconcileListeners,
@@ -1065,6 +1073,13 @@ func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv
 	allExist, err := client.Server.AllExists(ctx, mxs.ServerIDs())
 	if err != nil {
 		return false, fmt.Errorf("error checking if all servers exist: %v", err)
+	}
+	if !allExist {
+		return true, nil
+	}
+	allExist, err = client.Filter.AllExists(ctx, mxs.FilterIDs())
+	if err != nil {
+		return false, fmt.Errorf("error checking if all filters exist: %v", err)
 	}
 	if !allExist {
 		return true, nil
@@ -1134,6 +1149,85 @@ func (r *MaxScaleReconciler) ensurePrimaryServer(ctx context.Context, req *reque
 	}
 	log.FromContext(ctx).V(1).Info("No primary servers were found. Requeuing.")
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileChangedFilters(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	filtersHash, err := hash.HashJSON(req.mxs.Spec.Filters)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error hashing spec.Filters: %v", err)
+	}
+	logger := log.FromContext(ctx)
+	if filtersHash == req.mxs.Status.FiltersSpec {
+		logger.V(1).Info("Filters spec did not change. Skipping reconciliation...")
+		return ctrl.Result{}, nil
+	}
+
+	if result, err := r.reconcileFilters(ctx, req, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+		mss.FiltersSpec = filtersHash
+		return nil
+	})
+}
+
+func (r *MaxScaleReconciler) reconcileFilters(ctx context.Context, req *requestMaxScale, logger logr.Logger) (ctrl.Result, error) {
+	if req.client == nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	logger.Info("Reconciling filters")
+
+	currentIdx := req.mxs.FilterIndex()
+	previousIdx, err := req.client.Filter.ListIndex(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting filter index: %v", err)
+	}
+	diff := ds.Diff(currentIdx, previousIdx)
+
+	if r.LogMaxScale {
+		log.FromContext(ctx).V(1).Info(
+			"Filter diff",
+			"added", diff.Added,
+			"deleted", diff.Deleted,
+			"rest", diff.Rest,
+		)
+	}
+	mxsApi := newMaxScaleAPI(req.mxs, req.client, r.RefResolver)
+
+	for _, id := range diff.Added {
+		filter, err := ds.Get(currentIdx, id)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "error getting filter to add", "filter", id)
+			continue
+		}
+		if err := mxsApi.createFilter(ctx, &filter); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error creating filter: %v", err)
+		}
+	}
+
+	for _, id := range diff.Deleted {
+		filter, err := ds.Get(previousIdx, id)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "error getting filter to delete", "filter", id)
+			continue
+		}
+		if err := mxsApi.deleteFilter(ctx, filter.ID); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error deleting filter: %v", err)
+		}
+	}
+
+	for _, id := range diff.Rest {
+		filter, err := ds.Get(currentIdx, id)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "error getting filter to patch", "filter", id)
+			continue
+		}
+		if err := mxsApi.patchFilter(ctx, &filter); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching filter: %v", err)
+		}
+	}
+	return ctrl.Result{}, err
 }
 
 func (r *MaxScaleReconciler) reconcileChangedServers(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -1345,7 +1439,7 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 	}
 	mxsApi := newMaxScaleAPI(req.mxs, req.client, r.RefResolver)
 
-	rels, err := mxsApi.serverRelationships(ctx)
+	serverRels, err := mxsApi.serverRelationships(ctx)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting server relationships: %v", err)
 	}
@@ -1356,7 +1450,7 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 			log.FromContext(ctx).Error(err, "error getting service to add", "service", id)
 			continue
 		}
-		if err := mxsApi.createService(ctx, &svc, rels); err != nil {
+		if err := mxsApi.createService(ctx, &svc, mxsApi.withServiceFilters(serverRels, &svc)); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error creating service: %v", err)
 		}
 	}
@@ -1378,7 +1472,7 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 			log.FromContext(ctx).Error(err, "error getting service to patch", "service", id)
 			continue
 		}
-		if err := mxsApi.patchService(ctx, &svc, rels); err != nil {
+		if err := mxsApi.patchService(ctx, &svc, mxsApi.withServiceFilters(serverRels, &svc)); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching service: %v", err)
 		}
 	}
