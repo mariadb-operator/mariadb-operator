@@ -104,6 +104,18 @@ func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod)
 			continue
 		}
 
+		maxLagSeconds := ptr.Deref(f.mariadb.Spec.Replication.Replica.MaxLagSeconds, 0)
+		autoFailoverAllowUnknownLag := ptr.Deref(f.mariadb.Spec.Replication.Primary.AutoFailoverAllowUnknownLag, true)
+		if status.SecondsBehindMaster == nil {
+			if !autoFailoverAllowUnknownLag {
+				podLogger.Info("Could not determine replica lag. Skipping...")
+				continue
+			}
+		} else if *status.SecondsBehindMaster > maxLagSeconds {
+			podLogger.Info("Replica is lagging behind master. Skipping...")
+			continue
+		}
+
 		gtidDomainId, err := sqlClient.GtidDomainId(ctx)
 		if err != nil {
 			podLogger.Info("Error getting GTID domain ID. Skipping...", "err", err)
