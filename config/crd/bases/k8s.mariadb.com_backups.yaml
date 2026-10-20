@@ -686,6 +686,10 @@ spec:
                         x-kubernetes-map-type: atomic
                       storageClassName:
                         type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
+                        type: string
                     type: object
                   volume:
                     description: Volume is a Kubernetes volume specification.
@@ -852,6 +856,10 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       storageClassName:
+                        type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
                         type: string
                     type: object
                   s3:

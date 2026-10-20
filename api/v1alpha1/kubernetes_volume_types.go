@@ -244,13 +244,17 @@ type PersistentVolumeClaimSpec struct {
 	Resources corev1.VolumeResourceRequirements `json:"resources,omitempty"`
 	// +optional
 	StorageClassName *string `json:"storageClassName,omitempty"`
+	// VolumeAttributesClassName references a VolumeAttributesClass for the PVC.
+	// +optional
+	VolumeAttributesClassName *string `json:"volumeAttributesClassName,omitempty"`
 }
 
 func (p PersistentVolumeClaimSpec) ToKubernetesType() corev1.PersistentVolumeClaimSpec {
 	return corev1.PersistentVolumeClaimSpec{
-		AccessModes:      p.AccessModes,
-		Selector:         p.Selector,
-		Resources:        p.Resources,
-		StorageClassName: p.StorageClassName,
+		AccessModes:               p.AccessModes,
+		Selector:                  p.Selector,
+		Resources:                 p.Resources,
+		StorageClassName:          p.StorageClassName,
+		VolumeAttributesClassName: p.VolumeAttributesClassName,
 	}
 }

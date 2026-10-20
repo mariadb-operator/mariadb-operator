@@ -167,6 +167,9 @@ func (s *Storage) SetDefaults() {
 		if s.StorageClassName != "" {
 			vctpl.StorageClassName = &s.StorageClassName
 		}
+		if s.VolumeClaimTemplate != nil {
+			vctpl.VolumeAttributesClassName = s.VolumeClaimTemplate.VolumeAttributesClassName
+		}
 		s.VolumeClaimTemplate = &vctpl
 	}
 }

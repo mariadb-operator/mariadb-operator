@@ -781,6 +781,53 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 	}
 }
 
+func TestStorageVolumeAttributesClassName(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	for _, tt := range []struct {
+		name  string
+		class *string
+	}{
+		{name: "omitted"},
+		{name: "empty", class: ptr.To("")},
+		{name: "configured", class: ptr.To("high-performance")},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			mdb := &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
+								VolumeAttributesClassName: tt.class,
+							},
+						},
+					},
+				},
+			}
+			for _, size := range []string{"1Gi", "2Gi"} {
+				mdb.Spec.Storage.Size = ptr.To(resource.MustParse(size))
+				mdb.Spec.Storage.SetDefaults()
+				mdb.Spec.Storage.SetDefaults()
+				pvcs := mariadbVolumeClaimTemplates(mdb)
+				if len(pvcs) != 1 {
+					t.Fatalf("expected one storage PVC template, got %d", len(pvcs))
+				}
+				pvc, err := builder.BuildStoragePVC(types.NamespacedName{Name: "storage-test"}, mdb.Spec.Storage.VolumeClaimTemplate, mdb)
+				if err != nil {
+					t.Fatalf("unexpected error building storage PVC: %v", err)
+				}
+				for _, spec := range []corev1.PersistentVolumeClaimSpec{pvcs[0].Spec, pvc.Spec} {
+					if !reflect.DeepEqual(spec.VolumeAttributesClassName, tt.class) {
+						t.Errorf("volume attributes class not preserved for size %s: got %v, want %v", size, spec.VolumeAttributesClassName, tt.class)
+					}
+					if got := spec.Resources.Requests[corev1.ResourceStorage]; got.Cmp(*mdb.Spec.Storage.Size) != 0 {
+						t.Errorf("unexpected storage size: got %s, want %s", got.String(), size)
+					}
+				}
+			}
+		})
+	}
+}
+
 func hasVolume(pvcs []corev1.PersistentVolumeClaim, volumeName string) bool {
 	for _, p := range pvcs {
 		if p.Name == volumeName {
