@@ -8,6 +8,7 @@ import (
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -768,7 +769,20 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pvcs := mariadbVolumeClaimTemplates(tt.mariadb)
+			tt.mariadb.Spec.InheritMetadata = &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{"inherited": "yes", "override": "inherited"},
+				Annotations: map[string]string{"inherited": "yes", "override": "inherited"},
+			}
+			if tpl := tt.mariadb.Spec.Storage.VolumeClaimTemplate; tpl != nil {
+				tpl.Metadata = &mariadbv1alpha1.Metadata{
+					Labels:      map[string]string{"override": "template", "app.kubernetes.io/name": "invalid"},
+					Annotations: map[string]string{"override": "template"},
+				}
+				if galera := tt.mariadb.Spec.Galera; galera != nil && galera.Config.VolumeClaimTemplate != nil {
+					galera.Config.VolumeClaimTemplate.Metadata = tpl.Metadata.DeepCopy()
+				}
+			}
+			pvcs := MariaDBVolumeClaimTemplates(tt.mariadb)
 			if len(pvcs) != len(tt.wantVolumes) {
 				t.Errorf("unexpected number of PVCs, got: %v, want: %v", len(pvcs), len(tt.wantVolumes))
 			}
@@ -776,6 +790,13 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 				if !hasVolume(pvcs, wantVolume) {
 					t.Errorf("expecting Volume \"%s\", but it was not found", wantVolume)
 				}
+			}
+			for _, claim := range pvcs {
+				assert.Equal(t, "yes", claim.Labels["inherited"])
+				assert.Equal(t, "yes", claim.Annotations["inherited"])
+				assert.Equal(t, "template", claim.Labels["override"])
+				assert.Equal(t, "template", claim.Annotations["override"])
+				assert.Equal(t, "mariadb", claim.Labels["app.kubernetes.io/name"])
 			}
 		})
 	}

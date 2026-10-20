@@ -8,6 +8,7 @@ This operator gives you flexibility to define the storage that will back the `/v
 ## Table of contents
 <!-- toc -->
 - [Configuration](#configuration)
+  - [PVC labels and annotations](#pvc-labels-and-annotations)
 - [Volume resize](#volume-resize)
 - [Ephemeral storage](#ephemeral-storage)
 - [Reference](#reference)
@@ -62,6 +63,24 @@ spec:
           storage: 1Gi
       storageClassName: standard
 ```
+
+### PVC labels and annotations
+
+Use `volumeClaimTemplate.metadata` to customize storage PVC metadata:
+
+```yaml
+spec:
+  storage:
+    size: 1Gi
+    volumeClaimTemplate:
+      metadata:
+        labels:
+          velero.io/exclude-from-backup: "true"
+```
+
+The same configuration is available at `spec.galera.config.volumeClaimTemplate.metadata` for dedicated Galera configuration PVCs. Labels and annotations can be added, updated, or removed after creation. The Galera PVC specification remains immutable once initialized.
+
+Both kinds of PVC inherit `spec.inheritMetadata`, with template metadata taking precedence. Operator selector and role labels are reserved. PVC template metadata updates are reconciled onto existing PVCs without recreating the StatefulSet or restarting MariaDB. Metadata added independently by Kubernetes or a storage driver is preserved. The operator records the keys it manages in the `k8s.mariadb.com/pvc-labels` and `k8s.mariadb.com/pvc-annotations` annotations; these annotations are reserved for operator use.
 
 ## Volume resize
 

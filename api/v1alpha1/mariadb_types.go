@@ -147,6 +147,7 @@ func (s *Storage) SetDefaults() {
 
 	if s.shouldUpdateVolumeClaimTemplate() {
 		vctpl := VolumeClaimTemplate{
+			Metadata: ptr.Deref(s.VolumeClaimTemplate, VolumeClaimTemplate{}).Metadata,
 			PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
 				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{

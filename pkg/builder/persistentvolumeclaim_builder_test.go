@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -393,6 +394,10 @@ func TestStoragePVCMeta(t *testing.T) {
 				t.Errorf("expect error to not have occurred, got: %v", err)
 			}
 			if pvc != nil {
+				assert.Contains(t, pvc.Annotations, metadata.PVCLabelsAnnotation)
+				assert.Contains(t, pvc.Annotations, metadata.PVCAnnotationsAnnotation)
+				delete(pvc.Annotations, metadata.PVCLabelsAnnotation)
+				delete(pvc.Annotations, metadata.PVCAnnotationsAnnotation)
 				assertObjectMeta(t, &pvc.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 			}
 		})

@@ -8,6 +8,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/metadata"
+	annotation "github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	mdbreflect "github.com/mariadb-operator/mariadb-operator/v26/pkg/reflect"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,16 +70,7 @@ func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1
 	if tpl == nil {
 		return nil, errors.New("template must not be nil")
 	}
-	labels := labels.NewLabelsBuilder().
-		WithMariaDBSelectorLabels(mariadb).
-		WithPVCRole(StorageVolumeRole).
-		Build()
-	objMeta :=
-		metadata.NewMetadataBuilder(key).
-			WithMetadata(mariadb.Spec.InheritMetadata).
-			WithMetadata(tpl.Metadata).
-			WithLabels(labels).
-			Build()
+	objMeta := mariadbPVCMetadata(key, tpl, mariadb, StorageVolumeRole)
 
 	pvcSpec := tpl.ToKubernetesType()
 	for _, setOpt := range opts {
@@ -89,4 +81,17 @@ func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1
 		ObjectMeta: objMeta,
 		Spec:       pvcSpec,
 	}, nil
+}
+
+func mariadbPVCMetadata(key types.NamespacedName, tpl *mariadbv1alpha1.VolumeClaimTemplate,
+	mariadb *mariadbv1alpha1.MariaDB, role string) metav1.ObjectMeta {
+	selectorLabels := labels.NewLabelsBuilder().WithMariaDBSelectorLabels(mariadb).WithPVCRole(role).Build()
+	desired := metadata.NewMetadataBuilder(key).
+		WithMetadata(mariadb.Spec.InheritMetadata).
+		WithMetadata(tpl.Metadata).
+		WithLabels(selectorLabels).
+		Build()
+	meta := metav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace}
+	annotation.SetPVCMetadata(&meta, desired)
+	return meta
 }

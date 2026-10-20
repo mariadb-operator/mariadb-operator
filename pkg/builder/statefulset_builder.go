@@ -120,7 +120,7 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 				MatchLabels: selectorLabels,
 			},
 			Template:             *podTemplate,
-			VolumeClaimTemplates: mariadbVolumeClaimTemplates(mariadb),
+			VolumeClaimTemplates: MariaDBVolumeClaimTemplates(mariadb),
 		},
 	}
 	if err := controllerutil.SetControllerReference(mariadb, sts, b.scheme); err != nil {
@@ -211,25 +211,15 @@ func statefulSetUpdateStrategy(strategy *appsv1.StatefulSetUpdateStrategy) appsv
 	}
 }
 
-func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.PersistentVolumeClaim {
+func MariaDBVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.PersistentVolumeClaim {
 	var pvcs []corev1.PersistentVolumeClaim
 	vctpl := mariadb.Spec.Storage.VolumeClaimTemplate
 
 	if !mariadb.IsEphemeralStorageEnabled() && vctpl != nil {
-		meta := ptr.Deref(vctpl.Metadata, mariadbv1alpha1.Metadata{})
-		labels := labels.NewLabelsBuilder().
-			WithLabels(meta.Labels).
-			WithPVCRole(StorageVolumeRole).
-			Build()
-
 		pvcs = []corev1.PersistentVolumeClaim{
 			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        StorageVolume,
-					Labels:      labels,
-					Annotations: meta.Annotations,
-				},
-				Spec: vctpl.ToKubernetesType(),
+				ObjectMeta: mariadbPVCMetadata(types.NamespacedName{Name: StorageVolume}, vctpl, mariadb, StorageVolumeRole),
+				Spec:       vctpl.ToKubernetesType(),
 			},
 		}
 	}
@@ -239,19 +229,9 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 	vctpl = galera.Config.VolumeClaimTemplate
 
 	if mariadb.IsGaleraEnabled() && !reuseStorageVolume && vctpl != nil {
-		meta := ptr.Deref(vctpl.Metadata, mariadbv1alpha1.Metadata{})
-		labels := labels.NewLabelsBuilder().
-			WithLabels(meta.Labels).
-			WithPVCRole(ConfigVolumeRole).
-			Build()
-
 		pvcs = append(pvcs, corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        galeraresources.GaleraConfigVolume,
-				Labels:      labels,
-				Annotations: meta.Annotations,
-			},
-			Spec: vctpl.ToKubernetesType(),
+			ObjectMeta: mariadbPVCMetadata(types.NamespacedName{Name: galeraresources.GaleraConfigVolume}, vctpl, mariadb, ConfigVolumeRole),
+			Spec:       vctpl.ToKubernetesType(),
 		})
 	}
 	return pvcs

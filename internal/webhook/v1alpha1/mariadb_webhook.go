@@ -65,6 +65,9 @@ func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldMariadb,
 	if err := immutableWebhook.ValidateUpdate(mariadb, oldMariadb); err != nil {
 		return nil, err
 	}
+	if err := validateUpdateGaleraConfig(mariadb, oldMariadb); err != nil {
+		return nil, err
+	}
 	validateFns := []func(*v1alpha1.MariaDB) error{
 		validateHA,
 		validateGalera,
@@ -244,6 +247,24 @@ func validateStorage(mariadb *v1alpha1.MariaDB) error {
 			field.NewPath("spec").Child("storage"),
 			mariadb.Spec.Storage,
 			err.Error(),
+		)
+	}
+	return nil
+}
+
+func validateUpdateGaleraConfig(mariadb, old *v1alpha1.MariaDB) error {
+	oldGalera := ptr.Deref(old.Spec.Galera, v1alpha1.Galera{})
+	oldTemplate := oldGalera.Config.VolumeClaimTemplate
+	if oldTemplate == nil {
+		return nil
+	}
+	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
+	template := galera.Config.VolumeClaimTemplate
+	if template == nil || !reflect.DeepEqual(template.PersistentVolumeClaimSpec, oldTemplate.PersistentVolumeClaimSpec) {
+		return field.Invalid(
+			field.NewPath("spec", "galera", "config", "volumeClaimTemplate"),
+			template,
+			"PVC specification is immutable; only metadata may be updated",
 		)
 	}
 	return nil

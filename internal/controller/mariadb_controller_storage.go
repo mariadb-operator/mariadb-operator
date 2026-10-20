@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -47,6 +49,9 @@ func (r *MariaDBReconciler) reconcileStorage(ctx context.Context, mariadb *maria
 	if err := r.Get(ctx, key, &existingSts); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err := r.reconcilePVCMetadata(ctx, mariadb, &existingSts); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	existingSize := stsobj.GetStorageSize(&existingSts, builder.StorageVolume)
 	desiredSize := mariadb.Spec.Storage.GetSize()
@@ -86,6 +91,39 @@ func (r *MariaDBReconciler) reconcileStorage(ctx context.Context, mariadb *maria
 	}
 
 	return r.waitForStorageResize(ctx, mariadb)
+}
+
+func (r *MariaDBReconciler) reconcilePVCMetadata(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	sts *appsv1.StatefulSet) error {
+	var claims corev1.PersistentVolumeClaimList
+	selector := labels.NewLabelsBuilder().WithMariaDBSelectorLabels(mariadb).Build()
+	if err := r.List(ctx, &claims, client.InNamespace(mariadb.Namespace), client.MatchingLabels(selector)); err != nil {
+		return fmt.Errorf("error listing PVCs: %w", err)
+	}
+	for _, template := range builder.MariaDBVolumeClaimTemplates(mariadb) {
+		var previous metav1.ObjectMeta
+		for _, oldTemplate := range sts.Spec.VolumeClaimTemplates {
+			if oldTemplate.Name == template.Name {
+				previous = oldTemplate.ObjectMeta
+				break
+			}
+		}
+		prefix := fmt.Sprintf("%s-%s-", template.Name, mariadb.Name)
+		for _, claim := range claims.Items {
+			ordinal, found := strings.CutPrefix(claim.Name, prefix)
+			if !found {
+				continue
+			}
+			index, err := strconv.Atoi(ordinal)
+			if err != nil || index < 0 {
+				continue
+			}
+			if err := r.PVCReconciler.ReconcileMetadata(ctx, &claim, template.ObjectMeta, previous); err != nil {
+				return fmt.Errorf("error reconciling PVC '%s' metadata: %w", claim.Name, err)
+			}
+		}
+	}
+	return nil
 }
 
 func (r *MariaDBReconciler) resizeInUsePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
