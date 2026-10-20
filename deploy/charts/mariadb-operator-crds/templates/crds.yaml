@@ -685,6 +685,10 @@ spec:
                         x-kubernetes-map-type: atomic
                       storageClassName:
                         type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
+                        type: string
                     type: object
                   volume:
                     description: Volume is a Kubernetes volume specification.
@@ -851,6 +855,10 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       storageClassName:
+                        type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
                         type: string
                     type: object
                   s3:
@@ -3110,6 +3118,10 @@ spec:
                             x-kubernetes-map-type: atomic
                           storageClassName:
                             type: string
+                          volumeAttributesClassName:
+                            description: VolumeAttributesClassName references a VolumeAttributesClass
+                              for the PVC.
+                            type: string
                         type: object
                       volume:
                         description: Volume is a Kubernetes volume specification.
@@ -4074,6 +4086,10 @@ spec:
                             type: object
                             x-kubernetes-map-type: atomic
                           storageClassName:
+                            type: string
+                          volumeAttributesClassName:
+                            description: VolumeAttributesClassName references a VolumeAttributesClass
+                              for the PVC.
                             type: string
                         type: object
                     type: object
@@ -8247,6 +8263,10 @@ spec:
                         x-kubernetes-map-type: atomic
                       storageClassName:
                         type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
+                        type: string
                     type: object
                   waitForVolumeResize:
                     description: |-
@@ -8735,6 +8755,10 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             storageClassName:
+                              type: string
+                            volumeAttributesClassName:
+                              description: VolumeAttributesClassName references a
+                                VolumeAttributesClass for the PVC.
                               type: string
                           type: object
                       type: object
@@ -9756,6 +9780,10 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       storageClassName:
+                        type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
                         type: string
                     type: object
                 type: object
@@ -12540,6 +12568,10 @@ spec:
                         x-kubernetes-map-type: atomic
                       storageClassName:
                         type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
+                        type: string
                     type: object
                   volume:
                     description: Volume is a Kubernetes volume specification.
@@ -12767,6 +12799,10 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       storageClassName:
+                        type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
                         type: string
                     type: object
                   s3:
@@ -14166,6 +14202,10 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       storageClassName:
+                        type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
                         type: string
                     type: object
                   volume:
