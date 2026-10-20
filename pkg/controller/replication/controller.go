@@ -16,9 +16,11 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -194,6 +196,17 @@ func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, 
 			logger.Info("MaxScale is switching primary. Requeuing..")
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
+		// MaxScale fails over on its own: reconfiguring the replica it is promoting would point it back at the lost primary.
+		if req.mariadb.HasConfiguredReplication() {
+			available, err := r.isCurrentPrimaryAvailable(ctx, req.mariadb, mxs)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("error checking current primary availability: %v", err)
+			}
+			if !available {
+				logger.Info("Current primary is not available, MaxScale may be failing over. Requeuing..")
+				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			}
+		}
 	}
 	if req.mariadb.IsMultiClusterSwitchoverPending() {
 		// The MariaDB controller reconciles the GTIDs of a cluster being demoted to replica cluster in the multi-cluster phase,
@@ -203,6 +216,38 @@ func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, 
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *ReplicationReconciler) isCurrentPrimaryAvailable(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	mxs *mariadbv1alpha1.MaxScale) (bool, error) {
+	podIndex := *mdb.Status.CurrentPrimaryPodIndex
+	key := types.NamespacedName{
+		Name:      statefulset.PodName(mdb.ObjectMeta, podIndex),
+		Namespace: mdb.Namespace,
+	}
+	var pod corev1.Pod
+	if err := r.Get(ctx, key, &pod); err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("error getting current primary Pod: %v", err)
+	}
+	if !mdbpod.PodReady(&pod) {
+		return false, nil
+	}
+
+	address := statefulset.PodFQDNWithService(mdb.ObjectMeta, podIndex, mdb.InternalServiceKey().Name)
+	for _, srv := range mxs.Spec.Servers {
+		if srv.Address != address {
+			continue
+		}
+		for _, srvStatus := range mxs.Status.Servers {
+			if srvStatus.Name == srv.Name && srvStatus.IsDown() {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
 }
 
 func (r *ReplicationReconciler) replicationPodIndexes(req *ReconcileRequest) []int {

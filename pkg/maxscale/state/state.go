@@ -19,3 +19,7 @@ func IsReady(state string) bool {
 func InMaintenance(state string) bool {
 	return strings.Contains(state, "Maintenance")
 }
+
+func IsDown(state string) bool {
+	return strings.Contains(state, "Down")
+}
