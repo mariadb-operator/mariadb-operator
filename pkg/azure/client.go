@@ -347,9 +347,14 @@ func getTransport(opts *AzBlobOpts) (http.RoundTripper, error) {
 		certBytes = caBytes
 	}
 
-	caCertPool := x509.NewCertPool()
-	if ok := caCertPool.AppendCertsFromPEM(certBytes); !ok {
-		return nil, errors.New("unable to add CA cert to pool")
+	caCertPool, err := x509.SystemCertPool()
+	if err != nil {
+		caCertPool = x509.NewCertPool()
+	}
+	if certBytes != nil {
+		if ok := caCertPool.AppendCertsFromPEM(certBytes); !ok {
+			return nil, errors.New("unable to add CA cert to pool")
+		}
 	}
 
 	return &http.Transport{
