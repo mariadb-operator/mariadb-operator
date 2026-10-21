@@ -3,6 +3,7 @@ package replication
 import (
 	"context"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -23,6 +24,8 @@ type ReplicationProbe struct {
 	responseWriter  *mdbhttp.ResponseWriter
 	livenessLogger  logr.Logger
 	readinessLogger logr.Logger
+	// lastMaxLagSeconds caches the last max lag read from the MariaDB, used when the Kubernetes API is unreachable.
+	lastMaxLagSeconds atomic.Int64
 }
 
 var requestTimeout = 3 * time.Second
@@ -203,10 +206,13 @@ func (p *ReplicationProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 func (p *ReplicationProbe) getMaxLagSeconds(ctx context.Context) int {
 	var mdb mariadbv1alpha1.MariaDB
 	if err := p.k8sClient.Get(ctx, p.mariadbKey, &mdb); err != nil {
-		p.readinessLogger.Error(err, "error getting MariaDB. Using default max replication lag")
-		return 0
+		maxLagSeconds := int(p.lastMaxLagSeconds.Load())
+		p.readinessLogger.Error(err, "error getting MariaDB. Using last known max replication lag", "max-seconds", maxLagSeconds)
+		return maxLagSeconds
 	}
 	replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
 	replica := replication.Replica
-	return ptr.Deref(replica.MaxLagSeconds, 0)
+	maxLagSeconds := ptr.Deref(replica.MaxLagSeconds, 0)
+	p.lastMaxLagSeconds.Store(int64(maxLagSeconds))
+	return maxLagSeconds
 }
