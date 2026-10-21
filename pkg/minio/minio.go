@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -17,6 +19,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/encrypt"
+	"github.com/minio/minio-go/v7/pkg/s3utils"
 	"k8s.io/utils/ptr"
 )
 
@@ -189,12 +192,25 @@ func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Clie
 	if err != nil {
 		return nil, fmt.Errorf("error creating Minio client: %v", err)
 	}
+
+	// minio-go silently rewrites Amazon S3 endpoints to their dual-stack variant
+	// (e.g. s3.<region>.amazonaws.com -> s3.dualstack.<region>.amazonaws.com) and
+	// enables it by default. That breaks setups where only the standard endpoint is
+	// routable, such as S3 gateway VPC endpoints. Honor the endpoint the user configured:
+	// only keep dual-stack when it was explicitly requested.
+	client.SetS3EnableDualstack(isDualStackEndpoint(client.EndpointURL()))
 	return &Client{
 		Client:    client,
 		MinioOpts: opts,
 		basePath:  basePath,
 		bucket:    bucket,
 	}, nil
+}
+
+// isDualStackEndpoint reports whether the configured endpoint is an Amazon S3 dual-stack endpoint.
+// See: https://docs.aws.amazon.com/AmazonS3/latest/userguide/dual-stack-endpoints.html
+func isDualStackEndpoint(u *url.URL) bool {
+	return s3utils.IsAmazonEndpoint(*u) && slices.Contains(strings.Split(u.Hostname(), "."), "dualstack")
 }
 
 func (c *Client) ListObjectsWithOptions(ctx context.Context) ([]string, error) {

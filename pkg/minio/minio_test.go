@@ -1,11 +1,14 @@
 package minio
 
 import (
+	"context"
 	"encoding/base64"
 	"testing"
+	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+  "github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func TestPrefixedFile(t *testing.T) {
@@ -253,6 +256,109 @@ func TestPrefix(t *testing.T) {
 			prefix := tt.client.GetPrefix()
 			if prefix != tt.wantPrefix {
 				t.Errorf("unexpected S3 prefix, got: %s want: %s", prefix, tt.wantPrefix)
+			}
+		})
+	}
+}
+
+func TestDualStackEndpoint(t *testing.T) {
+	bucket := "test-bucket"
+	tests := []struct {
+		name          string
+		endpoint      string
+		region        string
+		wantDualStack bool
+		wantHost      string
+	}{
+		{
+			name:          "standard AWS regional endpoint",
+			endpoint:      "s3.eu-central-1.amazonaws.com",
+			region:        "eu-central-1",
+			wantDualStack: false,
+			wantHost:      bucket + ".s3.eu-central-1.amazonaws.com",
+		},
+		{
+			name:          "global AWS endpoint",
+			endpoint:      "s3.amazonaws.com",
+			region:        "eu-central-1",
+			wantDualStack: false,
+			wantHost:      bucket + ".s3.eu-central-1.amazonaws.com",
+		},
+		{
+			name:          "dual-stack AWS endpoint",
+			endpoint:      "s3.dualstack.eu-central-1.amazonaws.com",
+			region:        "eu-central-1",
+			wantDualStack: true,
+			wantHost:      bucket + ".s3.dualstack.eu-central-1.amazonaws.com",
+		},
+		{
+			name:          "dual-stack AWS endpoint with port",
+			endpoint:      "s3.dualstack.eu-central-1.amazonaws.com:443",
+			region:        "eu-central-1",
+			wantDualStack: true,
+			wantHost:      bucket + ".s3.dualstack.eu-central-1.amazonaws.com",
+		},
+		{
+			name:          "dual-stack AWS China endpoint",
+			endpoint:      "s3.dualstack.cn-north-1.amazonaws.com.cn",
+			region:        "cn-north-1",
+			wantDualStack: true,
+			wantHost:      bucket + ".s3.dualstack.cn-north-1.amazonaws.com.cn",
+		},
+		{
+			name:          "FIPS dual-stack AWS endpoint",
+			endpoint:      "s3-fips.dualstack.us-east-1.amazonaws.com",
+			region:        "us-east-1",
+			wantDualStack: true,
+			wantHost:      bucket + ".s3-fips.dualstack.us-east-1.amazonaws.com",
+		},
+		{
+			name:          "AWS VPC interface endpoint",
+			endpoint:      "bucket.vpce-1a2b3c4d-5e6f.s3.eu-central-1.vpce.amazonaws.com",
+			region:        "eu-central-1",
+			wantDualStack: false,
+			wantHost:      bucket + ".bucket.vpce-1a2b3c4d-5e6f.s3.eu-central-1.vpce.amazonaws.com",
+		},
+		{
+			name:          "non-AWS endpoint with dualstack label",
+			endpoint:      "minio.dualstack.internal:9000",
+			region:        "us-east-1",
+			wantDualStack: false,
+			wantHost:      "minio.dualstack.internal:9000",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := NewMinioClient(
+				"",
+				bucket,
+				tt.endpoint,
+				WithTLS(true),
+				WithRegion(tt.region),
+				WithCredsProviders(&credentials.Static{
+					Value: credentials.Value{
+						AccessKeyID:     "test",
+						SecretAccessKey: "test",
+						SignerType:      credentials.SignatureDefault,
+					},
+				}),
+			)
+			if err != nil {
+				t.Fatalf("unexpected error creating client: %v", err)
+			}
+
+			if got := isDualStackEndpoint(client.EndpointURL()); got != tt.wantDualStack {
+				t.Errorf("unexpected dual-stack decision for %q, got: %t want: %t", tt.endpoint, got, tt.wantDualStack)
+			}
+
+			// With a region set, presigning builds the target URL without any network call.
+			u, err := client.PresignedGetObject(context.Background(), bucket, "backup.sql", time.Minute, nil)
+			if err != nil {
+				t.Fatalf("unexpected error presigning URL: %v", err)
+			}
+			if u.Host != tt.wantHost {
+				t.Errorf("unexpected request host for %q, got: %s want: %s", tt.endpoint, u.Host, tt.wantHost)
 			}
 		})
 	}

@@ -194,7 +194,7 @@ _Appears in:_
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip zstd] <br /> |
-| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs.<br />Each thread buffers a block of max(windowSize*4, 512KiB), which is 32MiB at the default window,<br />so peak memory grows with this value. Set resource limits accordingly. |  | Minimum: 1 <br /> |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[BackupStorage](#backupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
@@ -455,6 +455,8 @@ Container object definition.
 _Appears in:_
 - [MariaDBPodTemplate](#mariadbpodtemplate)
 - [MariaDBSpec](#mariadbspec)
+- [MaxScalePodTemplate](#maxscalepodtemplate)
+- [MaxScaleSpec](#maxscalespec)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -1779,6 +1781,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
+| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |  |  |
 | `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
@@ -1858,6 +1861,7 @@ _Appears in:_
 | `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
+| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |  |  |
 | `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
@@ -2315,7 +2319,7 @@ _Appears in:_
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `target` _[PhysicalBackupTarget](#physicalbackuptarget)_ | Target defines in which Pod the physical backups will be taken. It defaults to "Replica", meaning that the physical backups will only be taken in ready replicas. |  | Enum: [Replica PreferReplica] <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip zstd] <br /> |
-| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs.<br />Each thread buffers a block of max(windowSize*4, 512KiB), which is 32MiB at the default window,<br />so peak memory grows with this value. Set resource limits accordingly. |  | Minimum: 1 <br /> |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the PhysicalBackup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[PhysicalBackupStorage](#physicalbackupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[PhysicalBackupSchedule](#physicalbackupschedule)_ | Schedule defines when the PhysicalBackup will be taken. |  |  |
@@ -2506,7 +2510,7 @@ _Appears in:_
 | `physicalBackupRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupRef is a reference to a PhysicalBackup object that will be used as base backup. |  | Required: \{\} <br /> |
 | `storage` _[PointInTimeRecoveryStorage](#pointintimerecoverystorage)_ | PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs.<br />This field is immutable, it cannot be updated after creation. |  | Enum: [none bzip2 gzip zstd] <br /> |
-| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs.<br />Each thread buffers a block of max(windowSize*4, 512KiB), which is 32MiB at the default window,<br />so peak memory grows with this value. Set resource limits accordingly. |  | Minimum: 1 <br /> |
 | `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival.<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
 | `strictMode` _boolean_ | StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:<br />When enabled: Returns an error and avoids replaying binary logs if target time is not reached.<br />When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached. |  |  |
 
@@ -3070,6 +3074,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is a flag to enable the ServiceMonitor creation. It defaults to true when metrics are enabled.<br />When disabled, the exporter is still deployed, but no ServiceMonitor is created,<br />and the ServiceMonitor CRD is no longer required to be installed in the cluster. |  |  |
 | `prometheusRelease` _string_ | PrometheusRelease is the release label to add to the ServiceMonitor object. |  |  |
 | `jobLabel` _string_ | JobLabel to add to the ServiceMonitor object. |  |  |
 | `interval` _string_ | Interval for scraping metrics. |  |  |

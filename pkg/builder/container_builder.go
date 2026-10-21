@@ -193,7 +193,31 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale, opts ...mari
 	container.ReadinessProbe = maxscaleProbe(mxs, mxs.Spec.ReadinessProbe)
 	container.StartupProbe = maxscaleProbe(mxs, mxs.Spec.StartupProbe)
 
-	return []corev1.Container{*container}, nil
+	containers := []corev1.Container{*container}
+	for index, c := range mxs.Spec.SidecarContainers {
+		sidecar := maxscaleSidecarContainer(&c)
+		if sidecar.Name == "" {
+			sidecar.Name = fmt.Sprintf("sidecar-%d", index)
+		}
+		containers = append(containers, sidecar)
+	}
+	return containers, nil
+}
+
+func maxscaleSidecarContainer(c *mariadbv1alpha1.Container) corev1.Container {
+	container := corev1.Container{
+		Name:            c.Name,
+		Image:           c.Image,
+		ImagePullPolicy: c.ImagePullPolicy,
+		Command:         c.Command,
+		Args:            c.Args,
+		Env:             kadapter.ToKubernetesSlice(c.Env),
+		VolumeMounts:    kadapter.ToKubernetesSlice(c.VolumeMounts),
+	}
+	if c.Resources != nil {
+		container.Resources = c.Resources.ToKubernetesType()
+	}
+	return container
 }
 
 func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) (*corev1.Container, error) {

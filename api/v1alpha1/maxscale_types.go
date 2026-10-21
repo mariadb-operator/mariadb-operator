@@ -598,6 +598,10 @@ type MaxScalePodTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
+	// SidecarContainers to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SidecarContainers []Container `json:"sidecarContainers,omitempty"`
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -1009,6 +1013,11 @@ func (m *MaxScale) IsSuspended() bool {
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
 func (m *MaxScale) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MaxScaleMetrics{}).Enabled
+}
+
+// IsServiceMonitorEnabled indicates whether the MaxScale instance should have a ServiceMonitor
+func (m *MaxScale) IsServiceMonitorEnabled() bool {
+	return m.AreMetricsEnabled() && ptr.Deref(m.Spec.Metrics.ServiceMonitor.Enabled, true)
 }
 
 // IsTLSEnabled  indicates whether TLS is enabled
