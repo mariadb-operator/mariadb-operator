@@ -50,9 +50,11 @@ spec:
       enabled: false
 ```
 
+The same field is available in `MaxScale` resources under `spec.metrics.serviceMonitor.enabled`.
+
 The exporter is then reachable through the `<mariadb-name>-metrics` `Service`. Since it relies on the [multi-target](https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#multi-target-support) feature, each MariaDB Pod must be scraped via the `/probe` endpoint, passing the Pod address in the `target` query parameter (e.g. `/probe?target=mariadb-0.mariadb-internal.default.svc.cluster.local:3306`).
 
-Disabling the `ServiceMonitor` after it has been created does not delete it; it will be garbage collected when the MariaDB is deleted, or you may delete it manually.
+Disabling the `ServiceMonitor` after it has been created does not delete it, and `mariadb-operator` stops updating it, so its targets become stale when you scale or perform a primary switchover. You should delete it manually.
 
 ## Configuration
 
