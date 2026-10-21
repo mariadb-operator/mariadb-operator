@@ -657,4 +657,51 @@ var _ = Describe("MaxScale types", func() {
 			Expect(tls.ServerCertSecretRef).To(BeNil())
 		})
 	})
+
+	Describe("IsServiceMonitorEnabled", func() {
+		DescribeTable("should determine whether the ServiceMonitor is enabled",
+			func(mxs *MaxScale, expected bool) {
+				Expect(mxs.IsServiceMonitorEnabled()).To(Equal(expected))
+			},
+			Entry("no metrics", &MaxScale{}, false),
+			Entry(
+				"metrics disabled",
+				&MaxScale{
+					Spec: MaxScaleSpec{
+						Metrics: &MaxScaleMetrics{
+							ServiceMonitor: ServiceMonitor{
+								Enabled: ptr.To(true),
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"metrics enabled, ServiceMonitor unset",
+				&MaxScale{
+					Spec: MaxScaleSpec{
+						Metrics: &MaxScaleMetrics{
+							Enabled: true,
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"metrics enabled, ServiceMonitor disabled",
+				&MaxScale{
+					Spec: MaxScaleSpec{
+						Metrics: &MaxScaleMetrics{
+							Enabled: true,
+							ServiceMonitor: ServiceMonitor{
+								Enabled: ptr.To(false),
+							},
+						},
+					},
+				},
+				false,
+			),
+		)
+	})
 })
