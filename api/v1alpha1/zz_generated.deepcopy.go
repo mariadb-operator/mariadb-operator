@@ -2886,6 +2886,13 @@ func (in *MaxScalePodTemplate) DeepCopyInto(out *MaxScalePodTemplate) {
 		*out = make([]LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
+	if in.SidecarContainers != nil {
+		in, out := &in.SidecarContainers, &out.SidecarContainers
+		*out = make([]Container, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.PodSecurityContext != nil {
 		in, out := &in.PodSecurityContext, &out.PodSecurityContext
 		*out = new(PodSecurityContext)

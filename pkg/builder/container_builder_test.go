@@ -14,6 +14,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -2378,6 +2379,106 @@ func TestMaxscaleContainers(t *testing.T) {
 
 			if !reflect.DeepEqual(tt.wantArgs, container.Args) {
 				t.Errorf("expected env keys \"%v\" to exist\n got:\"%v\"", tt.wantArgs, container.Args)
+			}
+		})
+	}
+}
+
+func TestMaxscaleSidecarContainers(t *testing.T) {
+	resources := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("10m")},
+		Limits:   corev1.ResourceList{corev1.ResourceMemory: resource.MustParse("32Mi")},
+	}
+	tests := []struct {
+		name     string
+		sidecars []mariadbv1alpha1.Container
+		want     []corev1.Container
+	}{
+		{
+			name: "no sidecars",
+		},
+		{
+			name:     "empty sidecars",
+			sidecars: []mariadbv1alpha1.Container{},
+		},
+		{
+			name: "explicit sidecar fields",
+			sidecars: []mariadbv1alpha1.Container{
+				{
+					Name:            "query-logs",
+					Image:           "busybox:1.37",
+					ImagePullPolicy: corev1.PullAlways,
+					Command:         []string{"sh", "-c"},
+					Args:            []string{"tail -f /logs/queries.unified"},
+					Env:             []mariadbv1alpha1.EnvVar{{Name: "LOG_LEVEL", Value: "info"}},
+					VolumeMounts: []mariadbv1alpha1.VolumeMount{
+						{Name: "qla-logs", MountPath: "/logs", ReadOnly: true},
+					},
+					Resources: &mariadbv1alpha1.ResourceRequirements{
+						Requests: resources.Requests,
+						Limits:   resources.Limits,
+					},
+				},
+			},
+			want: []corev1.Container{
+				{
+					Name:            "query-logs",
+					Image:           "busybox:1.37",
+					ImagePullPolicy: corev1.PullAlways,
+					Command:         []string{"sh", "-c"},
+					Args:            []string{"tail -f /logs/queries.unified"},
+					Env:             []corev1.EnvVar{{Name: "LOG_LEVEL", Value: "info"}},
+					VolumeMounts: []corev1.VolumeMount{
+						{Name: "qla-logs", MountPath: "/logs", ReadOnly: true},
+					},
+					Resources: resources,
+				},
+			},
+		},
+		{
+			name: "default names and omitted fields",
+			sidecars: []mariadbv1alpha1.Container{
+				{Image: "busybox:1.37"},
+				{Image: "busybox:1.37"},
+			},
+			want: []corev1.Container{
+				{Name: "sidecar-0", Image: "busybox:1.37"},
+				{Name: "sidecar-1", Image: "busybox:1.37"},
+			},
+		},
+	}
+	builder := newDefaultTestBuilder(t)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mxs := &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Image: "mariadb/maxscale:23.08.13-2",
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Env: []mariadbv1alpha1.EnvVar{{Name: "MAXSCALE_ONLY", Value: "true"}},
+						VolumeMounts: []mariadbv1alpha1.VolumeMount{
+							{Name: "maxscale-only", MountPath: "/maxscale-only"},
+						},
+					},
+				},
+			}
+			baseline, err := builder.maxscaleContainers(mxs)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale container: %v", err)
+			}
+			mxs.Spec.SidecarContainers = tt.sidecars
+			containers, err := builder.maxscaleContainers(mxs)
+			if err != nil {
+				t.Fatalf("unexpected error building containers: %v", err)
+			}
+			if len(containers) != 1+len(tt.want) {
+				t.Fatalf("unexpected number of containers, got: %d, want: %d", len(containers), 1+len(tt.want))
+			}
+			if containers[0].Name != MaxScaleContainerName {
+				t.Errorf("unexpected first container name: %q", containers[0].Name)
+			}
+			want := append(baseline, tt.want...)
+			if !reflect.DeepEqual(containers, want) {
+				t.Errorf("unexpected containers (-want +got):\n%s", cmp.Diff(want, containers))
 			}
 		})
 	}
