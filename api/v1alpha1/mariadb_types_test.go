@@ -2510,6 +2510,53 @@ var _ = Describe("MariaDB types", func() {
 			),
 		)
 	})
+
+	Describe("IsServiceMonitorEnabled", func() {
+		DescribeTable("should determine whether the ServiceMonitor is enabled",
+			func(mdb *MariaDB, expected bool) {
+				Expect(mdb.IsServiceMonitorEnabled()).To(Equal(expected))
+			},
+			Entry("no metrics", &MariaDB{}, false),
+			Entry(
+				"metrics disabled",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Metrics: &MariadbMetrics{
+							ServiceMonitor: ServiceMonitor{
+								Enabled: ptr.To(true),
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"metrics enabled, ServiceMonitor unset",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Metrics: &MariadbMetrics{
+							Enabled: true,
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"metrics enabled, ServiceMonitor disabled",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Metrics: &MariadbMetrics{
+							Enabled: true,
+							ServiceMonitor: ServiceMonitor{
+								Enabled: ptr.To(false),
+							},
+						},
+					},
+				},
+				false,
+			),
+		)
+	})
 })
 
 var _ = Describe("MariaDBVolume conversion", func() {
