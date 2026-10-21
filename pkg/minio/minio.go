@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -17,6 +19,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/encrypt"
+	"github.com/minio/minio-go/v7/pkg/s3utils"
 	"k8s.io/utils/ptr"
 )
 
@@ -191,9 +194,8 @@ func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Clie
 	// (e.g. s3.<region>.amazonaws.com -> s3.dualstack.<region>.amazonaws.com) and
 	// enables it by default. That breaks setups where only the standard endpoint is
 	// routable, such as S3 gateway VPC endpoints. Honor the endpoint the user configured:
-	// only keep dual-stack when it was explicitly requested. This is a no-op for
-	// non-Amazon endpoints.
-	client.SetS3EnableDualstack(dualStackEnabled(endpoint))
+	// only keep dual-stack when it was explicitly requested.
+	client.SetS3EnableDualstack(isDualStackEndpoint(client.EndpointURL()))
 	return &Client{
 		Client:    client,
 		MinioOpts: opts,
@@ -202,12 +204,10 @@ func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Clie
 	}, nil
 }
 
-// dualStackEnabled reports whether the S3 client should use Amazon dual-stack
-// endpoints. minio-go turns dual-stack on by default for any Amazon endpoint and
-// rewrites the request host accordingly, discarding the configured endpoint. We
-// only want that when the user explicitly configured a dual-stack endpoint.
-func dualStackEnabled(endpoint string) bool {
-	return strings.Contains(endpoint, ".dualstack.")
+// isDualStackEndpoint reports whether the configured endpoint is an Amazon S3 dual-stack endpoint.
+// See: https://docs.aws.amazon.com/AmazonS3/latest/userguide/dual-stack-endpoints.html
+func isDualStackEndpoint(u *url.URL) bool {
+	return s3utils.IsAmazonEndpoint(*u) && slices.Contains(strings.Split(u.Hostname(), "."), "dualstack")
 }
 
 func (c *Client) ListObjectsWithOptions(ctx context.Context) ([]string, error) {
