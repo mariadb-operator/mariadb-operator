@@ -227,7 +227,12 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts
 		return nil, err
 	}
 
-	container, err := b.buildContainerWithTemplate(agent.Image, agent.ImagePullPolicy, &agent.ContainerTemplate)
+	container, err := b.buildContainerWithTemplate(
+		agent.Image,
+		agent.ImagePullPolicy,
+		&agent.ContainerTemplate,
+		withLifecycle(mariadbOpts.includeLifecycle),
+	)
 	if err != nil {
 		return nil, err
 	}
