@@ -21,6 +21,12 @@ import (
 
 // ServiceMonitor defines a prometheus ServiceMonitor object.
 type ServiceMonitor struct {
+	// Enabled is a flag to enable the ServiceMonitor creation. It defaults to true when metrics are enabled.
+	// When disabled, the exporter is still deployed, but no ServiceMonitor is created,
+	// and the ServiceMonitor CRD is no longer required to be installed in the cluster.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled *bool `json:"enabled,omitempty"`
 	// PrometheusRelease is the release label to add to the ServiceMonitor object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -1083,6 +1089,11 @@ func (m *MariaDB) InternalRootPasswordSecretKey() types.NamespacedName {
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
 func (m *MariaDB) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MariadbMetrics{}).Enabled
+}
+
+// IsServiceMonitorEnabled indicates whether the MariaDB instance should have a ServiceMonitor
+func (m *MariaDB) IsServiceMonitorEnabled() bool {
+	return m.AreMetricsEnabled() && ptr.Deref(m.Spec.Metrics.ServiceMonitor.Enabled, true)
 }
 
 // IsInitialUserEnabled indicates whether the initial User is enabled

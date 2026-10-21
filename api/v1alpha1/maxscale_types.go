@@ -1015,6 +1015,11 @@ func (m *MaxScale) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MaxScaleMetrics{}).Enabled
 }
 
+// IsServiceMonitorEnabled indicates whether the MaxScale instance should have a ServiceMonitor
+func (m *MaxScale) IsServiceMonitorEnabled() bool {
+	return m.AreMetricsEnabled() && ptr.Deref(m.Spec.Metrics.ServiceMonitor.Enabled, true)
+}
+
 // IsTLSEnabled  indicates whether TLS is enabled
 func (m *MaxScale) IsTLSEnabled() bool {
 	return ptr.Deref(m.Spec.TLS, MaxScaleTLS{}).Enabled

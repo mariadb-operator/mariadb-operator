@@ -3074,6 +3074,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is a flag to enable the ServiceMonitor creation. It defaults to true when metrics are enabled.<br />When disabled, the exporter is still deployed, but no ServiceMonitor is created,<br />and the ServiceMonitor CRD is no longer required to be installed in the cluster. |  |  |
 | `prometheusRelease` _string_ | PrometheusRelease is the release label to add to the ServiceMonitor object. |  |  |
 | `jobLabel` _string_ | JobLabel to add to the ServiceMonitor object. |  |  |
 | `interval` _string_ | Interval for scraping metrics. |  |  |
