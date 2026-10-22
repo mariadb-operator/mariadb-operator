@@ -381,7 +381,9 @@ func (b *BootstrapFrom) validateRestoreModes() error {
 			return errors.New("'restoreParallel' is not supported with 'stagingStorage.persistentVolumeClaim'; " +
 				"each Pod needs its own staging storage, use emptyDir instead")
 		}
-		if b.Volume != nil {
+		// The operator also defaults 'volume' as staging storage for object storage sources and for every 'backupRef',
+		// so only a user-provided volume source is rejected. A 'backupRef' stored in a volume falls back to sequential.
+		if b.Volume != nil && b.BackupRef == nil && !b.IsRestoreParallelSupported() {
 			return errors.New("'restoreParallel' is not supported with 'volume'; " +
 				"restores from a volume extract into the shared backup volume, use 's3' or 'azureBlob' instead")
 		}
