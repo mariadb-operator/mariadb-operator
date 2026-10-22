@@ -11,7 +11,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -73,6 +72,48 @@ func TestBuildTimeline(t *testing.T) {
 			strictMode: true,
 			wantPath:   nil,
 			wantErr:    true,
+		},
+		{
+			name:       "single archived binlog - target within binlog",
+			indexFile:  mustParseTestFile(t, "single-archived-binlog.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: mustParseDate(t, "2026-01-09T11:30:00Z"),
+			strictMode: true,
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000001",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "single archived binlog - target at binlog end",
+			indexFile:  mustParseTestFile(t, "single-archived-binlog.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: mustParseDate(t, "2026-01-09T12:00:00Z"),
+			strictMode: true,
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000001",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "multiple binlogs - target within last binlog",
+			indexFile:  mustParseTestFile(t, "multiple-binlogs.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: mustParseDate(t, "2026-01-20T11:11:20Z"),
+			strictMode: false,
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000002",
+				"server-10/mariadb-repl-bin.000003",
+				"server-10/mariadb-repl-bin.000004",
+				"server-10/mariadb-repl-bin.000005",
+				"server-10/mariadb-repl-bin.000006",
+				"server-10/mariadb-repl-bin.000007",
+				"server-10/mariadb-repl-bin.000008",
+				"server-10/mariadb-repl-bin.000009",
+				"server-10/mariadb-repl-bin.000010",
+				"server-10/mariadb-repl-bin.000011",
+			},
+			wantErr: false,
 		},
 		{
 			name:       "filter by server-10 gtid and date",
@@ -301,31 +342,4 @@ func getBinlogTimeline(binlogMetas []BinlogMetadata) []string {
 		path[i] = binlogMeta.ObjectStoragePath()
 	}
 	return path
-}
-
-func TestBuildTimelineTargetWithinLastBinlog(t *testing.T) {
-	binlogIndex := &BinlogIndex{
-		APIVersion: BinlogIndexV1,
-		Binlogs: map[string][]BinlogMetadata{
-			"server-10": {
-				{
-					ServerId:       10,
-					BinlogFilename: "mariadb-repl-bin.000001",
-					FirstTime:      metav1.NewTime(mustParseDate(t, "2026-01-09T11:00:00Z")),
-					LastTime:       metav1.NewTime(mustParseDate(t, "2026-01-09T12:00:00Z")),
-					FirstGtid:      mustParseGtid(t, "0-10-1"),
-					LastGtid:       mustParseGtid(t, "0-10-7"),
-				},
-			},
-		},
-	}
-
-	binlogs, err := binlogIndex.BuildTimeline(
-		mustParseGtid(t, "0-10-1"),
-		mustParseDate(t, "2026-01-09T11:30:00Z"),
-		true,
-		logr.Discard(),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"server-10/mariadb-repl-bin.000001"}, getBinlogTimeline(binlogs))
 }
