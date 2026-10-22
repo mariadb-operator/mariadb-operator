@@ -445,7 +445,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 
 	It("should reconcile metrics with ServiceMonitor disabled", func() {
 		key := types.NamespacedName{
-			Name:      "mariadb-metrics-no-svcmonitor",
+			Name:      "mdb-testmetrics-no-svcmonitor",
 			Namespace: testNamespace,
 		}
 		mdb := mariadbv1alpha1.MariaDB{
@@ -461,7 +461,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.49",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.44",
 						},
 					},
 				},
