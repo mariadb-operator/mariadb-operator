@@ -1,8 +1,10 @@
 package sql
 
 import (
+	"net"
 	"testing"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"k8s.io/utils/ptr"
@@ -293,6 +295,55 @@ func TestRequireQuery(t *testing.T) {
 			}
 			if diff := cmp.Diff(tt.wantQuery, gotQuery); diff != "" {
 				t.Errorf("unexpected bundle content (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestBuildDSNHostAndPort(t *testing.T) {
+	tests := []struct {
+		name     string
+		host     string
+		wantHost string
+	}{
+		{
+			name:     "hostname",
+			host:     "mariadb.default.svc.cluster.local",
+			wantHost: "mariadb.default.svc.cluster.local",
+		},
+		{
+			name:     "IPv4",
+			host:     "10.96.0.10",
+			wantHost: "10.96.0.10",
+		},
+		{
+			name:     "IPv6",
+			host:     "fd00:10:96::a",
+			wantHost: "fd00:10:96::a",
+		},
+		{
+			name:     "bracketed IPv6",
+			host:     "[fd00:10:96::a]",
+			wantHost: "fd00:10:96::a",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsn, err := BuildDSN(Opts{Host: tt.host, Port: 3306, Username: "root", Password: "MariaDB11!"})
+			if err != nil {
+				t.Fatalf("BuildDSN() error = %v", err)
+			}
+			config, err := mysql.ParseDSN(dsn)
+			if err != nil {
+				t.Fatalf("mysql.ParseDSN(%q) error = %v", dsn, err)
+			}
+			host, port, err := net.SplitHostPort(config.Addr)
+			if err != nil {
+				t.Fatalf("net.SplitHostPort(%q) error = %v", config.Addr, err)
+			}
+			if host != tt.wantHost || port != "3306" {
+				t.Errorf("BuildDSN() address = %q, want host %q and port 3306", config.Addr, tt.wantHost)
 			}
 		})
 	}

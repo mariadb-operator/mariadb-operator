@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -257,7 +258,8 @@ func BuildDSN(opts Opts) (string, error) {
 	}
 	config := mysql.NewConfig()
 	config.Net = "tcp"
-	config.Addr = fmt.Sprintf("%s:%d", opts.Host, opts.Port)
+	// JoinHostPort brackets IPv6 addresses. Hosts that are already bracketed are accepted too.
+	config.Addr = net.JoinHostPort(strings.Trim(opts.Host, "[]"), strconv.Itoa(int(opts.Port)))
 
 	if opts.Timeout != nil {
 		config.Timeout = *opts.Timeout
