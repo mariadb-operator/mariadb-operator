@@ -475,10 +475,10 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 		if mdbpod.PodReady(&pod) {
 			if err := r.Patch(ctx, &pod, p); err != nil {
 				if apierrors.IsConflict(err) {
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 				}
 				if apierrors.IsNotFound(err) {
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 				}
 				return ctrl.Result{}, err
 			}

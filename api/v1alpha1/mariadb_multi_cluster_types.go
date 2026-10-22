@@ -74,6 +74,14 @@ func (m *MariaDB) IsMultiClusterReplica() bool {
 	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary != m.Name
 }
 
+// IsMultiClusterSwitchoverPending indicates whether a cluster switchover has been requested but not reconciled yet.
+func (m *MariaDB) IsMultiClusterSwitchoverPending() bool {
+	if !m.IsMultiClusterEnabled() || m.Status.CurrentMultiClusterPrimary == nil {
+		return false
+	}
+	return *m.Status.CurrentMultiClusterPrimary != ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary
+}
+
 // IsMultiClusterPrimaryReplica determines whether a given Pod index is a primary Pod in a replica cluster.
 func (m *MariaDB) IsMultiClusterPrimaryReplica(podIndex int) bool {
 	return m.IsMultiClusterReplica() && m.Status.CurrentPrimaryPodIndex != nil && *m.Status.CurrentPrimaryPodIndex == podIndex

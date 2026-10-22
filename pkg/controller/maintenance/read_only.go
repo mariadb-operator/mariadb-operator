@@ -47,7 +47,7 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 		}
 		if desiredReadOnly {
 			podLogger.Info("Enabling readonly")
-			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMaintenance, mariadbv1alpha1.ActionReconciling,
+			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMaintenance, mariadbv1alpha1.ReasonMaintenance,
 				"Enabling readonly in Pod %s", podName)
 
 			if err := client.EnableReadOnly(ctx); err != nil {
@@ -55,7 +55,7 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 			}
 		} else {
 			podLogger.Info("Disabling readonly")
-			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMaintenance, mariadbv1alpha1.ActionReconciling,
+			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMaintenance, mariadbv1alpha1.ReasonMaintenance,
 				"Disabling readonly in Pod %s", podName)
 
 			if err := client.DisableReadOnly(ctx); err != nil {
@@ -90,30 +90,36 @@ func shouldReconcileReadOnly(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) b
 	if mdb.IsCordoned() {
 		return true
 	}
-	// Reconciling readonly when MariaDB is not ready has multiple negative effects. For example:
-	// If the readonly reconciliation happens while MaxScale is performing a failover, the failover could hang with the following MaxScale logs:
-	//
-	// [mariadbmon] Failover 'mariadb-eu-central-1' -> 'mariadb-eu-central-0' performed.
-	// notice : Server changed state: mariadb-eu-central-0[mariadb-eu-central-0.mariadb-eu-central-internal.default.svc.cluster.local:3306]: new_master. [Slave, Running] -> [Master, Running]
-	// warning: [mariadbmon] The current primary server 'mariadb-eu-central-0' is no longer valid because it is in read-only mode, but there is no valid alternative to swap to.
-	// notice : Server changed state: mariadb-eu-central-0[mariadb-eu-central-0.mariadb-eu-central-internal.default.svc.cluster.local:3306]: new_slave. [Master, Running] -> [Slave, Running]
-	// error  : [readwritesplit] (rw-router); Couldn't find suitable Primary from 2 candidates.
-	// error  : (rw-router); Failed to create new router session for service 'rw-router'. See previous errors for more details.
-	//
-	// Preventing this readonly reconciliation from triggering using this guard, the failover succeeds:
-	//
-	// notice : [mariadbmon] Failover 'mariadb-eu-central-0' -> 'mariadb-eu-central-1' performed.
-	// notice : Server changed state: mariadb-eu-central-1[mariadb-eu-central-1.mariadb-eu-central-internal.default.svc.cluster.local:3306]: new_master. [Slave, Running] -> [Master, Running]
-	// notice : Server changed state: mariadb-eu-central-0[mariadb-eu-central-0.mariadb-eu-central-internal.default.svc.cluster.local:3306]: server_up. [Down] -> [Running]
-	// notice : [mariadbmon] Server 'mariadb-eu-central-0' is replicating from a server other than 'mariadb-eu-central-1', redirecting it to 'mariadb-eu-central-1'.
-	// notice : [mariadbmon] 1 server(s) redirected or rejoined the cluster.
-	// notice : Server changed state: mariadb-eu-central-0[mariadb-eu-central-0.mariadb-eu-central-internal.default.svc.cluster.local:3306]: new_slave. [Running] -> [Slave, Running]
-	//
-	// It is important to note that this issue only happens with the MaxScale failover, as it runs in parallel with the MariaDB controller i.e. race condition.
-	// MariaDB failover is not affected, as it is handled by a previous stage in the same MariaDB controller.
-	if !mdb.IsReady() {
-		logger.V(1).Info("MariaDB is not ready. Skipping readonly reconciliation...")
-		return false
+	if mdb.IsMaxScaleEnabled() {
+		// Reconciling readonly when MariaDB is not ready AND MaxScale is enabled has multiple negative effects:
+		// If the readonly reconciliation happens while MaxScale is performing a failover, the failover could hang with the following MaxScale logs:
+		//
+		// [mariadbmon] Failover 'mariadb-eu-central-1' -> 'mariadb-eu-central-0' performed.
+		// notice : Server changed state: mariadb-eu-central-0[mariadb-eu-central-0.mariadb-eu-central-internal.default.svc.cluster.local:3306]: new_master. [Slave, Running] -> [Master, Running]
+		// warning: [mariadbmon] The current primary server 'mariadb-eu-central-0' is no longer valid because it is in read-only mode, but there is no valid alternative to swap to.
+		// notice : Server changed state: mariadb-eu-central-0[mariadb-eu-central-0.mariadb-eu-central-internal.default.svc.cluster.local:3306]: new_slave. [Master, Running] -> [Slave, Running]
+		// error  : [readwritesplit] (rw-router); Couldn't find suitable Primary from 2 candidates.
+		// error  : (rw-router); Failed to create new router session for service 'rw-router'. See previous errors for more details.
+		//
+		// Preventing this readonly reconciliation from triggering using this guard, the failover succeeds:
+		//
+		// notice : [mariadbmon] Failover 'mariadb-eu-central-0' -> 'mariadb-eu-central-1' performed.
+		// notice : Server changed state: mariadb-eu-central-1[mariadb-eu-central-1.mariadb-eu-central-internal.default.svc.cluster.local:3306]: new_master. [Slave, Running] -> [Master, Running]
+		// notice : Server changed state: mariadb-eu-central-0[mariadb-eu-central-0.mariadb-eu-central-internal.default.svc.cluster.local:3306]: server_up. [Down] -> [Running]
+		// notice : [mariadbmon] Server 'mariadb-eu-central-0' is replicating from a server other than 'mariadb-eu-central-1', redirecting it to 'mariadb-eu-central-1'.
+		// notice : [mariadbmon] 1 server(s) redirected or rejoined the cluster.
+		// notice : Server changed state: mariadb-eu-central-0[mariadb-eu-central-0.mariadb-eu-central-internal.default.svc.cluster.local:3306]: new_slave. [Running] -> [Slave, Running]
+		//
+		// It is important to note that this issue only happens with the MaxScale failover, as it runs in parallel with the MariaDB controller i.e. race condition.
+		// MariaDB failover is not affected, as it is handled by a previous stage in the same MariaDB controller.
+		if !mdb.IsReady() {
+			logger.V(1).Info("MariaDB is not ready. Skipping readonly reconciliation...")
+			return false
+		}
 	}
+	// Without MaxScale, the operator is the only actor that promotes and demotes nodes, so the race condition described above cannot
+	// happen: failover and switchover are handled by a previous stage in this same controller, never in parallel with this one.
+	// Reconciling readonly is therefore always safe here, and skipping it would be harmful: read_only is not persisted in the MariaDB
+	// configuration, so a replica that is unable to become ready would stay writable indefinitely after a restart.
 	return true
 }

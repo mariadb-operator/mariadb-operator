@@ -109,7 +109,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, m
 			nil,
 			corev1.EventTypeWarning,
 			mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
-			mariadbv1alpha1.ActionReconciling,
+			mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
 			"Unable to recover replicas: replica datasource not found (replication.replica.bootstrapFrom is nil)",
 		)
 
@@ -164,7 +164,7 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 		}
 	}
 	// Requeue to track replication status
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 }
 
 func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, replica string, physicalBackup *mariadbv1alpha1.PhysicalBackup,

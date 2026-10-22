@@ -67,8 +67,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -122,8 +123,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -157,8 +159,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -211,8 +214,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -274,8 +278,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -343,8 +348,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -397,8 +403,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -458,8 +465,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -519,8 +527,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -608,8 +617,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -670,8 +680,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -754,8 +765,9 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 						TLS: &TLS{
 							Enabled: true,
@@ -825,8 +837,9 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -912,8 +925,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 					},
 				},
@@ -955,8 +969,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
@@ -1063,8 +1078,9 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                OnDeleteUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      OnDeleteUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
@@ -1182,8 +1198,9 @@ var _ = Describe("MariaDB types", func() {
 							},
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                OnDeleteUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      OnDeleteUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
@@ -1251,8 +1268,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
@@ -1340,8 +1358,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
@@ -1438,8 +1457,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
-							Type:                ReplicasFirstPrimaryLastUpdateType,
-							AutoUpdateDataPlane: ptr.To(false),
+							Type:                      ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane:       ptr.To(false),
+							MariaDBAutoUpgradeEnabled: ptr.To(false),
 						},
 						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
@@ -2496,6 +2516,66 @@ var _ = Describe("MariaDB types", func() {
 				},
 				true,
 				"MariaDB.k8s.mariadb.com \"mariadb-validation\" is invalid: spec: Invalid value: An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations for Galera. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation.", //nolint
+			),
+		)
+	})
+
+	Describe("IsSemiSyncEnabled", func() {
+		DescribeTable("should determine whether semi-sync is enabled",
+			func(mdb *MariaDB, expected bool) {
+				Expect(mdb.IsSemiSyncEnabled()).To(Equal(expected))
+			},
+			Entry("no HA topology", &MariaDB{}, false),
+			// Replication.IsSemiSyncEnabled defaults to true on the zero value, so a Galera instance would report true
+			// if the replication check were skipped.
+			Entry(
+				"Galera",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"replication, semi-sync unset",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"replication, semi-sync disabled",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+							ReplicationSpec: ReplicationSpec{
+								SemiSyncEnabled: ptr.To(false),
+							},
+						},
+					},
+				},
+				false,
+			),
+			Entry(
+				"replication disabled, semi-sync enabled",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							ReplicationSpec: ReplicationSpec{
+								SemiSyncEnabled: ptr.To(true),
+							},
+						},
+					},
+				},
+				false,
 			),
 		)
 	})

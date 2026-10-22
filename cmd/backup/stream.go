@@ -82,7 +82,7 @@ func streamBackup(ctx context.Context, storage backup.BackupStorage, processor b
 	if err != nil {
 		return fmt.Errorf("error parsing compression algorithm: %v", err)
 	}
-	compressor, err := mdbcompression.NewCompressor(calg)
+	compressor, err := mdbcompression.NewCompressor(calg, 0)
 	if err != nil {
 		return fmt.Errorf("error creating compressor: %v", err)
 	}

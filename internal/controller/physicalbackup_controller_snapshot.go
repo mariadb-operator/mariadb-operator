@@ -37,7 +37,7 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 		return ctrl.Result{}, err
 	}
 	if !exist {
-		r.Recorder.Eventf(backup, mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound, mariadbv1alpha1.ActionReconciling,
+		r.Recorder.Eventf(backup, mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound, mariadbv1alpha1.ReasonCRDNotFound,
 			"Unable to reconcile PhysicalBackup: VolumeSnapshot CRD not installed in the cluster")
 		logger.Error(errors.New("VolumeSnapshot CRD not installed in the cluster"), "Unable to reconcile PhysicalBackup")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
@@ -322,7 +322,7 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 			&snapshot,
 			corev1.EventTypeNormal,
 			mariadbv1alpha1.ReasonVolumeSnapshotCreated,
-			mariadbv1alpha1.ActionReconciling,
+			mariadbv1alpha1.ReasonVolumeSnapshotCreated,
 			"VolumeSnapshot %s scheduled",
 			desiredSnapshot.Name,
 		)
@@ -400,7 +400,7 @@ func (r *PhysicalBackupReconciler) waitForProvisionedSnapshots(ctx context.Conte
 			if err := r.Delete(ctx, &snapshot); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error deleting expired VolumeSnapshot: %v", err)
 			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 		}
 
 		logger.V(1).Info(

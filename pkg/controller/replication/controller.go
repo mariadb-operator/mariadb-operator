@@ -157,6 +157,12 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 			return result, err
 		}
 	}
+	// After the Pods have been configured, so the primary is only armed once the replicas are able to acknowledge it. Exiting the
+	// loop above early skips this, which is safe by construction: the same non-zero result short-circuits the MariaDB phase loop,
+	// so the Maintenance phase does not hand write traffic back either. The node stays unarmed and read_only together.
+	if err := r.reconcileSemiSync(ctx, req, *req.mariadb.Status.CurrentPrimaryPodIndex, logger); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling semi-sync: %w", err)
+	}
 	if !req.mariadb.HasConfiguredReplication() {
 		if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			conditions.SetReplicationConfigured(status)
@@ -188,6 +194,13 @@ func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, 
 			logger.Info("MaxScale is switching primary. Requeuing..")
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
+	}
+	if req.mariadb.IsMultiClusterSwitchoverPending() {
+		// The MariaDB controller reconciles the GTIDs of a cluster being demoted to replica cluster in the multi-cluster phase,
+		// which is only reached when this phase doesn't requeue. Configuring the primary replica before that results in
+		// replication being unable to start, as the primary replica has no replication position to resume from.
+		logger.V(1).Info("Ongoing cluster switchover detected. Skipping Galera multi-cluster reconciliation...")
+		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{}, nil
 }
@@ -321,10 +334,6 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 		WithChangeMasterOpts(
 			sql.WithChangeMasterGtid(changeMasterGtid),
 		),
-	}
-	// avoid deleting binary logs during archival to prevent drifting from object storage
-	if req.mariadb.IsPointInTimeRecoveryEnabled() {
-		replicaOpts = append(replicaOpts, WithResetMaster(false))
 	}
 	return replicaOpts, nil
 }

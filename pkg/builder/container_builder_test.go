@@ -1461,6 +1461,51 @@ func TestMariadbEnv(t *testing.T) {
 				}...),
 		},
 		{
+			// The "MariaDB replication" test case above leaves SemiSyncWaitNoSlave unset and asserts that no
+			// MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_NO_SLAVE env var is emitted, so upgrading the operator does not
+			// change the Pod template of existing MariaDB resources.
+			name: "MariaDB replication semi-sync wait no slave",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-repl",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							SemiSyncEnabled:     ptr.To(true),
+							SemiSyncWaitNoSlave: ptr.To(false),
+						},
+					},
+				},
+			},
+			wantEnv: append(
+				defaultEnv([]corev1.EnvVar{
+					{
+						Name:  "MARIADB_NAME",
+						Value: "mariadb-repl",
+					},
+				}),
+				[]corev1.EnvVar{
+					{
+						Name:  "MARIADB_REPL_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_GTID_STRICT_MODE",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_NO_SLAVE",
+						Value: strconv.FormatBool(false),
+					},
+				}...),
+		},
+		{
 			name: "MariaDB Galera TLS",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1616,6 +1661,43 @@ func TestMariadbEnv(t *testing.T) {
 					Value: "0",
 				},
 			},
+		},
+		{
+			name: "MariaDB auto update server",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						MariaDBAutoUpgradeEnabled: ptr.To(true),
+					},
+				},
+			},
+			wantEnv: append(defaultEnv(nil), corev1.EnvVar{
+				Name:  "MARIADB_AUTO_UPGRADE",
+				Value: "true",
+			}),
+		},
+		{
+			// The user-provided spec.env entry overrides the operator-managed MARIADB_AUTO_UPGRADE env var.
+			name: "MariaDB auto update server env override",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						MariaDBAutoUpgradeEnabled: ptr.To(true),
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Env: []mariadbv1alpha1.EnvVar{
+							{
+								Name:  "MARIADB_AUTO_UPGRADE",
+								Value: "0",
+							},
+						},
+					},
+				},
+			},
+			wantEnv: append(defaultEnv(nil), corev1.EnvVar{
+				Name:  "MARIADB_AUTO_UPGRADE",
+				Value: "0",
+			}),
 		},
 	}
 
@@ -1845,11 +1927,13 @@ func TestContainerArgs(t *testing.T) {
 
 func TestMariadbContainers(t *testing.T) {
 	tests := []struct {
-		name                string
-		mariadb             *mariadbv1alpha1.MariaDB
-		wantName            string
-		wantEnvKeys         []string
-		wantVolumeMountKeys []string
+		name                  string
+		mariadb               *mariadbv1alpha1.MariaDB
+		wantName              string
+		wantEnvKeys           []string
+		wantVolumeMountKeys   []string
+		wantMariadbEnvKeys    []string
+		notWantMariadbEnvKeys []string
 	}{
 		{
 			name: "Without sidecar container name",
@@ -1972,6 +2056,55 @@ func TestMariadbContainers(t *testing.T) {
 			wantEnvKeys:         nil,
 			wantVolumeMountKeys: []string{"TEST", "FOO", "BAR"},
 		},
+		{
+			name: "With mariadbAutoUpgradeEnabled",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						MariaDBAutoUpgradeEnabled: ptr.To(true),
+					},
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:            "sidecar-0",
+			wantEnvKeys:         nil,
+			wantVolumeMountKeys: nil,
+			wantMariadbEnvKeys:  []string{"MARIADB_AUTO_UPGRADE"},
+		},
+		{
+			name: "Without mariadbAutoUpgradeEnabled",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:              "sidecar-0",
+			wantEnvKeys:           nil,
+			wantVolumeMountKeys:   nil,
+			notWantMariadbEnvKeys: []string{"MARIADB_AUTO_UPGRADE"},
+		},
 	}
 
 	builder := newDefaultTestBuilder(t)
@@ -2002,6 +2135,17 @@ func TestMariadbContainers(t *testing.T) {
 				})
 				if !datastructures.AllExists(idx, tt.wantVolumeMountKeys...) {
 					t.Errorf("expected volumeMount keys \"%s\" to exist", tt.wantVolumeMountKeys)
+				}
+			}
+			mariadbIdx := datastructures.NewIndex(containers[0].Env, func(env corev1.EnvVar) string {
+				return env.Name
+			})
+			if tt.wantMariadbEnvKeys != nil && !datastructures.AllExists(mariadbIdx, tt.wantMariadbEnvKeys...) {
+				t.Errorf("expected mariadb container env keys \"%v\" to exist", tt.wantMariadbEnvKeys)
+			}
+			for _, key := range tt.notWantMariadbEnvKeys {
+				if datastructures.Has(mariadbIdx, key) {
+					t.Errorf("expected mariadb container env key %q to not exist", key)
 				}
 			}
 		})
@@ -2188,7 +2332,7 @@ func TestMaxscaleContainers(t *testing.T) {
 				},
 			},
 			wantCommand: []string{"maxscale"},
-			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
+			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-d", "-l", "stdout"},
 		},
 		{
 			name: "With custom command",
@@ -2200,7 +2344,7 @@ func TestMaxscaleContainers(t *testing.T) {
 				},
 			},
 			wantCommand: []string{"maxscale-test"},
-			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
+			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-d", "-l", "stdout"},
 		},
 		{
 			name: "With custom command and args",

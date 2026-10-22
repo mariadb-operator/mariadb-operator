@@ -508,6 +508,11 @@ type UpdateStrategy struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AutoUpdateDataPlane *bool `json:"autoUpdateDataPlane,omitempty"`
+	// MariaDBAutoUpgradeEnabled indicates whether the official `mariadb` image entrypoint should run `mariadb-upgrade` on start, by setting `MARIADB_AUTO_UPGRADE=true` in the `mariadb` container env. It defaults to false.
+	// Set this to true before bumping `spec.image` to a new major version, so that the server schema is migrated when the Pods roll. Leaving it set afterwards is safe: `mariadb-upgrade` is a no-op when there is nothing to migrate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MariaDBAutoUpgradeEnabled *bool `json:"mariadbAutoUpgradeEnabled,omitempty"`
 }
 
 // SetDefaults sets reasonable defaults.
@@ -517,6 +522,9 @@ func (u *UpdateStrategy) SetDefaults() {
 	}
 	if u.AutoUpdateDataPlane == nil {
 		u.AutoUpdateDataPlane = ptr.To(false)
+	}
+	if u.MariaDBAutoUpgradeEnabled == nil {
+		u.MariaDBAutoUpgradeEnabled = ptr.To(false)
 	}
 }
 
@@ -1116,6 +1124,18 @@ func (m *MariaDB) IsReplicationEnabled() bool {
 // IsHAEnabled indicates whether the MariaDB instance has HA enabled
 func (m *MariaDB) IsHAEnabled() bool {
 	return m.IsReplicationEnabled() || m.IsGaleraEnabled()
+}
+
+// IsSemiSyncEnabled indicates whether the MariaDB instance has semi-synchronous replication enabled.
+// Replication is checked first because 'Replication.IsSemiSyncEnabled' defaults to true on the zero value, so calling it
+// through 'ptr.Deref(m.Spec.Replication, Replication{})' reports true for an instance with no replication at all, a Galera
+// one for example.
+func (m *MariaDB) IsSemiSyncEnabled() bool {
+	if !m.IsReplicationEnabled() {
+		return false
+	}
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	return replication.IsSemiSyncEnabled()
 }
 
 // HasPendingHATopologyConfiguration indicates that an HA topology has been enabled, but not yet configured

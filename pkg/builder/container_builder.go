@@ -158,6 +158,8 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale, opts ...mari
 	if err != nil {
 		return nil, err
 	}
+	// The Pod already runs as the 'maxscale' user via its securityContext, so '-U maxscale' is not
+	// needed. MaxScale 23.08.6 and newer fail to start with it, as switching user requires root.
 	command := command.NewCommand(
 		[]string{
 			"maxscale",
@@ -165,8 +167,7 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale, opts ...mari
 		[]string{
 			"--config",
 			fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
-			"-dU",
-			"maxscale",
+			"-d",
 			"-l",
 			"stdout",
 		},
@@ -539,6 +540,13 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		})
 	}
 
+	if ptr.Deref(mariadb.Spec.UpdateStrategy.MariaDBAutoUpgradeEnabled, false) {
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_AUTO_UPGRADE",
+			Value: "true",
+		})
+	}
+
 	if mariadb.Spec.Env != nil {
 		idx := make(map[string]int, len(env))
 		for i, envVar := range env {
@@ -605,6 +613,19 @@ func mariadbReplEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 			env = append(env, corev1.EnvVar{
 				Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT",
 				Value: waitPoint,
+			})
+		}
+		if replication.SemiSyncWaitNoSlave != nil {
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_NO_SLAVE",
+				Value: strconv.FormatBool(*replication.SemiSyncWaitNoSlave),
+			})
+		}
+		// Only emitted when enabled, so that the Pod template of existing clusters is left untouched.
+		if replication.IsSemiSyncBootAsReplicaEnabled() {
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_SEMI_SYNC_BOOT_AS_REPLICA",
+				Value: fmt.Sprint(true),
 			})
 		}
 	}

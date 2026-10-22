@@ -101,6 +101,9 @@ spec:
     # type: Never
     # Update the data-plane after an operator upgrade.
     # autoUpdateDataPlane: true
+    # Run migrations via 'mariadb-upgrade' when 'spec.image' changes.
+    # Leaving it set afterwards is safe, as 'mariadb-upgrade' is a no-op when there is nothing to migrate. 
+    # mariadbAutoUpgradeEnabled: true
   # Configure enough compute resources. This is just an example, take a look at your historic compute metrics to estimate.
   resources:
     requests:

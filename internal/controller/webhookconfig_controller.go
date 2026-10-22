@@ -166,7 +166,7 @@ func (r *WebhookConfigReconciler) reconcileValidatingWebhook(ctx context.Context
 	}); err != nil {
 		logger.Error(err, "Could not update ValidatingWebhookConfig")
 		r.recorder.Eventf(&validatingWebhook, nil, v1.EventTypeWarning, mariadbv1alpha1.ReasonWebhookUpdateFailed,
-			mariadbv1alpha1.ActionReconciling, err.Error())
+			mariadbv1alpha1.ReasonWebhookUpdateFailed, err.Error())
 		return err
 	}
 	logger.Info("Updated webhook config")
@@ -210,7 +210,7 @@ func (r *WebhookConfigReconciler) reconcileMutatingWebhook(ctx context.Context, 
 	}); err != nil {
 		logger.Error(err, "Could not update MutatingWebhookConfig")
 		r.recorder.Eventf(&mutatingWebhook, nil, v1.EventTypeWarning, mariadbv1alpha1.ReasonWebhookUpdateFailed,
-			mariadbv1alpha1.ActionReconciling, err.Error())
+			mariadbv1alpha1.ReasonWebhookUpdateFailed, err.Error())
 		return err
 	}
 	logger.Info("Updated webhook config")

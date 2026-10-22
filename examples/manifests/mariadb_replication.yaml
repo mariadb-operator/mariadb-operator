@@ -61,15 +61,19 @@ spec:
     # It requires semi-synchronous replication to be enabled.
     # See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
     # semiSyncWaitPoint: AfterCommit
+    # Whether the primary waits for the semi-synchronous ACK timeout to expire when it has no semi-synchronous replicas connected.
+    # It requires semi-synchronous replication to be enabled.
+    # See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_no_slave
+    # semiSyncWaitNoSlave: true
     # Number of events after which the binary log will be synchronized to the disk.
     # See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
     # syncBinlog: 1
     # Init container that cooperates with mariadb-operator.
     # initContainer:
-    #   image: ghcr.io/mariadb-operator/mariadb-operator:26.6.0
+    #   image: ghcr.io/mariadb-operator/mariadb-operator:26.10.1
     # Agent sidecar that cooperates with mariadb-operator.
     # agent:
-    #   image: ghcr.io/mariadb-operator/mariadb-operator:26.6.0
+    #   image: ghcr.io/mariadb-operator/mariadb-operator:26.10.1
   
   service:
     type: LoadBalancer

@@ -83,7 +83,7 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 			nil,
 			corev1.EventTypeNormal,
 			mariadbv1alpha1.ReasonMaxScalePrimaryServerChanged,
-			mariadbv1alpha1.ActionReconciling,
+			mariadbv1alpha1.ReasonMaxScalePrimaryServerChanged,
 			"MaxScale primary server changed from '%s' to '%s'", primary, newPrimary,
 		)
 	}

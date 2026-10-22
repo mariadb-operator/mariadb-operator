@@ -150,7 +150,7 @@ func getStreamCompressor() (mdbcompression.Compressor, error) {
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mdbcompression.NewCompressor(calg)
+	return mdbcompression.NewCompressor(calg, 0)
 }
 
 func cleanupOldBackups(ctx context.Context, backupStorage backup.BackupStorage, backupProcessor backup.BackupProcessor,

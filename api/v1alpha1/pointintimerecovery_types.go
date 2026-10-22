@@ -19,9 +19,15 @@ type PointInTimeRecoverySpec struct {
 	// Compression algorithm to be used for compressing the binary logs.
 	// This field is immutable, it cannot be updated after creation.
 	// +optional
-	// +kubebuilder:validation:Enum=none;bzip2;gzip
+	// +kubebuilder:validation:Enum=none;bzip2;gzip;zstd
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Compression CompressAlgorithm `json:"compression,omitempty" webhook:"inmutable"`
+	// CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.
+	// Defaults to all available CPUs.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CompressionThreads *int32 `json:"compressionThreads,omitempty"`
 	// ArchiveTimeout defines the maximum duration for the binary log archival.
 	// If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.
 	// It defaults to 1 hour.

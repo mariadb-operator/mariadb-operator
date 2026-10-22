@@ -45,17 +45,10 @@ helm-config: yq ## Update operator config in the Helm chart.
 	$(YQ) e -i '.config.exporterMaxscaleImage.repository = "$(RELATED_IMAGE_EXPORTER_MAXSCALE_NAME)"' $(HELM_VALUES_FILE)
 	$(YQ) e -i '.config.exporterMaxscaleImage.tag = "$(RELATED_IMAGE_EXPORTER_MAXSCALE_VERSION)"' $(HELM_VALUES_FILE)
 
-HELM_DOCS_IMG ?= jnorwood/helm-docs:v1.14.2
 .PHONY: helm-docs
-helm-docs: ## Generate Helm chart docs.
-	$(DOCKER) run --rm \
-		-u $(shell id -u) \
-		-v $(shell pwd)/$(HELM_DIR):/helm-docs \
-		$(HELM_DOCS_IMG)
-	$(DOCKER) run --rm \
-		-u $(shell id -u) \
-		-v $(shell pwd)/$(HELM_CLUSTER_DIR):/helm-docs \
-		$(HELM_DOCS_IMG)
+helm-docs: $(HELM_DOCS) ## Generate Helm chart docs.
+	$(HELM_DOCS) --chart-search-root $(HELM_DIR)
+	$(HELM_DOCS) --chart-search-root $(HELM_CLUSTER_DIR)
 
 .PHONY: helm-gen
 helm-gen: helm-crds helm-config helm-docs ## Generate manifests and documentation for the Helm chart.

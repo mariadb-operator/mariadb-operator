@@ -71,6 +71,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		command.WithCleanupTargetFile(backupShouldCleanupTargetFile(backup)),
 		command.WithMaxRetention(backup.Spec.MaxRetention.Duration),
 		command.WithCompression(backup.Spec.Compression),
+		command.WithCompressionThreads(backup.Spec.CompressionThreads),
 		command.WithUserEnv(batchUserEnv),
 		command.WithPasswordEnv(batchPasswordEnv),
 		command.WithLogLevel(backup.Spec.LogLevel),
@@ -191,6 +192,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		command.WithCleanupTargetFile(physicalBackupShouldCleanupTargetFile(backup)),
 		command.WithMaxRetention(backup.Spec.MaxRetention.Duration),
 		command.WithCompression(backup.Spec.Compression),
+		command.WithCompressionThreads(backup.Spec.CompressionThreads),
 		command.WithUserEnv(batchUserEnv),
 		command.WithPasswordEnv(batchPasswordEnv),
 		command.WithLogLevel(backup.Spec.LogLevel),
@@ -302,6 +304,10 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	if err != nil {
 		return nil, err
 	}
+	// This Job co-mounts the MariaDB data volume, so it must share the MariaDB Pod's
+	// SELinux context. Otherwise, on SELinux-enforcing nodes the volume is relabelled
+	// and the running mariadbd loses access to its own data directory (Errcode: 13).
+	inheritMariadbSELinuxOptions(securityContext, mariadb)
 
 	var affinity *corev1.Affinity
 	if ptr.Deref(backup.Spec.PodAffinity, true) {
@@ -757,6 +763,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 		command.WithStartGtid(opts.StartGtid),
 		command.WithTargetTime(*opts.TargetRecoveryTime),
 		command.WithCompression(pitr.Spec.Compression),
+		command.WithCompressionThreads(pitr.Spec.CompressionThreads),
 		command.WithUserEnv(batchUserEnv),
 		command.WithPasswordEnv(batchPasswordEnv),
 		command.WithExtraOpts(restoreJob.Args),

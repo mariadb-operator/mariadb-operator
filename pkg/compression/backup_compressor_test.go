@@ -34,6 +34,13 @@ func TestBackupCompressors(t *testing.T) {
 			newCompressorFn: NewBzip2BackupCompressor,
 			fileName:        "backup.2023-12-18T16:14:00Z.sql.bz2",
 		},
+		{
+			name: "zstd",
+			newCompressorFn: func(basePath string, getUncompressedFilename GetBackupUncompressedFilenameFn, logger logr.Logger) BackupCompressor {
+				return NewZstdBackupCompressor(0, basePath, getUncompressedFilename, logger)
+			},
+			fileName: "backup.2023-12-18T16:14:00Z.sql.zst",
+		},
 	}
 
 	for _, tt := range tests {

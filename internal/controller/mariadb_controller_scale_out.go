@@ -121,8 +121,14 @@ func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb 
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 
 	if replication.Replica.ReplicaBootstrapFrom == nil {
-		r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBScaleOutError, mariadbv1alpha1.ActionReconciling,
-			"Unable to scale out MariaDB: replica datasource not found (replication.replica.bootstrapFrom is nil)")
+		r.Recorder.Eventf(
+			mariadb,
+			nil,
+			corev1.EventTypeWarning,
+			mariadbv1alpha1.ReasonMariaDBScaleOutError,
+			mariadbv1alpha1.ReasonMariaDBScaleOutError,
+			"Unable to scale out MariaDB: replica datasource not found (replication.replica.bootstrapFrom is nil)",
+		)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			condition.SetScaleOutError(status, "replica datasource not found (replication.replica.bootstrapFrom is nil)")
@@ -140,8 +146,14 @@ func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb 
 		return ctrl.Result{}, fmt.Errorf("error checking PVCs: %v", err)
 	}
 	if pvcsAlreadyExist {
-		r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBScaleOutError, mariadbv1alpha1.ActionReconciling,
-			"Unable to scale out MariaDB: storage PVCs already exist")
+		r.Recorder.Eventf(
+			mariadb,
+			nil,
+			corev1.EventTypeWarning,
+			mariadbv1alpha1.ReasonMariaDBScaleOutError,
+			mariadbv1alpha1.ReasonMariaDBScaleOutError,
+			"Unable to scale out MariaDB: storage PVCs already exist",
+		)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			condition.SetScaleOutError(status, "storage PVCs already exist")
@@ -272,7 +284,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 		}
 		// Requeue to track replication status
 		if mariadb.IsReplicationEnabled() {
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 		}
 	}
 

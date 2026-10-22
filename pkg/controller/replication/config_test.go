@@ -152,6 +152,44 @@ sync_binlog=1
 			wantErr: false,
 		},
 		{
+			name: "with semi-sync master wait no slave disabled",
+			env: &env.PodEnvironment{
+				PodName:                              "mariadb-0",
+				MariadbName:                          "mariadb",
+				MariaDBReplEnabled:                   "true",
+				MariaDBReplSemiSyncEnabled:           "true",
+				MariaDBReplSemiSyncMasterWaitNoSlave: "false",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+rpl_semi_sync_master_enabled=ON
+rpl_semi_sync_slave_enabled=ON
+rpl_semi_sync_master_wait_no_slave=OFF
+server_id=10
+`,
+			wantErr: false,
+		},
+		{
+			name: "with semi-sync master wait no slave enabled",
+			env: &env.PodEnvironment{
+				PodName:                              "mariadb-0",
+				MariadbName:                          "mariadb",
+				MariaDBReplEnabled:                   "true",
+				MariaDBReplSemiSyncEnabled:           "true",
+				MariaDBReplSemiSyncMasterWaitNoSlave: "true",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+rpl_semi_sync_master_enabled=ON
+rpl_semi_sync_slave_enabled=ON
+rpl_semi_sync_master_wait_no_slave=ON
+server_id=10
+`,
+			wantErr: false,
+		},
+		{
 			name: "with custom GTID domain ID",
 			env: &env.PodEnvironment{
 				PodName:                 "mariadb-0",
@@ -185,16 +223,17 @@ server_id=102
 		{
 			name: "all values present",
 			env: &env.PodEnvironment{
-				PodName:                            "mariadb-0",
-				MariadbName:                        "mariadb",
-				MariaDBReplEnabled:                 "true",
-				MariaDBReplGtidStrictMode:          "true",
-				MariaDBReplGtidDomainID:            "1",
-				MariaDBReplServerIDStartIndex:      "100",
-				MariaDBReplSemiSyncEnabled:         "true",
-				MariaDBReplSemiSyncMasterTimeout:   "5000",
-				MariaDBReplSemiSyncMasterWaitPoint: "AFTER_SYNC",
-				MariaDBReplMasterSyncBinlog:        "1",
+				PodName:                              "mariadb-0",
+				MariadbName:                          "mariadb",
+				MariaDBReplEnabled:                   "true",
+				MariaDBReplGtidStrictMode:            "true",
+				MariaDBReplGtidDomainID:              "1",
+				MariaDBReplServerIDStartIndex:        "100",
+				MariaDBReplSemiSyncEnabled:           "true",
+				MariaDBReplSemiSyncMasterTimeout:     "5000",
+				MariaDBReplSemiSyncMasterWaitPoint:   "AFTER_SYNC",
+				MariaDBReplSemiSyncMasterWaitNoSlave: "false",
+				MariaDBReplMasterSyncBinlog:          "1",
 			},
 			wantConfig: `[mariadb]
 log_bin
@@ -205,8 +244,109 @@ rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
 rpl_semi_sync_master_timeout=5000
 rpl_semi_sync_master_wait_point=AFTER_SYNC
+rpl_semi_sync_master_wait_no_slave=OFF
 server_id=100
 sync_binlog=1
+`,
+			wantErr: false,
+		},
+		{
+			// Enabled: the node boots unarmed and unwritable, and the operator arms the primary and hands write traffic
+			// back to it. Not set is the default and renders 'rpl_semi_sync_master_enabled=ON' with no 'read_only',
+			// which keeps the Pod template untouched for existing clusters.
+			name: "semi-sync boot as replica enabled",
+			env: &env.PodEnvironment{
+				PodName:                          "mariadb-0",
+				MariadbName:                      "mariadb",
+				MariaDBReplEnabled:               "true",
+				MariaDBReplSemiSyncEnabled:       "true",
+				MariaDBReplSemiSyncBootAsReplica: "true",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+read_only=ON
+rpl_semi_sync_master_enabled=OFF
+rpl_semi_sync_slave_enabled=ON
+server_id=10
+`,
+			wantErr: false,
+		},
+		{
+			name: "semi-sync boot as replica enabled with all values present",
+			env: &env.PodEnvironment{
+				PodName:                              "mariadb-0",
+				MariadbName:                          "mariadb",
+				MariaDBReplEnabled:                   "true",
+				MariaDBReplGtidStrictMode:            "true",
+				MariaDBReplGtidDomainID:              "1",
+				MariaDBReplServerIDStartIndex:        "100",
+				MariaDBReplSemiSyncEnabled:           "true",
+				MariaDBReplSemiSyncMasterTimeout:     "5000",
+				MariaDBReplSemiSyncMasterWaitPoint:   "AFTER_SYNC",
+				MariaDBReplSemiSyncMasterWaitNoSlave: "true",
+				MariaDBReplSemiSyncBootAsReplica:     "true",
+				MariaDBReplMasterSyncBinlog:          "1",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+gtid_strict_mode
+gtid_domain_id=1
+read_only=ON
+rpl_semi_sync_master_enabled=OFF
+rpl_semi_sync_slave_enabled=ON
+rpl_semi_sync_master_timeout=5000
+rpl_semi_sync_master_wait_point=AFTER_SYNC
+rpl_semi_sync_master_wait_no_slave=ON
+server_id=100
+sync_binlog=1
+`,
+			wantErr: false,
+		},
+		{
+			name: "semi-sync boot as replica disabled explicitly",
+			env: &env.PodEnvironment{
+				PodName:                          "mariadb-0",
+				MariadbName:                      "mariadb",
+				MariaDBReplEnabled:               "true",
+				MariaDBReplSemiSyncEnabled:       "true",
+				MariaDBReplSemiSyncBootAsReplica: "false",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+rpl_semi_sync_master_enabled=ON
+rpl_semi_sync_slave_enabled=ON
+server_id=10
+`,
+			wantErr: false,
+		},
+		{
+			name: "invalid semi-sync boot as replica",
+			env: &env.PodEnvironment{
+				PodName:                          "mariadb-0",
+				MariadbName:                      "mariadb",
+				MariaDBReplEnabled:               "true",
+				MariaDBReplSemiSyncEnabled:       "true",
+				MariaDBReplSemiSyncBootAsReplica: "foo",
+			},
+			wantErr: true,
+		},
+		{
+			// Semi-sync disabled takes precedence: the whole block is skipped.
+			name: "semi-sync boot as replica set but semi-sync disabled",
+			env: &env.PodEnvironment{
+				PodName:                          "mariadb-0",
+				MariadbName:                      "mariadb",
+				MariaDBReplEnabled:               "true",
+				MariaDBReplSemiSyncEnabled:       "false",
+				MariaDBReplSemiSyncBootAsReplica: "true",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+server_id=10
 `,
 			wantErr: false,
 		},

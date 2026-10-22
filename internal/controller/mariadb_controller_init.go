@@ -139,7 +139,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 
 	// Requeue to track replication status
 	if mariadb.IsReplicationEnabled() {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 	}
 	return ctrl.Result{}, nil
 }
@@ -175,7 +175,7 @@ func (r *MariaDBReconciler) reconcilePITRInitError(ctx context.Context, mariadb 
 		lastRecoverableTime,
 	)
 	r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
-		mariadbv1alpha1.ActionReconciling, "Unable to init MariaDB: %s", errMsg)
+		mariadbv1alpha1.ReasonMariaDBInitError, "Unable to init MariaDB: %s", errMsg)
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetInitError(status, errMsg)
@@ -198,7 +198,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInitError(ctx context.Context
 		return ctrl.Result{}, nil
 	}
 	r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
-		mariadbv1alpha1.ActionReconciling, "Unable to init MariaDB: storage PVCs already exist")
+		mariadbv1alpha1.ReasonMariaDBInitError, "Unable to init MariaDB: storage PVCs already exist")
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetInitError(status, "storage PVCs already exist")
