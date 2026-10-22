@@ -1,0 +1,14 @@
+apiVersion: v1
+binlogs:
+  server-10:
+  - serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    binlogVersion: 4
+    binlogFilename: mariadb-repl-bin.000001
+    logPosition: 1590
+    firstTime: "2026-01-09T11:00:00Z"
+    lastTime: "2026-01-09T12:00:00Z"
+    firstGtid: 0-10-1
+    lastGtid: 0-10-7
+    rotateEvent: false
+    stopEvent: false
