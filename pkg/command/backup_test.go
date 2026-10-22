@@ -1220,9 +1220,9 @@ func TestMariadbBackupRestore(t *testing.T) {
 				}
 				script := cmd.Args[0] // NewBashCommand puts the whole script here
 				if tt.wantCleanup {
-					assert.Contains(t, script, "rm -rf /var/lib/mysql/*")
+					assert.Contains(t, script, "find /var/lib/mysql -mindepth 1 -delete")
 				} else {
-					assert.NotContains(t, script, "rm -rf /var/lib/mysql/*")
+					assert.NotContains(t, script, "find /var/lib/mysql -mindepth 1 -delete")
 				}
 			}
 		})
