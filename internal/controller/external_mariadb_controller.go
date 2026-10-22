@@ -168,7 +168,8 @@ func (r *ExternalMariaDBReconciler) reconcileStatus(ctx context.Context,
 	}
 
 	isGaleraEnabled, err := client.IsSystemVariableEnabled(ctx, "wsrep_on")
-	if err != nil {
+	// Servers built without Galera support, such as Amazon RDS, do not define wsrep_on.
+	if err != nil && !sqlClient.IsUnknownSystemVariable(err) {
 		return ctrl.Result{}, fmt.Errorf("unable to determine if Galera cluster is enable on that cluster: %v", err)
 	}
 
