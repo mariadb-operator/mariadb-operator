@@ -310,7 +310,7 @@ spec:
 A `PhysicalBackup` with `storage.s3` and no `stagingStorage` streams the backup to S3: `mariadb-backup` pipes into the operator binary, which compresses on the fly and uploads with an S3 multipart upload. No staging volume is provisioned, so the backup size is no longer limited by a staging PVC. Set `stagingStorage` to keep the previous behaviour of writing the backup to a volume before uploading it.
 
 - The upload only completes if `mariadb-backup` exits successfully. When it fails, the multipart upload is aborted, no backup object is published and old backups are not cleaned up.
-- Each multipart part is buffered in memory, 512 MiB by default, in the `mariadb` container of the backup Job. Set `resources.limits.memory` to at least 1Gi, plus the memory `mariadb-backup` needs.
+- Each multipart part is buffered in memory, 256 MiB by default, in the `mariadb` container of the backup Job. Set `resources.limits.memory` to at least 512Mi, plus the memory `mariadb-backup` needs. With at most 10,000 parts, a streamed backup can be up to 2.5 TiB after compression.
 - If the Job is killed (for example by `timeout` or an eviction), the operator cannot abort the multipart upload. Configure a lifecycle rule on the bucket that aborts incomplete multipart uploads.
 
 ## Restore modes

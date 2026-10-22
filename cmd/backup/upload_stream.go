@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	defaultStreamUploadPartSize = 512 * 1024 * 1024
+	defaultStreamUploadPartSize = 256 * 1024 * 1024
 	maxCapturedMetadataBytes    = 1024 * 1024
 )
 
