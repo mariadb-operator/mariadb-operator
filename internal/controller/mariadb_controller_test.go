@@ -457,6 +457,14 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 				Storage: mariadbv1alpha1.Storage{
 					Size: ptr.To(resource.MustParse("300Mi")),
 				},
+				Service: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.49",
+						},
+					},
+				},
 				Metrics: &mariadbv1alpha1.MariadbMetrics{
 					Enabled: true,
 					ServiceMonitor: mariadbv1alpha1.ServiceMonitor{
