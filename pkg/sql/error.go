@@ -17,6 +17,9 @@ var (
 	SQLGtidSlavePosNoValueForDomain = 1948
 	// Ref: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1095
 	SQLYouAreNotOwnerOfThread = 1095
+	// Error 1193 (HY000): Unknown system variable 'wsrep_on'
+	// Ref: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1100-to-1199/e1193
+	SQLUnknownSystemVariable = 1193
 	// Error 1141 (42000): There is no such grant defined for user on host
 	// Ref: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1100-to-1199/e1141
 	SQLNonexistingGrant = 1141
@@ -47,6 +50,11 @@ func IsConnectionNotExists(err error) bool {
 // Cannot set `gtid_slave_pos`
 func IsGtidSlavePosNoValueForDomain(err error) bool {
 	return IsSQLErrorNumber(err, SQLGtidSlavePosNoValueForDomain)
+}
+
+// Unknown system variable
+func IsUnknownSystemVariable(err error) bool {
+	return IsSQLErrorNumber(err, SQLUnknownSystemVariable)
 }
 
 // You are not owner of thread
