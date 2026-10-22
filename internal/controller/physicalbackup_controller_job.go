@@ -96,84 +96,85 @@ func (r *PhysicalBackupReconciler) indexJobs(ctx context.Context, mgr manager.Ma
 func (r *PhysicalBackupReconciler) reconcileJobStatus(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	jobList *batchv1.JobList, parentLogger logr.Logger) error {
 	logger := parentLogger.WithName("status").V(1)
-	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
+	condition := physicalBackupJobStatusCondition(backup, jobList)
+	if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+		status.SetCondition(condition)
+	}); err != nil {
+		logger.Info("error patching status", "err", err)
+	}
+	return nil
+}
 
+func physicalBackupJobStatusCondition(backup *mariadbv1alpha1.PhysicalBackup,
+	jobList *batchv1.JobList) metav1.Condition {
+	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
 	if schedule.Suspend {
-		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
-			status.SetCondition(metav1.Condition{
+		return metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeComplete,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonJobSuspended,
+			Message: "Suspended",
+		}
+	}
+
+	if job := latestPhysicalBackupJob(jobList); job != nil {
+		if jobpkg.IsJobFailed(job) {
+			return metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeComplete,
+				Status:  metav1.ConditionTrue,
+				Reason:  mariadbv1alpha1.ConditionReasonJobFailed,
+				Message: "Failed",
+			}
+		}
+		if jobpkg.IsJobSuspended(job) {
+			return metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeComplete,
 				Status:  metav1.ConditionFalse,
 				Reason:  mariadbv1alpha1.ConditionReasonJobSuspended,
 				Message: "Suspended",
-			})
-		}); err != nil {
-			logger.Info("error patching status", "err", err)
-		}
-		return nil
-	}
-
-	numRunning := 0
-	numComplete := 0
-	for _, job := range jobList.Items {
-		if jobpkg.IsJobFailed(&job) {
-			if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
-				status.SetCondition(metav1.Condition{
-					Type:    mariadbv1alpha1.ConditionTypeComplete,
-					Status:  metav1.ConditionTrue,
-					Reason:  mariadbv1alpha1.ConditionReasonJobFailed,
-					Message: "Failed",
-				})
-			}); err != nil {
-				logger.Info("error patching status", "err", err)
 			}
-			return nil
-		} else if jobpkg.IsJobRunning(&job) {
-			numRunning++
-		} else if jobpkg.IsJobComplete(&job) {
-			numComplete++
 		}
-	}
-
-	if len(jobList.Items) > 0 && numComplete == len(jobList.Items) {
-		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
-			status.SetCondition(metav1.Condition{
+		if jobpkg.IsJobComplete(job) {
+			return metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeComplete,
 				Status:  metav1.ConditionTrue,
 				Reason:  mariadbv1alpha1.ConditionReasonJobComplete,
 				Message: "Success",
-			})
-		}); err != nil {
-			logger.Info("error patching status", "err", err)
+			}
 		}
-	} else if len(jobList.Items) > 0 && numRunning > 0 {
-		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
-			status.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeComplete,
-				Status:  metav1.ConditionFalse,
-				Reason:  mariadbv1alpha1.ConditionReasonJobRunning,
-				Message: "Running",
-			})
-		}); err != nil {
-			logger.Info("error patching status", "err", err)
-		}
-	} else {
-		message := "Not complete"
-		if backup.Spec.Schedule != nil {
-			message = "Scheduled"
-		}
-
-		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
-			status.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeComplete,
-				Status:  metav1.ConditionFalse,
-				Reason:  mariadbv1alpha1.ConditionReasonJobNotComplete,
-				Message: message,
-			})
-		}); err != nil {
-			logger.Info("error patching status", "err", err)
+		return metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeComplete,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonJobRunning,
+			Message: "Running",
 		}
 	}
-	return nil
+
+	message := "Not complete"
+	if backup.Spec.Schedule != nil {
+		message = "Scheduled"
+	}
+	return metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeComplete,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonJobNotComplete,
+		Message: message,
+	}
+}
+
+func latestPhysicalBackupJob(jobList *batchv1.JobList) *batchv1.Job {
+	if len(jobList.Items) == 0 {
+		return nil
+	}
+
+	latest := &jobList.Items[0]
+	for i := 1; i < len(jobList.Items); i++ {
+		job := &jobList.Items[i]
+		if job.CreationTimestamp.After(latest.CreationTimestamp.Time) {
+			latest = job
+		}
+	}
+	return latest
 }
 
 func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,

@@ -13,6 +13,12 @@
 - [Retention policy](#retention-policy)
 - [Target policy](#target-policy)
 - [Restoration](#restoration)
+- [Streaming backups](#streaming-backups)
+- [Restore modes](#restore-modes)
+  - [Sequential (default)](#sequential-default)
+  - [SST-aware (primary only)](#sst-aware-primary-only)
+  - [Parallel](#parallel)
+  - [Streaming restore](#streaming-restore)
 - [Target recovery time](#target-recovery-time)
 - [Timeout](#timeout)
 - [Log level](#log-level)
@@ -298,6 +304,88 @@ spec:
     volumeSnapshotRef:
       name: physicalbackup-20250611163352
 ```
+
+## Streaming backups
+
+A `PhysicalBackup` with `storage.s3` and no `stagingStorage` streams the backup to S3: `mariadb-backup` pipes into the operator binary, which compresses on the fly and uploads with an S3 multipart upload. No staging volume is provisioned, so the backup size is no longer limited by a staging PVC. Set `stagingStorage` to keep the previous behaviour of writing the backup to a volume before uploading it.
+
+- The upload only completes if `mariadb-backup` exits successfully. When it fails, the multipart upload is aborted, no backup object is published and old backups are not cleaned up.
+- Each multipart part is buffered in memory, 256 MiB by default, in the `mariadb` container of the backup Job. Set `resources.limits.memory` to at least 512Mi, plus the memory `mariadb-backup` needs. With at most 10,000 parts, a streamed backup can be up to 2.5 TiB after compression.
+- If the Job is killed (for example by `timeout` or an eviction), the operator cannot abort the multipart upload. Configure a lifecycle rule on the bucket that aborts incomplete multipart uploads.
+
+## Restore modes
+
+By default, the operator restores each pod sequentially: pod 0 is restored and started, then pod 1, and so on. This is the safest mode but can be slow for large clusters. You can configure alternative restore modes using the `restoreOnlyPrimary` and `restoreParallel` fields.
+
+### Sequential (default)
+
+The default mode restores pods one-by-one. Each pod downloads the backup, restores it, and starts before the next one begins. This uses minimal bandwidth and is the safest option.
+
+### SST-aware (primary only)
+
+When `restoreOnlyPrimary: true` is set, only the primary pod (index 0) is restored from the backup. Once the primary is fully ready, all secondary pods are started and they join the cluster via Galera State Snapshot Transfer (SST). This is faster because only one download is needed, and secondaries receive data directly from the primary.
+
+By default, secondary Pods still join one-by-one. If you want secondary Pods to perform SST concurrently after the primary is ready, set `secondarySSTParallel: true` as well. This reduces total rollout time, but it increases donor load on the restored primary during SST.
+
+Requirements:
+- Galera must be enabled
+- Physical backup content type
+- Cannot be used with `volumeSnapshotRef`
+- Cannot be used with `pointInTimeRecoveryRef`
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  replicas: 3
+  galera:
+    enabled: true
+  bootstrapFrom:
+    backupContentType: Physical
+    backupRef:
+      name: physicalbackup
+      kind: PhysicalBackup
+    restoreOnlyPrimary: true
+    secondarySSTParallel: true
+```
+
+### Parallel
+
+When `restoreParallel: true` is set, all pods restore from the backup simultaneously. Each pod downloads and restores the backup independently. This is the fastest mode but uses the most network bandwidth (one download per pod).
+
+Requirements:
+- Physical backup content type
+- S3 or Azure Blob storage. A `volume` source is rejected, and a `backupRef` to a backup stored in a volume falls back to the sequential mode, because pods would extract into the shared backup volume.
+- Cannot be used with `volumeSnapshotRef`
+- Cannot be used with `pointInTimeRecoveryRef`
+- Cannot use `stagingStorage.persistentVolumeClaim` (each pod needs its own staging storage; use emptyDir instead)
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  replicas: 3
+  galera:
+    enabled: true
+  bootstrapFrom:
+    backupContentType: Physical
+    backupRef:
+      name: physicalbackup
+      kind: PhysicalBackup
+    restoreParallel: true
+```
+
+### Streaming restore
+
+All restore modes now use streaming by default when restoring from S3 or Azure Blob storage. Instead of downloading the full backup to disk, decompressing, and then extracting, the operator streams directly from object storage through a decompression pipeline into `mbstream`. This eliminates intermediate files and reduces peak disk usage significantly.
+
+The streaming pipeline is: `S3/Azure → decompress → mbstream → data directory`
+
+For S3 compatible storage, the streaming restore includes automatic retry with exponential backoff for transient network errors. Streaming restores also include progress logging every 5% when the object size is available.
 
 ## Target recovery time
 

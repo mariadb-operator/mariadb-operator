@@ -1793,6 +1793,64 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
+				"Invalid restore only primary with logical backup",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: BackupKind,
+					},
+					RestoreOnlyPrimary: ptr.To(true),
+				},
+				true,
+			),
+			Entry(
+				"Invalid restore parallel with logical backup",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: BackupKind,
+					},
+					RestoreParallel: ptr.To(true),
+				},
+				true,
+			),
+			Entry(
+				"Invalid restore parallel with volume",
+				&BootstrapFrom{
+					BackupContentType: BackupContentTypePhysical,
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "test",
+						},
+					},
+					RestoreParallel: ptr.To(true),
+				},
+				true,
+			),
+			Entry(
+				"Valid restore parallel with S3",
+				&BootstrapFrom{
+					BackupContentType: BackupContentTypePhysical,
+					S3: &S3{
+						Bucket: "test",
+					},
+					RestoreParallel: ptr.To(true),
+				},
+				false,
+			),
+			Entry(
+				"Invalid secondary SST parallel without restore only primary",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					BackupContentType:    BackupContentTypePhysical,
+					SecondarySSTParallel: ptr.To(true),
+				},
+				true,
+			),
+			Entry(
 				"Mutually exclusive 1",
 				&BootstrapFrom{
 					VolumeSnapshotRef: &LocalObjectReference{
@@ -1852,6 +1910,41 @@ var _ = Describe("MariaDB types", func() {
 					},
 				},
 				true,
+			),
+			Entry(
+				"Valid restore only primary with inferred physical content type",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					RestoreOnlyPrimary: ptr.To(true),
+				},
+				false,
+			),
+			Entry(
+				"Valid secondary SST parallel",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					BackupContentType:    BackupContentTypePhysical,
+					RestoreOnlyPrimary:   ptr.To(true),
+					SecondarySSTParallel: ptr.To(true),
+				},
+				false,
+			),
+			Entry(
+				"Valid restore parallel with inferred physical content type",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					RestoreParallel: ptr.To(true),
+				},
+				false,
 			),
 			Entry(
 				"Valid 1",
@@ -2003,6 +2096,91 @@ var _ = Describe("MariaDB types", func() {
 					},
 					AzureBlob: &AzureBlob{
 						ContainerName: "test",
+					},
+				},
+				false,
+			),
+		)
+
+		// The controller persists defaulted objects through the update webhook, so parallel restore must still
+		// validate once 'volume' has been defaulted as staging storage.
+		DescribeTable(
+			"Should validate parallel restore after defaulting",
+			func(bootstrapFrom *BootstrapFrom, physicalBackup *PhysicalBackup, wantParallelSupported bool) {
+				mariadb := &MariaDB{ObjectMeta: objMeta}
+				if physicalBackup != nil {
+					Expect(bootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup)).To(Succeed())
+				}
+				bootstrapFrom.SetDefaults(mariadb)
+
+				Expect(bootstrapFrom.Volume).ToNot(BeNil())
+				Expect(bootstrapFrom.Validate()).To(Succeed())
+				Expect(bootstrapFrom.IsRestoreParallelSupported()).To(Equal(wantParallelSupported))
+			},
+			Entry(
+				"Direct S3",
+				&BootstrapFrom{
+					BackupContentType: BackupContentTypePhysical,
+					S3:                &S3{Bucket: "test", Endpoint: "test"},
+					RestoreParallel:   ptr.To(true),
+				},
+				nil,
+				true,
+			),
+			Entry(
+				"Direct Azure Blob",
+				&BootstrapFrom{
+					BackupContentType: BackupContentTypePhysical,
+					AzureBlob:         &AzureBlob{ContainerName: "test"},
+					RestoreParallel:   ptr.To(true),
+				},
+				nil,
+				true,
+			),
+			Entry(
+				"PhysicalBackup in S3",
+				&BootstrapFrom{
+					BackupRef:       &TypedLocalObjectReference{Name: "test", Kind: PhysicalBackupKind},
+					RestoreParallel: ptr.To(true),
+				},
+				&PhysicalBackup{
+					ObjectMeta: objMeta,
+					Spec: PhysicalBackupSpec{
+						Storage: PhysicalBackupStorage{S3: &S3{Bucket: "test", Endpoint: "test"}},
+					},
+				},
+				true,
+			),
+			Entry(
+				"PhysicalBackup in Azure Blob",
+				&BootstrapFrom{
+					BackupRef:       &TypedLocalObjectReference{Name: "test", Kind: PhysicalBackupKind},
+					RestoreParallel: ptr.To(true),
+				},
+				&PhysicalBackup{
+					ObjectMeta: objMeta,
+					Spec: PhysicalBackupSpec{
+						Storage: PhysicalBackupStorage{AzureBlob: &AzureBlob{ContainerName: "test"}},
+					},
+				},
+				true,
+			),
+			Entry(
+				"PhysicalBackup in a PVC falls back to sequential",
+				&BootstrapFrom{
+					BackupRef:       &TypedLocalObjectReference{Name: "test", Kind: PhysicalBackupKind},
+					RestoreParallel: ptr.To(true),
+				},
+				&PhysicalBackup{
+					ObjectMeta: objMeta,
+					Spec: PhysicalBackupSpec{
+						Storage: PhysicalBackupStorage{
+							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{"storage": resource.MustParse("1Gi")},
+								},
+							},
+						},
 					},
 				},
 				false,
