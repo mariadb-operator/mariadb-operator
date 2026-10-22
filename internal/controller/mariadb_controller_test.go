@@ -445,7 +445,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 
 	It("should reconcile metrics with ServiceMonitor disabled", func() {
 		key := types.NamespacedName{
-			Name:      "mdb-testmetrics-no-svcmonitor",
+			Name:      "mdb-test-metrics-no-svcmonitor",
 			Namespace: testNamespace,
 		}
 		mdb := mariadbv1alpha1.MariaDB{

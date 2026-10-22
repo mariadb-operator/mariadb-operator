@@ -17,7 +17,7 @@ host-mariadb: ## Add mariadb hosts to /etc/hosts.
 
 .PHONY: host-mdb-test
 host-mdb-test: ## Add MariaDB test hosts to /etc/hosts.
-	@./hack/add_host.sh 0 44 mdb-testmetrics-no-svcmonitor.default.svc.cluster.local
+	@./hack/add_host.sh 0 44 mdb-test-metrics-no-svcmonitor.default.svc.cluster.local
 	@./hack/add_host.sh 0 45 mdb-test-0.mdb-test-internal.default.svc.cluster.local
 	@./hack/add_host.sh 0 46 mdb-test.default.svc.cluster.local
 
