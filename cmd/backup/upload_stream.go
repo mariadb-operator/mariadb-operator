@@ -23,12 +23,18 @@ const (
 	maxCapturedMetadataBytes    = 1024 * 1024
 )
 
-var streamUploadPartSize uint64
+var (
+	streamUploadPartSize uint64
+	producerExitFile     string
+)
 
 func init() {
 	uploadStreamCommand.Flags().Uint64Var(&streamUploadPartSize, "stream-upload-part-size",
 		defaultStreamUploadPartSize,
 		"S3 multipart part size in bytes for streaming uploads with unknown total size.")
+	uploadStreamCommand.Flags().StringVar(&producerExitFile, "producer-exit-file", "",
+		"File where the producer of stdin writes its exit code before closing stdin. "+
+			"When set, the upload is aborted unless the file contains 0.")
 	RootCmd.AddCommand(uploadStreamCommand)
 }
 
@@ -83,6 +89,9 @@ var uploadStreamCommand = &cobra.Command{
 
 		var metadataCapture *xbstream.MetadataCapture
 		uploadSource := io.Reader(os.Stdin)
+		if producerExitFile != "" {
+			uploadSource = &producerCheckReader{reader: uploadSource, exitFile: producerExitFile}
+		}
 		if shouldCapturePhysicalBackupMeta() {
 			metadataCapture = xbstream.NewMetadataCapture(
 				[]string{replication.BinlogFileName, replication.LegacyBinlogFileName},
@@ -150,7 +159,30 @@ func getStreamCompressor() (mdbcompression.Compressor, error) {
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mdbcompression.NewCompressor(calg, 0)
+	return mdbcompression.NewCompressor(calg, compressionThreads)
+}
+
+// producerCheckReader turns the EOF of a piped producer into an error unless the producer recorded a zero exit code.
+// This keeps a failed or truncated backup from completing the multipart upload, which would publish it under a valid
+// name and let retention delete older, restorable backups.
+type producerCheckReader struct {
+	reader   io.Reader
+	exitFile string
+}
+
+func (r *producerCheckReader) Read(p []byte) (int, error) {
+	n, err := r.reader.Read(p)
+	if err != io.EOF {
+		return n, err
+	}
+	exitCode, readErr := os.ReadFile(r.exitFile)
+	if readErr != nil {
+		return n, fmt.Errorf("backup producer did not record an exit code: %v", readErr)
+	}
+	if code := strings.TrimSpace(string(exitCode)); code != "0" {
+		return n, fmt.Errorf("backup producer exited with code %s", code)
+	}
+	return n, io.EOF
 }
 
 func cleanupOldBackups(ctx context.Context, backupStorage backup.BackupStorage, backupProcessor backup.BackupProcessor,

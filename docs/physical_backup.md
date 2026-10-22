@@ -13,6 +13,7 @@
 - [Retention policy](#retention-policy)
 - [Target policy](#target-policy)
 - [Restoration](#restoration)
+- [Streaming backups](#streaming-backups)
 - [Restore modes](#restore-modes)
   - [Sequential (default)](#sequential-default)
   - [SST-aware (primary only)](#sst-aware-primary-only)
@@ -304,6 +305,14 @@ spec:
       name: physicalbackup-20250611163352
 ```
 
+## Streaming backups
+
+A `PhysicalBackup` with `storage.s3` and no `stagingStorage` streams the backup to S3: `mariadb-backup` pipes into the operator binary, which compresses on the fly and uploads with an S3 multipart upload. No staging volume is provisioned, so the backup size is no longer limited by a staging PVC. Set `stagingStorage` to keep the previous behaviour of writing the backup to a volume before uploading it.
+
+- The upload only completes if `mariadb-backup` exits successfully. When it fails, the multipart upload is aborted, no backup object is published and old backups are not cleaned up.
+- Each multipart part is buffered in memory, 512 MiB by default, in the `mariadb` container of the backup Job. Set `resources.limits.memory` to at least 1Gi, plus the memory `mariadb-backup` needs.
+- If the Job is killed (for example by `timeout` or an eviction), the operator cannot abort the multipart upload. Configure a lifecycle rule on the bucket that aborts incomplete multipart uploads.
+
 ## Restore modes
 
 By default, the operator restores each pod sequentially: pod 0 is restored and started, then pod 1, and so on. This is the safest mode but can be slow for large clusters. You can configure alternative restore modes using the `restoreOnlyPrimary` and `restoreParallel` fields.
@@ -348,6 +357,7 @@ When `restoreParallel: true` is set, all pods restore from the backup simultaneo
 
 Requirements:
 - Physical backup content type
+- S3 or Azure Blob storage. A `volume` source is rejected, and a `backupRef` to a backup stored in a volume falls back to the sequential mode, because pods would extract into the shared backup volume.
 - Cannot be used with `volumeSnapshotRef`
 - Cannot be used with `pointInTimeRecoveryRef`
 - Cannot use `stagingStorage.persistentVolumeClaim` (each pod needs its own staging storage; use emptyDir instead)

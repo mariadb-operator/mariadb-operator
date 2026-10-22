@@ -1815,6 +1815,30 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
+				"Invalid restore parallel with volume",
+				&BootstrapFrom{
+					BackupContentType: BackupContentTypePhysical,
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "test",
+						},
+					},
+					RestoreParallel: ptr.To(true),
+				},
+				true,
+			),
+			Entry(
+				"Valid restore parallel with S3",
+				&BootstrapFrom{
+					BackupContentType: BackupContentTypePhysical,
+					S3: &S3{
+						Bucket: "test",
+					},
+					RestoreParallel: ptr.To(true),
+				},
+				false,
+			),
+			Entry(
 				"Invalid secondary SST parallel without restore only primary",
 				&BootstrapFrom{
 					BackupRef: &TypedLocalObjectReference{

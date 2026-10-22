@@ -466,13 +466,19 @@ func (r *MariaDBReconciler) reconcileRestoreMode(ctx context.Context, mariadb *m
 	bootstrapFrom *mariadbv1alpha1.BootstrapFrom, fromIndex int, logger logr.Logger) (ctrl.Result, error) {
 	restoreOpt := builder.WithBootstrapFrom(bootstrapFrom)
 
+	restoreParallel := bootstrapFrom.IsRestoreParallelEnabled()
+	if restoreParallel && !bootstrapFrom.IsRestoreParallelSupported() {
+		logger.Info("Parallel restore requires an S3 or Azure Blob source, restoring Pods one at a time instead")
+		restoreParallel = false
+	}
+
 	if bootstrapFrom.IsRestoreOnlyPrimaryEnabled() && mariadb.IsGaleraEnabled() {
 		logger.Info("Using SST-aware restore mode: restoring only primary pod")
 		result, err := r.reconcileSSTAwareInit(ctx, mariadb, logger.WithName("sst-init"), restoreOpt)
 		if !result.IsZero() || err != nil {
 			return result, err
 		}
-	} else if bootstrapFrom.IsRestoreParallelEnabled() {
+	} else if restoreParallel {
 		logger.Info("Using parallel restore mode: all pods restore concurrently")
 		result, err := r.reconcileParallelInit(
 			ctx, mariadb, fromIndex, logger.WithName("parallel-init"), restoreOpt,

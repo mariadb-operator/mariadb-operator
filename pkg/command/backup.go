@@ -330,7 +330,8 @@ func (b *BackupCommand) MariadbStreamingBackup(mariadb *mariadbv1alpha1.MariaDB,
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
 	args := strings.Join(b.mariadbBackupArgs(mariadb, targetPodIndex), " ")
-	uploadStreamCmd := b.buildUploadStreamCommand(operatorBinaryPath)
+	producerExitFile := b.producerExitFilePath()
+	uploadStreamCmd := b.buildUploadStreamCommand(operatorBinaryPath, producerExitFile)
 
 	cmds := []string{
 		"set -euo pipefail",
@@ -343,14 +344,19 @@ func (b *BackupCommand) MariadbStreamingBackup(mariadb *mariadbv1alpha1.MariaDB,
 			backupFile,
 			b.TargetFilePath,
 		),
+		fmt.Sprintf("rm -f %s", producerExitFile),
 		fmt.Sprintf(
 			"echo 💾 Streaming backup: %s",
 			backupFile,
 		),
+		// The uploader only sees EOF when mariadb-backup exits, not whether it succeeded. The group records the exit code
+		// before releasing its end of the pipe, so the uploader can check it before completing the upload.
 		fmt.Sprintf(
-			"mariadb-backup %s %s | %s",
+			"{ set +e; mariadb-backup %s %s; MARIADB_BACKUP_EXIT=$?; printf \"%%s\" \"$MARIADB_BACKUP_EXIT\" > %s; "+
+				"exit $MARIADB_BACKUP_EXIT; } | %s",
 			connFlags,
 			args,
+			producerExitFile,
 			uploadStreamCmd,
 		),
 	}
@@ -558,10 +564,15 @@ fi`
 
 	// Direct streaming: stream directly to data directory (no staging).
 	if opts.dataDir != "" {
-		existingBackupCheck := fmt.Sprintf(`if [ -f %[1]s ] && [ -f %[2]s/ibdata1 ]; then
+		// The marker persists in the data directory. A restore that cleans up the data directory (replica recovery)
+		// must not trust a marker left by an earlier bootstrap, so it always restores.
+		existingBackupCheck := "echo '💾 Ignoring any existing restore marker, data directory will be restored'"
+		if !opts.cleanupDataDir {
+			existingBackupCheck = fmt.Sprintf(`if [ -f %[1]s ] && [ -f %[2]s/ibdata1 ]; then
 	echo '💾 Existing prepared backup found in data directory';
 	exit 0
 fi`, directRestoreMarkerPath, opts.dataDir)
+		}
 
 		// Clean up any partial extraction from a previous failed streaming attempt.
 		// At this point the durable restore marker does not exist, so any files present are incomplete.
@@ -583,8 +594,10 @@ fi`, directRestoreMarkerPath, opts.dataDir)
 				streamCmd,
 				opts.dataDir,
 			),
-			"STREAM_EXIT=${PIPESTATUS[0]}",
-			"MBSTREAM_EXIT=${PIPESTATUS[1]}",
+			// Copy PIPESTATUS in one statement: any later command, including an assignment, resets it.
+			`PIPE_EXIT=("${PIPESTATUS[@]}")`,
+			"STREAM_EXIT=${PIPE_EXIT[0]}",
+			"MBSTREAM_EXIT=${PIPE_EXIT[1]}",
 			"set -e",
 			`if [ $STREAM_EXIT -ne 0 ]; then echo "💾 Stream command failed with exit code $STREAM_EXIT"; exit $STREAM_EXIT; fi`,
 			`if [ $MBSTREAM_EXIT -ne 0 ]; then echo "💾 mbstream failed with exit code $MBSTREAM_EXIT"; exit $MBSTREAM_EXIT; fi`,
@@ -612,8 +625,10 @@ fi`, directRestoreMarkerPath, opts.dataDir)
 			streamCmd,
 			b.BackupFullDirPath,
 		),
-		"STREAM_EXIT=${PIPESTATUS[0]}",
-		"MBSTREAM_EXIT=${PIPESTATUS[1]}",
+		// Copy PIPESTATUS in one statement: any later command, including an assignment, resets it.
+		`PIPE_EXIT=("${PIPESTATUS[@]}")`,
+		"STREAM_EXIT=${PIPE_EXIT[0]}",
+		"MBSTREAM_EXIT=${PIPE_EXIT[1]}",
 		"set -e",
 		`if [ $STREAM_EXIT -ne 0 ]; then echo "💾 Stream command failed with exit code $STREAM_EXIT"; exit $STREAM_EXIT; fi`,
 		`if [ $MBSTREAM_EXIT -ne 0 ]; then echo "💾 mbstream failed with exit code $MBSTREAM_EXIT"; exit $MBSTREAM_EXIT; fi`,
@@ -651,7 +666,12 @@ func (b *BackupCommand) buildStreamCommand(operatorBinaryPath string) string {
 	return strings.Join(args, " ")
 }
 
-func (b *BackupCommand) buildUploadStreamCommand(operatorBinaryPath string) string {
+// producerExitFilePath is where the streaming backup script records the mariadb-backup exit code for upload-stream.
+func (b *BackupCommand) producerExitFilePath() string {
+	return filepath.Join(filepath.Dir(b.TargetFilePath), "0-backup-producer-exit.txt")
+}
+
+func (b *BackupCommand) buildUploadStreamCommand(operatorBinaryPath, producerExitFile string) string {
 	args := []string{
 		operatorBinaryPath,
 		"backup",
@@ -664,11 +684,19 @@ func (b *BackupCommand) buildUploadStreamCommand(operatorBinaryPath string) stri
 		string(b.BackupContentType),
 		"--max-retention",
 		b.MaxRetentionDuration.String(),
+		"--producer-exit-file",
+		producerExitFile,
 	}
 	if b.Compression != "" {
 		args = append(args, []string{
 			"--compression",
 			string(b.Compression),
+		}...)
+	}
+	if b.CompressionThreads != nil {
+		args = append(args, []string{
+			"--compression-threads",
+			fmt.Sprintf("%d", *b.CompressionThreads),
 		}...)
 	}
 	if b.LogLevel != "" {

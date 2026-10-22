@@ -1247,8 +1247,8 @@ func TestMariadbBackupRestore(t *testing.T) {
 					assert.Contains(t, script, ".mariadb-operator-restore-complete")
 					assert.Contains(t, script, "find /var/lib/mysql -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +")
 					assert.Contains(t, script, "set +e")
-					assert.Contains(t, script, "STREAM_EXIT=${PIPESTATUS[0]}")
-					assert.Contains(t, script, "MBSTREAM_EXIT=${PIPESTATUS[1]}")
+					assert.Contains(t, script, `PIPE_EXIT=("${PIPESTATUS[@]}")`)
+					assert.NotContains(t, script, "MBSTREAM_EXIT=${PIPESTATUS[1]}")
 					assert.Contains(t, script, "touch /var/lib/mysql/.mariadb-operator-restore-complete")
 				}
 			}
@@ -1323,7 +1323,8 @@ func TestBuildUploadStreamCommand(t *testing.T) {
 			BackupFullDirPath:    "/backups/full",
 			BackupContentType:    mariadbv1alpha1.BackupContentTypePhysical,
 			MaxRetentionDuration: time.Hour,
-			Compression:          mariadbv1alpha1.CompressGzip,
+			Compression:          mariadbv1alpha1.CompressZstd,
+			CompressionThreads:   ptr.To(int32(2)),
 			LogLevel:             "debug",
 			PhysicalBackupMeta:   true,
 			PhysicalBackupKey: &types.NamespacedName{
@@ -1339,13 +1340,15 @@ func TestBuildUploadStreamCommand(t *testing.T) {
 		},
 	}
 
-	cmd := backupCmd.buildUploadStreamCommand("/backup/bin/mariadb-operator")
+	cmd := backupCmd.buildUploadStreamCommand("/backup/bin/mariadb-operator", backupCmd.producerExitFilePath())
 	assert.True(t, strings.HasPrefix(cmd, "/backup/bin/mariadb-operator backup upload-stream"))
 	assert.Contains(t, cmd, "--path /backups")
 	assert.Contains(t, cmd, "--target-file-path /backups/0-backup-target.txt")
 	assert.Contains(t, cmd, "--backup-content-type Physical")
 	assert.Contains(t, cmd, "--max-retention 1h0m0s")
-	assert.Contains(t, cmd, "--compression gzip")
+	assert.Contains(t, cmd, "--compression zstd")
+	assert.Contains(t, cmd, "--compression-threads 2")
+	assert.Contains(t, cmd, "--producer-exit-file /backups/0-backup-producer-exit.txt")
 	assert.Contains(t, cmd, "--log-level debug")
 	assert.Contains(t, cmd, "--s3")
 	assert.Contains(t, cmd, "--physical-backup-meta")

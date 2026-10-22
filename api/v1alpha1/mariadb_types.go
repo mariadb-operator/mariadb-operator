@@ -381,8 +381,18 @@ func (b *BootstrapFrom) validateRestoreModes() error {
 			return errors.New("'restoreParallel' is not supported with 'stagingStorage.persistentVolumeClaim'; " +
 				"each Pod needs its own staging storage, use emptyDir instead")
 		}
+		if b.Volume != nil {
+			return errors.New("'restoreParallel' is not supported with 'volume'; " +
+				"restores from a volume extract into the shared backup volume, use 's3' or 'azureBlob' instead")
+		}
 	}
 	return nil
+}
+
+// IsRestoreParallelSupported reports whether the resolved source can be restored in parallel. Only object storage
+// sources stream into each Pod's own data directory; volume sources extract into the shared backup volume.
+func (b *BootstrapFrom) IsRestoreParallelSupported() bool {
+	return b.S3 != nil || b.AzureBlob != nil
 }
 
 func (b *BootstrapFrom) validateMutuallyExclusive() error {
