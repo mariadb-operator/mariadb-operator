@@ -69,6 +69,10 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := r.Get(ctx, req.NamespacedName, &backup); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	if backup.Spec.Schedule == nil && backup.IsSuccessful() {
+		log.FromContext(ctx).WithName("physicalbackup").V(1).Info("PhysicalBackup completed successfully, skipping reconciliation")
+		return ctrl.Result{}, nil
+	}
 
 	mariadb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
