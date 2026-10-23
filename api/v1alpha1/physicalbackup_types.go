@@ -311,6 +311,16 @@ func (b *PhysicalBackup) IsComplete() bool {
 	return meta.IsStatusConditionTrue(b.Status.Conditions, ConditionTypeComplete)
 }
 
+// IsSuccessful indicates whether the PhysicalBackup has completed successfully.
+func (b *PhysicalBackup) IsSuccessful() bool {
+	c := meta.FindStatusCondition(b.Status.Conditions, ConditionTypeComplete)
+	if c == nil {
+		return false
+	}
+	return c.Status == metav1.ConditionTrue &&
+		(c.Reason == ConditionReasonJobComplete || c.Reason == ConditionReasonSnapshotComplete)
+}
+
 func (b *PhysicalBackup) Validate() error {
 	if b.Spec.Target != nil {
 		if err := b.Spec.Target.Validate(); err != nil {
