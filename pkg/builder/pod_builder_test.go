@@ -1077,6 +1077,83 @@ func TestMariadbPodLifecycleOnlyFirst(t *testing.T) {
 	}
 }
 
+func TestMariadbPodAgentLifecycle(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	lifecycle := &mariadbv1alpha1.Lifecycle{
+		PreStop: &mariadbv1alpha1.LifecycleHandler{
+			Exec: &mariadbv1alpha1.ExecAction{
+				Command: []string{"sleep", "5"},
+			},
+		},
+	}
+	wantLifecycle := &corev1.Lifecycle{
+		PreStop: &corev1.LifecycleHandler{
+			Exec: &corev1.ExecAction{
+				Command: []string{"sleep", "5"},
+			},
+		},
+	}
+	tests := []struct {
+		name    string
+		mariadb *mariadbv1alpha1.MariaDB
+	}{
+		{
+			name: "replication",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-agent-lifecycle-repl"},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							Agent: mariadbv1alpha1.Agent{
+								ContainerTemplate: mariadbv1alpha1.ContainerTemplate{Lifecycle: lifecycle},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "galera",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-agent-lifecycle-galera"},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Agent: mariadbv1alpha1.Agent{
+								ContainerTemplate: mariadbv1alpha1.ContainerTemplate{Lifecycle: lifecycle},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podTpl, err := builder.mariadbPodTemplate(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+			var found bool
+			for _, c := range podTpl.Spec.Containers {
+				if c.Name != AgentContainerName {
+					continue
+				}
+				found = true
+				if !reflect.DeepEqual(c.Lifecycle, wantLifecycle) {
+					t.Errorf("unexpected agent lifecycle, got: %v, want: %v", c.Lifecycle, wantLifecycle)
+				}
+			}
+			if !found {
+				t.Fatal("expected an agent container")
+			}
+		})
+	}
+}
+
 func TestMaxScalePodLifecycleSingle(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 
@@ -1348,6 +1425,57 @@ func TestMaxscalePodBuilder(t *testing.T) {
 			}
 			if fsGroup != tt.wantGroup {
 				t.Errorf("unexpected maxscale fsGroup, got: %d, want: %d", fsGroup, tt.wantGroup)
+			}
+		})
+	}
+}
+
+func TestMaxscalePodBuilderSidecarContainers(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	tests := []struct {
+		name           string
+		sidecars       []mariadbv1alpha1.Container
+		wantContainers []string
+	}{
+		{
+			name:           "no sidecars",
+			sidecars:       nil,
+			wantContainers: []string{MaxScaleContainerName},
+		},
+		{
+			name: "named and unnamed sidecars",
+			sidecars: []mariadbv1alpha1.Container{
+				{Name: "query-logs", Image: "busybox:1.37"},
+				{Image: "busybox:1.37"},
+			},
+			wantContainers: []string{MaxScaleContainerName, "query-logs", "sidecar-1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mxs := &mariadbv1alpha1.MaxScale{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-maxscale-sidecars",
+				},
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Image: "mariadb/maxscale:23.08.13-2",
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
+						SidecarContainers: tt.sidecars,
+					},
+				},
+			}
+			podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+			}
+			got := make([]string, len(podTpl.Spec.Containers))
+			for i, container := range podTpl.Spec.Containers {
+				got[i] = container.Name
+			}
+			if !reflect.DeepEqual(got, tt.wantContainers) {
+				t.Errorf("unexpected container names, got: %v, want: %v", got, tt.wantContainers)
 			}
 		})
 	}

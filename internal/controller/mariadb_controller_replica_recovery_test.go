@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -231,11 +232,21 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 		},
 		Entry(
 			"from physical backup",
-			types.NamespacedName{Name: "replication-s3-recovery-test", Namespace: key.Namespace},
-			buildPhysicalBackupWithS3Storage(key, "test-replication-recovery", ""),
+			types.NamespacedName{Name: "replication-pvc-recovery-test", Namespace: key.Namespace},
+			buildPhysicalBackupWithPVCStorage(key),
 			func(backupKey types.NamespacedName) func() {
 				return func() {
-					// No cleanup for s3
+					recoveryKey := mdb.PhysicalBackupReplicaRecoveryKey()
+
+					By("Expecting replica recovery PhysicalBackup to be deleted eventually")
+					Eventually(func() bool {
+						return apierrors.IsNotFound(k8sClient.Get(testCtx, recoveryKey, &mariadbv1alpha1.PhysicalBackup{}))
+					}, testTimeout, testInterval).Should(BeTrue())
+
+					By("Expecting replica recovery PhysicalBackup storage PVC to be deleted eventually")
+					Eventually(func() bool {
+						return apierrors.IsNotFound(k8sClient.Get(testCtx, recoveryKey, &corev1.PersistentVolumeClaim{}))
+					}, testTimeout, testInterval).Should(BeTrue())
 				}
 			},
 		),

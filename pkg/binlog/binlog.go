@@ -124,9 +124,10 @@ func (b *BinlogIndex) buildTimelineWithBinlogs(binlogs []BinlogMetadata, startGt
 		binlogs = append(binlogs, binlog)
 		currentTime = binlog.LastTime
 
-		if binlog.LastTime.Time.Equal(targetTime) {
+		// target time is within this binlog (or exactly at its end), no need to look further
+		if !binlog.LastTime.Time.Before(targetTime) {
 			logger.V(1).Info(
-				"Found binlog with exact target time. Done.",
+				"Found binlog containing target time. Done.",
 				"binlog", binlog.BinlogFilename,
 				"time", binlog.LastTime.Format(time.RFC3339),
 			)

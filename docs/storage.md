@@ -8,6 +8,7 @@ This operator gives you flexibility to define the storage that will back the `/v
 ## Table of contents
 <!-- toc -->
 - [Configuration](#configuration)
+- [Volume attributes](#volume-attributes)
 - [Volume resize](#volume-resize)
 - [Ephemeral storage](#ephemeral-storage)
 - [Reference](#reference)
@@ -62,6 +63,28 @@ spec:
           storage: 1Gi
       storageClassName: standard
 ```
+
+## Volume attributes
+
+Set `storage.volumeClaimTemplate.volumeAttributesClassName` to reference an existing `VolumeAttributesClass` when provisioning storage. Depending on your CSI driver, this can configure attributes such as IOPS and throughput:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  ...
+  storage:
+    size: 10Gi
+    storageClassName: my-storage-class
+    volumeClaimTemplate:
+      volumeAttributesClassName: high-performance
+```
+
+Your Kubernetes cluster must support `VolumeAttributesClass` (stable in Kubernetes 1.34), and your CSI driver must support volume attributes. Create the class with the driver-specific parameters before using it. See the [Kubernetes documentation](https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/) for details.
+
+The operator passes this field to newly created PVCs and preserves it when resizing storage. Changing this field on the MariaDB resource does not update existing PVCs.
 
 ## Volume resize
 

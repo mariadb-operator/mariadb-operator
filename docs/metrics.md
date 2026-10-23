@@ -35,6 +35,27 @@ Once the exporter `Deployment` is ready, `mariadb-operator` creates a [ServiceMo
 
 As you scale your MariaDB with more or less replicas, `mariadb-operator` will reconcile the `ServiceMonitor` to add/remove targets related to the MariaDB instances. 
 
+The `ServiceMonitor` CRD must be installed in the cluster for `mariadb-operator` to create it. If you scrape metrics by other means (e.g. a Prometheus running in a different cluster, or a different monitoring stack such as VictoriaMetrics), you can still deploy the exporter while opting out of the `ServiceMonitor` by setting `spec.metrics.serviceMonitor.enabled = false`. In this case, the ServiceMonitor CRD is not required:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+...
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+```
+
+The same field is available in `MaxScale` resources under `spec.metrics.serviceMonitor.enabled`.
+
+The exporter is then reachable through the `<mariadb-name>-metrics` `Service`. Since it relies on the [multi-target](https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#multi-target-support) feature, each MariaDB Pod must be scraped via the `/probe` endpoint, passing the Pod address in the `target` query parameter (e.g. `/probe?target=mariadb-0.mariadb-internal.default.svc.cluster.local:3306`).
+
+Disabling the `ServiceMonitor` after it has been created does not delete it, and `mariadb-operator` stops updating it, so its targets become stale when you scale or perform a primary switchover. You should delete it manually.
+
 ## Configuration
 
 The easiest way to setup metrics in your MariaDB instance is just by setting `spec.metrics.enabled = true`, like in this [example](../examples/manifests/mariadb_metrics.yaml):
@@ -72,6 +93,7 @@ spec:
           memory: 512Mi
       port: 9104
     serviceMonitor:
+      enabled: true
       prometheusRelease: kube-prometheus-stack
       jobLabel: mariadb-monitoring
       interval: 10s

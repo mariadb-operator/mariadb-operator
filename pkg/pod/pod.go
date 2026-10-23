@@ -39,8 +39,19 @@ func PodScheduled(pod *corev1.Pod) bool {
 	return pod.Spec.NodeName != ""
 }
 
+// PodInitializing returns true when a regular init container is running. Sidecars (init containers with restartPolicy Always)
+// keep running for the whole Pod lifetime, so they are ignored.
 func PodInitializing(pod *corev1.Pod) bool {
+	sidecars := map[string]struct{}{}
+	for _, ic := range pod.Spec.InitContainers {
+		if ic.RestartPolicy != nil && *ic.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+			sidecars[ic.Name] = struct{}{}
+		}
+	}
 	for _, ics := range pod.Status.InitContainerStatuses {
+		if _, ok := sidecars[ics.Name]; ok {
+			continue
+		}
 		if ics.State.Running != nil {
 			return true
 		}

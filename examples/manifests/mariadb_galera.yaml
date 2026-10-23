@@ -14,6 +14,8 @@ spec:
   storage:
     size: 1Gi
     # storageClassName: csi-hostpath-sc
+    # volumeClaimTemplate:
+    #   volumeAttributesClassName: high-performance
 
   replicas: 3
 

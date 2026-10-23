@@ -1,8 +1,11 @@
 package compression
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -17,6 +20,13 @@ type BackupCompressor interface {
 }
 
 type GetBackupUncompressedFilenameFn func(compressedFilename string) (string, error)
+
+// Leading bytes of each compressed format. Backup inputs (xbstream "XBSTCK01", SQL dumps) never start with these.
+var (
+	gzipMagic  = []byte{0x1f, 0x8b}             // RFC 1952 §2.3.1 (ID1, ID2)
+	bzip2Magic = []byte("BZh")                  // no RFC; see github.com/dsnet/compress/blob/master/doc/bzip2-format.pdf
+	zstdMagic  = []byte{0x28, 0xb5, 0x2f, 0xfd} // RFC 8878 §3.1.1 (0xFD2FB528, little-endian)
+)
 
 func NewBackupCompressor(calg mariadbv1alpha1.CompressAlgorithm, threads int, basePath string,
 	getUncompressedFilename GetBackupUncompressedFilenameFn, logger logr.Logger) (BackupCompressor, error) {
@@ -70,7 +80,7 @@ func NewGzipBackupCompressor(basePath string, getUncompressedFilename GetBackupU
 }
 
 func (c *GzipBackupCompressor) Compress(fileName string) error {
-	return compressFile(c.basePath, fileName, c.logger, c.compressor)
+	return compressFile(c.basePath, fileName, gzipMagic, c.logger, c.compressor)
 }
 
 func (c *GzipBackupCompressor) Decompress(fileName string) (string, error) {
@@ -95,7 +105,7 @@ func NewBzip2BackupCompressor(basePath string, getUncompressedFilename GetBackup
 }
 
 func (c *Bzip2BackupCompressor) Compress(fileName string) error {
-	return compressFile(c.basePath, fileName, c.logger, c.compressor)
+	return compressFile(c.basePath, fileName, bzip2Magic, c.logger, c.compressor)
 }
 
 func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
@@ -120,15 +130,25 @@ func NewZstdBackupCompressor(threads int, basePath string, getUncompressedFilena
 }
 
 func (c *ZstdBackupCompressor) Compress(fileName string) error {
-	return compressFile(c.basePath, fileName, c.logger, c.compressor)
+	return compressFile(c.basePath, fileName, zstdMagic, c.logger, c.compressor)
 }
 
 func (c *ZstdBackupCompressor) Decompress(fileName string) (string, error) {
 	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, c.compressor)
 }
 
-func compressFile(path, fileName string, logger logr.Logger, compressor Compressor) error {
+// compressFile compresses in place. It is idempotent: the backup container may be restarted after compressing
+// but before a successful push, and re-compressing would produce an unrestorable multi-layer archive.
+func compressFile(path, fileName string, magic []byte, logger logr.Logger, compressor Compressor) error {
 	filePath := getFilePath(path, fileName)
+	compressed, err := hasPrefix(filePath, magic)
+	if err != nil {
+		return err
+	}
+	if compressed {
+		logger.Info("file already compressed, skipping compression", "file", filePath)
+		return nil
+	}
 	compressedFilePath := filePath + ".tmp"
 	logger.Info("compressing file", "file", filePath)
 
@@ -165,6 +185,23 @@ func compressFile(path, fileName string, logger logr.Logger, compressor Compress
 		return err
 	}
 	return nil
+}
+
+func hasPrefix(filePath string, prefix []byte) (bool, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	buf := make([]byte, len(prefix))
+	if _, err := io.ReadFull(f, buf); err != nil {
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			return false, nil
+		}
+		return false, err
+	}
+	return bytes.Equal(buf, prefix), nil
 }
 
 func decompressFile(path, fileName string, logger logr.Logger, getUncompressedFilename GetBackupUncompressedFilenameFn,

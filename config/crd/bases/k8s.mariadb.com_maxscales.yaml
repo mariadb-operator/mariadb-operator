@@ -621,6 +621,10 @@ spec:
                         x-kubernetes-map-type: atomic
                       storageClassName:
                         type: string
+                      volumeAttributesClassName:
+                        description: VolumeAttributesClassName references a VolumeAttributesClass
+                          for the PVC.
+                        type: string
                     type: object
                 type: object
               connection:
@@ -1620,6 +1624,12 @@ spec:
                   serviceMonitor:
                     description: ServiceMonitor defines the ServiceMonior object.
                     properties:
+                      enabled:
+                        description: |-
+                          Enabled is a flag to enable the ServiceMonitor creation. It defaults to true when metrics are enabled.
+                          When disabled, the exporter is still deployed, but no ServiceMonitor is created,
+                          and the ServiceMonitor CRD is no longer required to be installed in the cluster.
+                        type: boolean
                       interval:
                         description: Interval for scraping metrics.
                         type: string
@@ -2070,6 +2080,139 @@ spec:
                   - listener
                   - name
                   - router
+                  type: object
+                type: array
+              sidecarContainers:
+                description: SidecarContainers to be used in the Pod.
+                items:
+                  description: Container object definition.
+                  properties:
+                    args:
+                      description: Args to be used in the Container.
+                      items:
+                        type: string
+                      type: array
+                    command:
+                      description: Command to be used in the Container.
+                      items:
+                        type: string
+                      type: array
+                    env:
+                      description: Env represents the environment variables to be
+                        injected in a container.
+                      items:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvarsource-v1-core.'
+                        properties:
+                          name:
+                            description: Name of the environment variable. Must be
+                              a C_IDENTIFIER.
+                            type: string
+                          value:
+                            type: string
+                          valueFrom:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvarsource-v1-core.'
+                            properties:
+                              configMapKeyRef:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#configmapkeyselector-v1-core.'
+                                properties:
+                                  key:
+                                    type: string
+                                  name:
+                                    default: ""
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              fieldRef:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectfieldselector-v1-core.'
+                                properties:
+                                  apiVersion:
+                                    type: string
+                                  fieldPath:
+                                    type: string
+                                required:
+                                - fieldPath
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              secretKeyRef:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#secretkeyselector-v1-core.'
+                                properties:
+                                  key:
+                                    type: string
+                                  name:
+                                    default: ""
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      type: array
+                    image:
+                      description: Image name to be used by the container. The supported
+                        format is `<image>:<tag>`.
+                      type: string
+                    imagePullPolicy:
+                      description: ImagePullPolicy is the image pull policy. One of
+                        `Always`, `Never` or `IfNotPresent`. If not defined, it defaults
+                        to `IfNotPresent`.
+                      enum:
+                      - Always
+                      - Never
+                      - IfNotPresent
+                      type: string
+                    name:
+                      description: Name to be given to the container.
+                      type: string
+                    resources:
+                      description: Resources describes the compute resource requirements.
+                      properties:
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: ResourceList is a set of (resource name, quantity)
+                            pairs.
+                          type: object
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: ResourceList is a set of (resource name, quantity)
+                            pairs.
+                          type: object
+                      type: object
+                    volumeMounts:
+                      description: VolumeMounts to be used in the Container.
+                      items:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core.'
+                        properties:
+                          mountPath:
+                            type: string
+                          name:
+                            description: This must match the Name of a Volume.
+                            type: string
+                          readOnly:
+                            type: boolean
+                          subPath:
+                            type: string
+                        required:
+                        - mountPath
+                        - name
+                        type: object
+                      type: array
+                  required:
+                  - image
                   type: object
                 type: array
               startupProbe:
