@@ -2,6 +2,7 @@ package controller
 
 import (
 	"reflect"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
@@ -9,7 +10,9 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -223,6 +226,72 @@ var _ = Describe("Backup", Label("basic"), func() {
 			testS3Backup,
 		),
 	)
+
+	It("should not recreate the Job of a completed one-off Backup", func() {
+		key := types.NamespacedName{
+			Name:      "backup-completed-job-deleted-test",
+			Namespace: testNamespace,
+		}
+		backup := getBackupWithPVCStorage(key)
+		testBackup(backup)
+
+		By("Deleting the completed Job")
+		var completedJob batchv1.Job
+		Expect(k8sClient.Get(testCtx, key, &completedJob)).To(Succeed())
+		Expect(
+			k8sClient.Delete(testCtx, &completedJob, client.PropagationPolicy(metav1.DeletePropagationBackground)),
+		).To(Succeed())
+
+		By("Expecting the Job to be deleted eventually")
+		Eventually(func() bool {
+			var job batchv1.Job
+			return apierrors.IsNotFound(k8sClient.Get(testCtx, key, &job))
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting the Job not to be recreated and the Backup to remain complete")
+		Consistently(func(g Gomega) {
+			var job batchv1.Job
+			g.Expect(apierrors.IsNotFound(k8sClient.Get(testCtx, key, &job))).To(BeTrue())
+			g.Expect(k8sClient.Get(testCtx, key, backup)).To(Succeed())
+			g.Expect(backup.IsSuccessful()).To(BeTrue())
+		}, 10*time.Second, testInterval).Should(Succeed())
+	})
+
+	It("should recreate the Job of a failed one-off Backup", func() {
+		key := types.NamespacedName{
+			Name:      "backup-failed-job-deleted-test",
+			Namespace: testNamespace,
+		}
+		backup := getBackupWithS3Storage(key, "non-existing-bucket", "")
+		backup.Spec.BackoffLimit = 1
+
+		By("Creating Backup")
+		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+		})
+
+		By("Expecting Backup to fail eventually")
+		Eventually(func(g Gomega) {
+			g.Expect(k8sClient.Get(testCtx, key, backup)).To(Succeed())
+			g.Expect(backup.IsComplete()).To(BeTrue())
+			g.Expect(backup.IsSuccessful()).To(BeFalse())
+		}, testHighTimeout, testInterval).Should(Succeed())
+
+		By("Deleting the failed Job")
+		var failedJob batchv1.Job
+		Expect(k8sClient.Get(testCtx, key, &failedJob)).To(Succeed())
+		Expect(
+			k8sClient.Delete(testCtx, &failedJob, client.PropagationPolicy(metav1.DeletePropagationBackground)),
+		).To(Succeed())
+
+		By("Expecting the Job to be recreated eventually")
+		Eventually(func(g Gomega) {
+			var job batchv1.Job
+			g.Expect(k8sClient.Get(testCtx, key, &job)).To(Succeed())
+			g.Expect(job.UID).NotTo(Equal(failedJob.UID))
+		}, testTimeout, testInterval).Should(Succeed())
+	})
 })
 
 var _ = Describe("Backup from external MariaDB", func() {
