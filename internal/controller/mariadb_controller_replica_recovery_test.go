@@ -247,16 +247,6 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 					Eventually(func() bool {
 						return apierrors.IsNotFound(k8sClient.Get(testCtx, recoveryKey, &corev1.PersistentVolumeClaim{}))
 					}, testTimeout, testInterval).Should(BeTrue())
-
-					// The controller only cleans up the replica recovery PhysicalBackup storage PVC,
-					// the template PhysicalBackup storage PVC has no owner reference and must be deleted here.
-					By("Deleting PhysicalBackup storage PVC")
-					pvc := corev1.PersistentVolumeClaim{
-						ObjectMeta: metav1.ObjectMeta{Name: backupKey.Name, Namespace: backupKey.Namespace},
-					}
-					Eventually(func() bool {
-						return client.IgnoreNotFound(k8sClient.Delete(testCtx, &pvc)) == nil
-					}, testTimeout, testInterval).Should(BeTrue())
 				}
 			},
 		),
