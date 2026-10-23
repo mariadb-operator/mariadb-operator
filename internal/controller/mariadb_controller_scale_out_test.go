@@ -32,15 +32,16 @@ func TestCleanupPhysicalBackupDeletesStoragePVC(t *testing.T) {
 		},
 	}
 	pvc := &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: key.Name, Namespace: key.Namespace}}
-	r := &MariaDBReconciler{Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(physicalBackup, pvc).Build()}
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(physicalBackup, pvc).Build()
+	r := &MariaDBReconciler{Client: fakeClient}
 
 	if err := r.cleanupPhysicalBackup(context.Background(), key); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := r.Get(context.Background(), key, &mariadbv1alpha1.PhysicalBackup{}); !apierrors.IsNotFound(err) {
+	if err := r.Get(testCtx, key, &mariadbv1alpha1.PhysicalBackup{}); !apierrors.IsNotFound(err) {
 		t.Errorf("expected PhysicalBackup to be deleted, got: %v", err)
 	}
-	if err := r.Get(context.Background(), client.ObjectKeyFromObject(pvc), &corev1.PersistentVolumeClaim{}); !apierrors.IsNotFound(err) {
+	if err := r.Get(testCtx, client.ObjectKeyFromObject(pvc), &corev1.PersistentVolumeClaim{}); !apierrors.IsNotFound(err) {
 		t.Errorf("expected storage PVC to be deleted, got: %v", err)
 	}
 }
