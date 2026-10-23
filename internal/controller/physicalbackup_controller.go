@@ -70,6 +70,10 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	if backup.Spec.Schedule == nil && backup.IsComplete() {
+		return ctrl.Result{}, nil
+	}
+
 	mariadb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
