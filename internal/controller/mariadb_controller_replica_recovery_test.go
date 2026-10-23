@@ -160,7 +160,7 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 		func(
 			backupKey types.NamespacedName,
 			builderFn physicalBackupBuilder,
-			cleanupAndAssertFn func(backupKey types.NamespacedName) func(),
+			cleanupFn func(backupKey types.NamespacedName) func(),
 		) {
 			podIndexToDelete := 2
 			backup := builderFn(backupKey)
@@ -174,7 +174,7 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 
 			DeferCleanup(func() {
 				deletePhysicalBackup(backupKey, false)
-				cleanupAndAssertFn(backupKey)()
+				cleanupFn(backupKey)()
 			})
 
 			By("Bootstrapping Recovery")
@@ -252,7 +252,9 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 					pvc := corev1.PersistentVolumeClaim{
 						ObjectMeta: metav1.ObjectMeta{Name: backupKey.Name, Namespace: backupKey.Namespace},
 					}
-					Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, &pvc))).To(Succeed())
+					Eventually(func() bool {
+						return client.IgnoreNotFound(k8sClient.Delete(testCtx, &pvc)) == nil
+					}, testTimeout, testInterval).Should(BeTrue())
 				}
 			},
 		),
