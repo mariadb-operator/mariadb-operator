@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
@@ -283,10 +282,8 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 		g.ReplicaThreads = 1
 	}
 
-	if reflect.ValueOf(g.InitContainer).IsZero() {
-		g.InitContainer = InitContainer{
-			Image: env.MariadbOperatorImage,
-		}
+	if g.InitContainer.Image == "" {
+		g.InitContainer.Image = env.MariadbOperatorImage
 	}
 	g.Primary.SetDefaults()
 	if err := g.Agent.SetDefaults(mdb, env); err != nil {

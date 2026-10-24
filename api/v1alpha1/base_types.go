@@ -210,10 +210,10 @@ type InitContainer struct {
 	// ContainerTemplate defines a template to configure Container objects.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
-	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-	// +kubebuilder:validation:Required
+	// Image name to be used by the init container. The supported format is `<image>:<tag>`. It defaults to the operator image.
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Image string `json:"image"`
+	Image string `json:"image,omitempty"`
 	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
 	// +optional
 	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
