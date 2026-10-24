@@ -31,11 +31,11 @@ For being able to do this, we rely on the [multi-target](https://github.com/prom
 
 ## `ServiceMonitor`
 
-Once the exporter `Deployment` is ready, `mariadb-operator` creates a [ServiceMonitor](https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.ServiceMonitor) object that will be eventually reconciled by the [Prometheus operator ](https://github.com/prometheus-operator/prometheus-operator), resulting in the Prometheus instance being configured to scrape the exporter endpoint.
+Once the exporter `Deployment` is ready, the operator creates a [ServiceMonitor](https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.ServiceMonitor) object that will be eventually reconciled by the [Prometheus operator ](https://github.com/prometheus-operator/prometheus-operator), resulting in the Prometheus instance being configured to scrape the exporter endpoint.
 
-As you scale your MariaDB with more or less replicas, `mariadb-operator` will reconcile the `ServiceMonitor` to add/remove targets related to the MariaDB instances. 
+As you scale your MariaDB with more or less replicas, the `ServiceMonitor` will be reconciled to add/remove targets related to the MariaDB instances. 
 
-The `ServiceMonitor` CRD must be installed in the cluster for `mariadb-operator` to create it. If you scrape metrics by other means (e.g. a Prometheus running in a different cluster, or a different monitoring stack such as VictoriaMetrics), you can still deploy the exporter while opting out of the `ServiceMonitor` by setting `spec.metrics.serviceMonitor.enabled = false`. In this case, the ServiceMonitor CRD is not required:
+The `ServiceMonitor` CRD must be installed in the cluster for the operator to be able to create it. If you scrape metrics by other means (e.g. a Prometheus running in a different cluster, or a different monitoring stack such as VictoriaMetrics), you can still deploy the exporter while opting out of the `ServiceMonitor` by setting `spec.metrics.serviceMonitor.enabled = false`. In this case, the ServiceMonitor CRD is not required:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -54,7 +54,7 @@ The same field is available in `MaxScale` resources under `spec.metrics.serviceM
 
 The exporter is then reachable through the `<mariadb-name>-metrics` `Service`. Since it relies on the [multi-target](https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#multi-target-support) feature, each MariaDB Pod must be scraped via the `/probe` endpoint, passing the Pod address in the `target` query parameter (e.g. `/probe?target=mariadb-0.mariadb-internal.default.svc.cluster.local:3306`).
 
-Disabling the `ServiceMonitor` after it has been created does not delete it, and `mariadb-operator` stops updating it, so its targets become stale when you scale or perform a primary switchover. You should delete it manually.
+Disabling the `ServiceMonitor` after it has been created does not delete it, and the operator stops updating it, so its targets become stale when you scale or perform a primary switchover. You should delete it manually.
 
 ## Configuration
 
