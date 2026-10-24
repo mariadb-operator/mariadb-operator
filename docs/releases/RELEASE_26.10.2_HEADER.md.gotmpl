@@ -5,11 +5,11 @@
 
 This patch release is packed with fixes driven by our community, a reflection of the project's momentum and some recent milestones we're proud of:
 
-- ⭐ 1K+ GitHub stars
-- 🤝 100+ contributors
-- 📦 12M+ image pulls
+⭐ 1K+ GitHub stars
+🤝 100+ contributors
+📦 12M+ image pulls
 
-None of this would have been possible without the people who have invested their three T's in us: talent, time, and (yes) tokens. We're incredibly grateful. Thank you! 🙏 You will find every community contribution credited inline in the sections below.
+None of this would have been possible without the people who have invested their three T's in us: talent, time, and (yes) tokens. We're incredibly grateful. Thank you! 🙏
 
 If you're upgrading from previous versions, __do not miss the [UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.10.2.md)__ for a smooth transition.
 
@@ -25,7 +25,56 @@ This release hardens the [replication](https://github.com/mariadb-operator/maria
 - New replicas are registered in MaxScale only once scale-out completes, preventing MaxScale's `auto_rejoin` from racing the operator and failing with errno 1950 under `gtid_strict_mode` ([#1978](https://github.com/mariadb-operator/mariadb-operator/pull/1978))
 - The replica readiness probe keeps using the last known `maxLagSeconds` when the Kubernetes API is unreachable, instead of failing readiness on any lag ([#1966](https://github.com/mariadb-operator/mariadb-operator/pull/1966), thanks @pujitha24!)
 
-## MaxScale sidecar containers
+## Backups
+
+- Backup compression is now idempotent: a restarted backup container no longer compresses an already compressed file, which resulted in an archive that could not be restored ([#1935](https://github.com/mariadb-operator/mariadb-operator/pull/1935), thanks @Korel!)
+- zstd compression now uses block-level parallelism, so `compressionThreads` actually takes effect, at the cost of a higher peak memory per thread ([#1955](https://github.com/mariadb-operator/mariadb-operator/pull/1955), thanks @usiegj00!)
+- [PITR](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md) replays binary logs with `mariadb --binary-mode`, so binlogs containing NUL bytes no longer fail the restore and `\r\n` is preserved ([#1963](https://github.com/mariadb-operator/mariadb-operator/pull/1963), thanks @vsolano9!)
+- PITR now accepts target times that fall inside the last archived binary log, which failed in [strict mode](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md#strict-mode) with `timeline did not reach target time` ([#1982](https://github.com/mariadb-operator/mariadb-operator/pull/1982), thanks @pujitha24!)
+- `tls.caSecretKeyRef` is now optional for S3 and Azure Blob Storage, falling back to the system trust chain. When provided, the Azure Blob Storage CA bundle is added on top of the system trust chain ([#1987](https://github.com/mariadb-operator/mariadb-operator/pull/1987), thanks @harshilv17 and @uwej711!)
+- The S3 client no longer silently rewrites Amazon S3 endpoints to their dual-stack variant, honoring the configured endpoint, e.g. S3 gateway VPC endpoints ([#1844](https://github.com/mariadb-operator/mariadb-operator/pull/1844), thanks @tzabbi!)
+- Deleting the `Job` or `VolumeSnapshot` of a successful one-off `Backup` or `PhysicalBackup` no longer re-runs it ([#1999](https://github.com/mariadb-operator/mariadb-operator/pull/1999), thanks @Roshan931!)
+- The storage PVC of the transient `PhysicalBackup` used by replica recovery and scale-out is now deleted afterwards ([#1984](https://github.com/mariadb-operator/mariadb-operator/pull/1984), thanks @pujitha24!)
+
+## Volume attributes
+
+PVC templates now support `volumeAttributesClassName`, so you can reference a [`VolumeAttributesClass`](https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/) to configure attributes such as IOPS and throughput in your [storage](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/storage.md#volume-attributes) ([#1980](https://github.com/mariadb-operator/mariadb-operator/pull/1980), thanks @Skaronator!):
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  storage:
+    size: 10Gi
+    storageClassName: my-storage-class
+    volumeClaimTemplate:
+      volumeAttributesClassName: high-performance
+```
+
+The class is passed to newly created PVCs and preserved when resizing storage. Changing it does not update existing PVCs.
+
+## Optional `ServiceMonitor`
+
+You can now deploy the [metrics](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/metrics.md#servicemonitor) exporter without a `ServiceMonitor` by setting `spec.metrics.serviceMonitor.enabled=false` in `MariaDB` and `MaxScale` resources ([#1985](https://github.com/mariadb-operator/mariadb-operator/pull/1985), thanks @spron-in!). This is useful when scraping by other means, such as a Prometheus running in a different cluster or VictoriaMetrics, as the `ServiceMonitor` CRD is no longer required:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+```
+
+The `MariaDB` and `MaxScale` exporters are now also reconciled when the `ServiceMonitor` CRD is not installed ([#2000](https://github.com/mariadb-operator/mariadb-operator/pull/2000), [#2001](https://github.com/mariadb-operator/mariadb-operator/pull/2001)).
+
+
+## MaxScale enhancements
 
 [MaxScale](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/maxscale.md#sidecar-containers) now supports `spec.sidecarContainers`, which let you run extra containers such as a log shipper alongside MaxScale ([#1970](https://github.com/mariadb-operator/mariadb-operator/pull/1970)). Combined with `spec.volumes` and `spec.volumeMounts`, you can, for instance, ship the query logs produced by a `qlafilter`:
 
@@ -58,54 +107,6 @@ Kudos to @ShravanthReddy for driving this feature end to end!
 This release also fixes the reconciliation of MaxScale servers:
 - `protocol` is no longer sent when patching servers, which MaxScale rejected, preventing any `spec.servers` change from being applied after a config sync or restart ([#1971](https://github.com/mariadb-operator/mariadb-operator/pull/1971))
 - Servers are re-patched when their derived attributes change, so updates to `connectionRetrySeconds` or `spec.tls` now reach MaxScale ([#1972](https://github.com/mariadb-operator/mariadb-operator/pull/1972))
-
-## Optional `ServiceMonitor`
-
-You can now deploy the [metrics](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/metrics.md#servicemonitor) exporter without a `ServiceMonitor` by setting `spec.metrics.serviceMonitor.enabled=false` in `MariaDB` and `MaxScale` resources ([#1985](https://github.com/mariadb-operator/mariadb-operator/pull/1985), thanks @spron-in!). This is useful when scraping by other means, such as a Prometheus running in a different cluster or VictoriaMetrics, as the `ServiceMonitor` CRD is no longer required:
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb
-spec:
-  metrics:
-    enabled: true
-    serviceMonitor:
-      enabled: false
-```
-
-The `MariaDB` and `MaxScale` exporters are now also reconciled when the `ServiceMonitor` CRD is not installed ([#2000](https://github.com/mariadb-operator/mariadb-operator/pull/2000), [#2001](https://github.com/mariadb-operator/mariadb-operator/pull/2001)).
-
-## Volume attributes
-
-PVC templates now support `volumeAttributesClassName`, so you can reference a [`VolumeAttributesClass`](https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/) to configure attributes such as IOPS and throughput in your [storage](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/storage.md#volume-attributes) ([#1980](https://github.com/mariadb-operator/mariadb-operator/pull/1980), thanks @Skaronator!):
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb
-spec:
-  storage:
-    size: 10Gi
-    storageClassName: my-storage-class
-    volumeClaimTemplate:
-      volumeAttributesClassName: high-performance
-```
-
-The class is passed to newly created PVCs and preserved when resizing storage. Changing it does not update existing PVCs.
-
-## Backups
-
-- Backup compression is now idempotent: a restarted backup container no longer compresses an already compressed file, which resulted in an archive that could not be restored ([#1935](https://github.com/mariadb-operator/mariadb-operator/pull/1935), thanks @Korel!)
-- zstd compression now uses block-level parallelism, so `compressionThreads` actually takes effect, at the cost of a higher peak memory per thread ([#1955](https://github.com/mariadb-operator/mariadb-operator/pull/1955), thanks @usiegj00!)
-- [PITR](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md) replays binary logs with `mariadb --binary-mode`, so binlogs containing NUL bytes no longer fail the restore and `\r\n` is preserved ([#1963](https://github.com/mariadb-operator/mariadb-operator/pull/1963), thanks @vsolano9!)
-- PITR now accepts target times that fall inside the last archived binary log, which failed in [strict mode](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md#strict-mode) with `timeline did not reach target time` ([#1982](https://github.com/mariadb-operator/mariadb-operator/pull/1982), thanks @pujitha24!)
-- `tls.caSecretKeyRef` is now optional for S3 and Azure Blob Storage, falling back to the system trust chain. When provided, the Azure Blob Storage CA bundle is added on top of the system trust chain ([#1987](https://github.com/mariadb-operator/mariadb-operator/pull/1987), thanks @harshilv17 and @uwej711!)
-- The S3 client no longer silently rewrites Amazon S3 endpoints to their dual-stack variant, honoring the configured endpoint, e.g. S3 gateway VPC endpoints ([#1844](https://github.com/mariadb-operator/mariadb-operator/pull/1844), thanks @tzabbi!)
-- Deleting the `Job` or `VolumeSnapshot` of a successful one-off `Backup` or `PhysicalBackup` no longer re-runs it ([#1999](https://github.com/mariadb-operator/mariadb-operator/pull/1999), thanks @Roshan931!)
-- The storage PVC of the transient `PhysicalBackup` used by replica recovery and scale-out is now deleted afterwards ([#1984](https://github.com/mariadb-operator/mariadb-operator/pull/1984), thanks @pujitha24!)
 
 ## Bugfixes
 
