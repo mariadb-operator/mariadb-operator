@@ -1,0 +1,130 @@
+**`{{ .ProjectName }}` [26.10.2](https://github.com/mariadb-operator/mariadb-operator/releases/tag/26.10.2) is here!** 🦭
+
+> [!IMPORTANT]
+> This is a patch release on top of `26.10.1`. Refer to the [26.10.0 release notes](https://github.com/mariadb-operator/mariadb-operator/releases/tag/26.10.0) for the full changelog of the `26.10.x` series.
+
+This patch release is packed with fixes driven by our community, a reflection of the project's momentum and some recent milestones we're proud of:
+
+- ⭐ 1K+ GitHub stars
+- 🤝 100+ contributors
+- 📦 12M+ image pulls
+
+None of this would have been possible without the people who have invested their three T's in us: talent, time, and (yes) tokens. We're incredibly grateful. Thank you! 🙏 You will find every community contribution credited inline in the sections below.
+
+If you're upgrading from previous versions, __do not miss the [UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.10.2.md)__ for a smooth transition.
+
+## Replication topologies
+
+This release hardens the [replication](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/replication.md) orchestration, in particular when running alongside MaxScale and with [semi-synchronous replication](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/replication.md#asynchronous-vs-semi-synchronous-replication):
+
+- Demoting a node to replica now sets `MASTER_USE_GTID=slave_pos`, so a former primary rejoins as a replica after a MaxScale switchover or failover instead of failing with error 4191 ([#1941](https://github.com/mariadb-operator/mariadb-operator/pull/1941), thanks @mariusleu!)
+- The replication reconciliation now resolves the current primary from the MaxScale API, falling back to `status.currentPrimaryPodIndex`, so a primary just promoted by MaxScale is no longer configured as a replica ([#1975](https://github.com/mariadb-operator/mariadb-operator/pull/1975), [#2002](https://github.com/mariadb-operator/mariadb-operator/pull/2002))
+- Semi-sync is armed on the primary as soon as a replica is able to acknowledge, instead of waiting for every `Pod` to be ready, e.g. while a former primary is stuck `Pending` after a failover ([#1974](https://github.com/mariadb-operator/mariadb-operator/pull/1974))
+- During rolling updates, the primary is re-armed before each `Pod` is deleted, so a primary promoted by MaxScale mid-update does not take writes without semi-sync ([#1976](https://github.com/mariadb-operator/mariadb-operator/pull/1976))
+- On the first bootstrap, replication waits for the primary role to be assigned before configuring the replicas, avoiding replicas that can't authenticate and a primary waiting for an acknowledgement for the whole `semiSyncAckTimeout` ([#1977](https://github.com/mariadb-operator/mariadb-operator/pull/1977))
+- New replicas are registered in MaxScale only once scale-out completes, preventing MaxScale's `auto_rejoin` from racing the operator and failing with errno 1950 under `gtid_strict_mode` ([#1978](https://github.com/mariadb-operator/mariadb-operator/pull/1978))
+- The replica readiness probe keeps using the last known `maxLagSeconds` when the Kubernetes API is unreachable, instead of failing readiness on any lag ([#1966](https://github.com/mariadb-operator/mariadb-operator/pull/1966), thanks @pujitha24!)
+
+## MaxScale sidecar containers
+
+[MaxScale](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/maxscale.md#sidecar-containers) now supports `spec.sidecarContainers`, which let you run extra containers such as a log shipper alongside MaxScale ([#1970](https://github.com/mariadb-operator/mariadb-operator/pull/1970)). Combined with `spec.volumes` and `spec.volumeMounts`, you can, for instance, ship the query logs produced by a `qlafilter`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
+  volumes:
+    - name: qla-logs
+      emptyDir: {}
+  volumeMounts:
+    - name: qla-logs
+      mountPath: /var/log/maxscale/qla
+  sidecarContainers:
+    - name: query-logs
+      image: busybox:1.37
+      command: [sh, -c]
+      args:
+        - until [ -f /logs/queries.unified ]; do sleep 1; done; exec tail -f /logs/queries.unified
+      volumeMounts:
+        - name: qla-logs
+          mountPath: /logs
+          readOnly: true
+```
+
+Kudos to @ShravanthReddy for driving this feature end to end!
+
+This release also fixes the reconciliation of MaxScale servers:
+- `protocol` is no longer sent when patching servers, which MaxScale rejected, preventing any `spec.servers` change from being applied after a config sync or restart ([#1971](https://github.com/mariadb-operator/mariadb-operator/pull/1971))
+- Servers are re-patched when their derived attributes change, so updates to `connectionRetrySeconds` or `spec.tls` now reach MaxScale ([#1972](https://github.com/mariadb-operator/mariadb-operator/pull/1972))
+
+## Optional `ServiceMonitor`
+
+You can now deploy the [metrics](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/metrics.md#servicemonitor) exporter without a `ServiceMonitor` by setting `spec.metrics.serviceMonitor.enabled=false` in `MariaDB` and `MaxScale` resources ([#1985](https://github.com/mariadb-operator/mariadb-operator/pull/1985), thanks @spron-in!). This is useful when scraping by other means, such as a Prometheus running in a different cluster or VictoriaMetrics, as the `ServiceMonitor` CRD is no longer required:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+```
+
+The `MariaDB` and `MaxScale` exporters are now also reconciled when the `ServiceMonitor` CRD is not installed ([#2000](https://github.com/mariadb-operator/mariadb-operator/pull/2000), [#2001](https://github.com/mariadb-operator/mariadb-operator/pull/2001)).
+
+## Volume attributes
+
+PVC templates now support `volumeAttributesClassName`, so you can reference a [`VolumeAttributesClass`](https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/) to configure attributes such as IOPS and throughput in your [storage](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/storage.md#volume-attributes) ([#1980](https://github.com/mariadb-operator/mariadb-operator/pull/1980), thanks @Skaronator!):
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  storage:
+    size: 10Gi
+    storageClassName: my-storage-class
+    volumeClaimTemplate:
+      volumeAttributesClassName: high-performance
+```
+
+The class is passed to newly created PVCs and preserved when resizing storage. Changing it does not update existing PVCs.
+
+## Backups
+
+- Backup compression is now idempotent: a restarted backup container no longer compresses an already compressed file, which resulted in an archive that could not be restored ([#1935](https://github.com/mariadb-operator/mariadb-operator/pull/1935), thanks @Korel!)
+- zstd compression now uses block-level parallelism, so `compressionThreads` actually takes effect, at the cost of a higher peak memory per thread ([#1955](https://github.com/mariadb-operator/mariadb-operator/pull/1955), thanks @usiegj00!)
+- [PITR](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md) replays binary logs with `mariadb --binary-mode`, so binlogs containing NUL bytes no longer fail the restore and `\r\n` is preserved ([#1963](https://github.com/mariadb-operator/mariadb-operator/pull/1963), thanks @vsolano9!)
+- PITR now accepts target times that fall inside the last archived binary log, which failed in [strict mode](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md#strict-mode) with `timeline did not reach target time` ([#1982](https://github.com/mariadb-operator/mariadb-operator/pull/1982), thanks @pujitha24!)
+- `tls.caSecretKeyRef` is now optional for S3 and Azure Blob Storage, falling back to the system trust chain. When provided, the Azure Blob Storage CA bundle is added on top of the system trust chain ([#1987](https://github.com/mariadb-operator/mariadb-operator/pull/1987), thanks @harshilv17 and @uwej711!)
+- The S3 client no longer silently rewrites Amazon S3 endpoints to their dual-stack variant, honoring the configured endpoint, e.g. S3 gateway VPC endpoints ([#1844](https://github.com/mariadb-operator/mariadb-operator/pull/1844), thanks @tzabbi!)
+- Deleting the `Job` or `VolumeSnapshot` of a successful one-off `Backup` or `PhysicalBackup` no longer re-runs it ([#1999](https://github.com/mariadb-operator/mariadb-operator/pull/1999), thanks @Roshan931!)
+- The storage PVC of the transient `PhysicalBackup` used by replica recovery and scale-out is now deleted afterwards ([#1984](https://github.com/mariadb-operator/mariadb-operator/pull/1984), thanks @pujitha24!)
+
+## Bugfixes
+
+- `spec.replication.agent.lifecycle` and `spec.galera.agent.lifecycle` are now applied to the `agent` container, they were previously ignored ([#1986](https://github.com/mariadb-operator/mariadb-operator/pull/1986), thanks @cvas22!)
+- Native sidecar init containers, such as the Linkerd proxy, are no longer considered as `Pod` initialization, which caused replica recovery to run against a live `mariadbd` ([#1983](https://github.com/mariadb-operator/mariadb-operator/pull/1983), thanks @pujitha24!)
+- `ExternalMariaDB` treats a missing `wsrep_on` variable as Galera disabled, so servers without Galera, such as RDS or MySQL, become ready again ([#1991](https://github.com/mariadb-operator/mariadb-operator/pull/1991), thanks @Kitio-Tek!)
+- IPv6 hosts are now bracketed in the SQL client DSN, fixing connectivity for `ExternalMariaDB`, MaxScale servers and `Connection` resources ([#1993](https://github.com/mariadb-operator/mariadb-operator/pull/1993), thanks @Kitio-Tek!)
+
+## Improvements
+
+- Bumped `golang.org/x/crypto` and related `golang.org/x/*` modules to address CVEs ([#1998](https://github.com/mariadb-operator/mariadb-operator/pull/1998))
+- Extended test coverage for metrics reconciliation and `PhysicalBackup` PVC cleanup ([#1994](https://github.com/mariadb-operator/mariadb-operator/pull/1994), [#1996](https://github.com/mariadb-operator/mariadb-operator/pull/1996), [#2000](https://github.com/mariadb-operator/mariadb-operator/pull/2000))
+
+---
+
+## Community
+
+Contributions of any kind are always welcome: adding yourself to the [list of adopters](https://github.com/mariadb-operator/mariadb-operator/blob/main/ADOPTERS.md), reporting issues, submitting pull requests, or simply starring the project! 🌟
+
+## Enterprise
+
+For enterprise users, see the __[MariaDB Enterprise Operator](https://mariadb.com/products/enterprise/kubernetes-operator/)__, a commercially supported Kubernetes operator from MariaDB with additional enterprise-grade features.
