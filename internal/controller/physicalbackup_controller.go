@@ -69,8 +69,10 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := r.Get(ctx, req.NamespacedName, &backup); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	logger := log.FromContext(ctx).WithName("physicalbackup")
+
 	if backup.Spec.Schedule == nil && backup.IsSuccessful() {
-		log.FromContext(ctx).WithName("physicalbackup").V(1).Info("PhysicalBackup completed successfully, skipping reconciliation")
+		logger.V(1).Info("PhysicalBackup completed successfully, skipping reconciliation")
 		return ctrl.Result{}, nil
 	}
 
@@ -103,11 +105,8 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
-	logger := log.FromContext(ctx).
-		WithName("physicalbackup").
-		WithValues(
-			"mariadb", mariadb.Name,
-		)
+	logger = logger.WithValues("mariadb", mariadb.Name)
+
 	if !shouldReconcilePhysicalBackup(mariadb, logger) {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}

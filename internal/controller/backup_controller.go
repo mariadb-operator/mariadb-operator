@@ -49,8 +49,10 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err := r.Get(ctx, req.NamespacedName, &backup); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	logger := log.FromContext(ctx).WithName("backup")
+
 	if backup.Spec.Schedule == nil && backup.IsSuccessful() {
-		log.FromContext(ctx).WithName("backup").V(1).Info("Backup completed successfully, skipping reconciliation")
+		logger.V(1).Info("Backup completed successfully, skipping reconciliation")
 		return ctrl.Result{}, nil
 	}
 
