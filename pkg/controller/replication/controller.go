@@ -180,7 +180,7 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 	// the replication user, and before it is armed in 'reconcileSemiSync'. A primary without role is skipped by
 	// 'ReconcileReplicationInPod', and carrying on would leave the replicas unable to authenticate and the armed primary waiting
 	// for an ACK that can not come, which is forever with a high semiSyncAckTimeout. Wait for the Status phase to assign its role.
-	if shouldWaitForPrimaryRole(req.mariadb, *req.mariadb.Status.CurrentPrimaryPodIndex) {
+	if shouldWaitForPrimaryRole(req.mariadb, *req.currentPrimaryPodIndex) {
 		logger.V(1).Info("Primary Pod role not yet assigned and replication not configured yet. Requeuing...")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
