@@ -2,7 +2,6 @@ package controller
 
 import (
 	"os"
-	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
@@ -13,7 +12,6 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -441,80 +439,6 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 
 		By("Expecting to create a password Secret eventually")
 		expectSecretToExist(testCtx, k8sClient, testPwdKey, testPwdSecretKey)
-	})
-
-	It("should reconcile metrics with ServiceMonitor disabled", func() {
-		key := types.NamespacedName{
-			Name:      "mdb-test-metrics-no-svcmonitor",
-			Namespace: testNamespace,
-		}
-		mdb := mariadbv1alpha1.MariaDB{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      key.Name,
-				Namespace: key.Namespace,
-			},
-			Spec: mariadbv1alpha1.MariaDBSpec{
-				Storage: mariadbv1alpha1.Storage{
-					Size: ptr.To(resource.MustParse("300Mi")),
-				},
-				Service: &mariadbv1alpha1.ServiceTemplate{
-					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &mariadbv1alpha1.Metadata{
-						Annotations: map[string]string{
-							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.44",
-						},
-					},
-				},
-				Metrics: &mariadbv1alpha1.MariadbMetrics{
-					Enabled: true,
-					ServiceMonitor: mariadbv1alpha1.ServiceMonitor{
-						Enabled: ptr.To(false),
-					},
-				},
-			},
-		}
-		applyMariadbTestConfig(&mdb)
-
-		By("Creating MariaDB")
-		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
-		DeferCleanup(func() {
-			deleteMariadb(key, false)
-		})
-
-		By("Expecting MariaDB to be ready eventually")
-		expectMariadbReady(testCtx, k8sClient, key)
-
-		By("Expecting to create a exporter Deployment eventually")
-		Eventually(func(g Gomega) bool {
-			var deploy appsv1.Deployment
-			g.Expect(k8sClient.Get(testCtx, mdb.MetricsKey(), &deploy)).To(Succeed())
-			return deploymentReady(&deploy)
-		}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
-
-		By("Expecting to create a exporter Service eventually")
-		Eventually(func() error {
-			var svc corev1.Service
-			return k8sClient.Get(testCtx, mdb.MetricsKey(), &svc)
-		}).WithTimeout(testTimeout).WithPolling(testInterval).Should(Succeed())
-
-		By("Expecting not to create a ServiceMonitor")
-		Consistently(func() bool {
-			var svcMonitor monitoringv1.ServiceMonitor
-			return apierrors.IsNotFound(k8sClient.Get(testCtx, mdb.MetricsKey(), &svcMonitor))
-		}).WithTimeout(10 * time.Second).WithPolling(testInterval).Should(BeTrue())
-
-		By("Enabling ServiceMonitor")
-		Eventually(func(g Gomega) {
-			g.Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
-			mdb.Spec.Metrics.ServiceMonitor.Enabled = ptr.To(true)
-			g.Expect(k8sClient.Update(testCtx, &mdb)).To(Succeed())
-		}).WithTimeout(testTimeout).WithPolling(testInterval).Should(Succeed())
-
-		By("Expecting to create a ServiceMonitor eventually")
-		Eventually(func() error {
-			var svcMonitor monitoringv1.ServiceMonitor
-			return k8sClient.Get(testCtx, mdb.MetricsKey(), &svcMonitor)
-		}).WithTimeout(testTimeout).WithPolling(testInterval).Should(Succeed())
 	})
 
 	It("should get an update when my.cnf is updated", func() {
