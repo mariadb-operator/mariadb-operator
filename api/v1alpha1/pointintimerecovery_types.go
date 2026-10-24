@@ -24,8 +24,6 @@ type PointInTimeRecoverySpec struct {
 	Compression CompressAlgorithm `json:"compression,omitempty" webhook:"inmutable"`
 	// CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.
 	// Defaults to all available CPUs.
-	// Each thread buffers a block of max(windowSize*4, 512KiB), which is 32MiB at the default window,
-	// so peak memory grows with this value. Set resource limits accordingly.
 	// +optional
 	// +kubebuilder:validation:Minimum=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
