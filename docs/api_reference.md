@@ -194,7 +194,7 @@ _Appears in:_
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip zstd] <br /> |
-| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs.<br />Each thread buffers a block of max(windowSize*4, 512KiB), which is 32MiB at the default window,<br />so peak memory grows with this value. Set resource limits accordingly. |  | Minimum: 1 <br /> |
+| `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[BackupStorage](#backupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |

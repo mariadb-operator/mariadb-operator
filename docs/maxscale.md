@@ -24,9 +24,9 @@ To better understand what MaxScale is capable of you may check the [product page
 - [Server configuration](#server-configuration)
 - [Primary server switchover](#primary-server-switchover)
 - [Server maintenance](#server-maintenance)
+- [Configuration](#configuration)
 - [Filter configuration](#filter-configuration)
 - [Sidecar containers](#sidecar-containers)
-- [Configuration](#configuration)
 - [Authentication](#authentication)
 - [Kubernetes <code>Services</code>](#kubernetes-services)
 - [Connection](#connection)
@@ -331,6 +331,32 @@ spec:
       maintenance: true
 ```
 
+## Configuration
+
+Similar to MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` to instruct the operator to create the `maxscale.conf`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+...
+  config:
+    params:
+      log_info: "true"
+    volumeClaimTemplate:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
+```
+
+Both this global configuration and the resources created by the operator using the [MaxScale API](#maxscale-api) are stored under a volume provisioned by the `spec.config.volumeClaimTemplate`. Refer to the [troubleshooting](#troubleshooting) if you are getting errors writing on this volume.
+
+Refer to the [MaxScale reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/) to provide global configuration.
+
 ## Filter configuration
 
 You can declare various [filters](https://mariadb.com/docs/maxscale/reference/maxscale-filters) and then reference them by name in the service definition:
@@ -394,33 +420,7 @@ spec:
           readOnly: true
 ```
 
-Unlike MariaDB sidecars, MaxScale sidecars do not inherit the MaxScale container's environment variables or volume mounts; configure each explicitly. See the complete [example](../examples/manifests/maxscale_sidecar.yaml).
-
-## Configuration
-
-Similar to MariaDB, MaxScale allows you to provide global configuration parameters in a `maxscale.conf` file. You don't need to provide this config file directly, but instead you can use the `spec.config.params` to instruct the operator to create the `maxscale.conf`:
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MaxScale
-metadata:
-  name: maxscale-galera
-spec:
-...
-  config:
-    params:
-      log_info: "true"
-    volumeClaimTemplate:
-      resources:
-        requests:
-          storage: 100Mi
-      accessModes:
-        - ReadWriteOnce
-```
-
-Both this global configuration and the resources created by the operator using the [MaxScale API](#maxscale-api) are stored under a volume provisioned by the `spec.config.volumeClaimTemplate`. Refer to the [troubleshooting](#troubleshooting) if you are getting errors writing on this volume.
-
-Refer to the [MaxScale reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/) to provide global configuration.
+Unlike MariaDB sidecars, MaxScale sidecars do not inherit the MaxScale container's environment variables or volume mounts; configure each explicitly.
 
 ## Authentication
 

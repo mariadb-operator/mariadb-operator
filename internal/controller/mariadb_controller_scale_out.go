@@ -315,6 +315,9 @@ func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, key types
 		return err
 	}
 	// The storage PVC has no owner reference, so it must be deleted explicitly to avoid leaking it.
+	// IMPORTANT: only the PVC provisioned by the operator via 'spec.storage.persistentVolumeClaim' is deleted.
+	// It is named after this transient PhysicalBackup ('<mariadb>-pb-scaleout' / '<mariadb>-pb-recovery'), a name reserved for the operator.
+	// PVCs provided by the user via 'spec.storage.volume.persistentVolumeClaim.claimName' are never deleted.
 	if physicalBackup.Spec.Storage.PersistentVolumeClaim != nil {
 		pvcKey := physicalBackup.StoragePVCKey()
 		pvc := corev1.PersistentVolumeClaim{

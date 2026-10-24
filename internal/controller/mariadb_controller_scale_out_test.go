@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -63,7 +62,7 @@ func TestCleanupPhysicalBackupDeletesStoragePVC(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(physicalBackup, pvc).Build()
 			r := &MariaDBReconciler{Client: fakeClient}
 
-			if err := r.cleanupPhysicalBackup(context.Background(), key); err != nil {
+			if err := r.cleanupPhysicalBackup(testCtx, key); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			if err := r.Get(testCtx, key, &mariadbv1alpha1.PhysicalBackup{}); !apierrors.IsNotFound(err) {

@@ -29,13 +29,19 @@ func TestInitJobsAreNotCreatedAgainForRunningPods(t *testing.T) {
 		wantJobs []int
 		wantDone bool
 	}{
-		{name: "no Pod runs yet", running: 0, wantJobs: []int{0}},
-		{name: "one Pod runs", running: 1, wantJobs: []int{1}},
-		{name: "every Pod runs", running: 3, wantJobs: nil, wantDone: true},
+		{name: "no Pod running yet", running: 0, wantJobs: []int{0}},
+		{name: "one Pod running", running: 1, wantJobs: []int{1}},
+		{name: "two Pod running", running: 2, wantJobs: []int{2}},
+		{name: "every Pod running", running: 3, wantJobs: nil, wantDone: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			mdb, objs := fakeRestoredMariaDB(tc.running)
 			r, c := fakeInitReconciler(t, append(objs, mdb)...)
+			physicalBootstrap := &mariadbv1alpha1.BootstrapFrom{
+				BackupContentType: mariadbv1alpha1.BackupContentTypePhysical,
+				S3:                &mariadbv1alpha1.S3{Bucket: "backups", Endpoint: "s3.example.net", Prefix: "source"},
+				Volume:            &mariadbv1alpha1.StorageVolumeSource{EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{}},
+			}
 
 			result, err := r.reconcileRollingInitJobs(testCtx, mdb, 0, logr.Discard(), builder.WithBootstrapFrom(physicalBootstrap))
 			if err != nil {
@@ -93,12 +99,6 @@ func fakeRestoredMariaDB(running int32) (*mariadbv1alpha1.MariaDB, []client.Obje
 		})
 	}
 	return mdb, objs
-}
-
-var physicalBootstrap = &mariadbv1alpha1.BootstrapFrom{
-	BackupContentType: mariadbv1alpha1.BackupContentTypePhysical,
-	S3:                &mariadbv1alpha1.S3{Bucket: "backups", Endpoint: "s3.example.net", Prefix: "source"},
-	Volume:            &mariadbv1alpha1.StorageVolumeSource{EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{}},
 }
 
 func fakeInitReconciler(t *testing.T, objs ...client.Object) (*MariaDBReconciler, client.Client) {
