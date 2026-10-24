@@ -460,7 +460,7 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, d
 	// Replicas being recovered will have a data directory in error state, needs to be cleaned up before restoring.
 	cleanupDataDirCmd := `if [ -d /var/lib/mysql ]; then 
 	echo "💾 Cleaning up data directory";
-	rm -rf /var/lib/mysql/*;
+	rm -rf /var/lib/mysql/* /var/lib/mysql/.[!.]* /var/lib/mysql/..?*;
 fi`
 	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:
 	// "Original data directory /var/lib/mysql is not empty!"
