@@ -32,19 +32,6 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, nil
 	}
 
-	if mariadb.IsServiceMonitorEnabled() {
-		exist, err := r.Discovery.ServiceMonitorExist()
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		if !exist {
-			r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound, mariadbv1alpha1.ReasonCRDNotFound,
-				"Unable to reconcile metrics: ServiceMonitor CRD not installed in the cluster")
-			log.FromContext(ctx).Error(errors.New("ServiceMonitor CRD not installed in the cluster"), "Unable to reconcile metrics")
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-		}
-	}
-
 	if !mariadb.IsReady() {
 		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing metrics")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
@@ -66,6 +53,16 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, err
 	}
 	if mariadb.IsServiceMonitorEnabled() {
+		exist, err := r.Discovery.ServiceMonitorExist()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !exist {
+			r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound, mariadbv1alpha1.ReasonCRDNotFound,
+				"Unable to reconcile ServiceMonitor: ServiceMonitor CRD not installed in the cluster")
+			log.FromContext(ctx).Error(errors.New("ServiceMonitor CRD not installed in the cluster"), "Unable to reconcile ServiceMonitor")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
 		if err := r.reconcileServiceMonitor(ctx, mariadb); err != nil {
 			return ctrl.Result{}, err
 		}
