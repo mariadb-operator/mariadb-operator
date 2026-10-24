@@ -45,8 +45,8 @@ func (r *MaxScaleReconciler) reconcileMetrics(ctx context.Context, req *requestM
 		}
 		if !exist {
 			r.Recorder.Eventf(req.mxs, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound, mariadbv1alpha1.ReasonCRDNotFound,
-				"Unable to reconcile metrics: ServiceMonitor CRD not installed in the cluster")
-			log.FromContext(ctx).Error(errors.New("ServiceMonitor CRD not installed in the cluster"), "Unable to reconcile metrics")
+				"Unable to reconcile ServiceMonitor: ServiceMonitor CRD not installed in the cluster")
+			log.FromContext(ctx).Error(errors.New("ServiceMonitor CRD not installed in the cluster"), "Unable to reconcile ServiceMonitor")
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 		if err := r.reconcileServiceMonitor(ctx, req.mxs); err != nil {
