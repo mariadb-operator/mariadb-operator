@@ -1,22 +1,24 @@
 <p align="center" width="100%">
 <img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb_centered_whitebg.svg" alt="mariadb" width="500"/>
 </p>
-
 <p align="center">
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/ci.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/release.yml/badge.svg" alt="Release"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm.yml/badge.svg" alt="Helm"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm-release.yml"><img src="https://github.com/mariadb-operator/mariadb-operator/actions/workflows/helm-release.yml/badge.svg" alt="Helm release"></a>
 </p>
-
 <p align="center">
+<a href="https://github.com/mariadb-operator/mariadb-operator"><img alt="GitHub" src="https://img.shields.io/github/stars/mariadb-operator/mariadb-operator"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/tree/main/docs"><img src="https://img.shields.io/badge/docs-latest-blue?logo=readthedocs&logoColor=white" alt="Docs"></a>
 <a href="https://github.com/mariadb-operator/mariadb-operator/pkgs/container/mariadb-operator"><img src="https://img.shields.io/badge/ghcr.io-mariadb--operator-blue?logo=docker&logoColor=white" alt="Container image"></a>
 <a href="https://r.mariadb.com/join-community-slack"><img alt="Slack" src="https://img.shields.io/badge/slack-join_chat-blue?logo=Slack&label=slack&style=flat"></a>
+</p>
+<p align="center">
 <a href="https://pkg.go.dev/github.com/mariadb-operator/mariadb-operator/v26"><img src="https://pkg.go.dev/badge/github.com/mariadb-operator/mariadb-operator.svg" alt="Go Reference"></a>
 <a href="https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mariadb-operator" alt="Artifact Hub"></a>
 <a href="https://operatorhub.io/operator/mariadb-operator"><img src="https://img.shields.io/badge/Operator%20Hub-mariadb--operator-red" alt="Operator Hub"></a>
 </p>
+
 
 # 🦭 mariadb-operator
 
