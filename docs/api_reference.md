@@ -688,6 +688,9 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 _Appears in:_
 - [MariaDBVolume](#mariadbvolume)
 - [MariaDBVolumeSource](#mariadbvolumesource)
+- [StorageVolumeSource](#storagevolumesource)
+- [Volume](#volume)
+- [VolumeSource](#volumesource)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -1514,13 +1517,13 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
 | `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
 | `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
 | `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
 | `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
 | `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
-| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
 | `name` _string_ |  |  |  |
 
 
@@ -1538,13 +1541,13 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
 | `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
 | `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
 | `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
 | `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
 | `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
-| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
 
 
 #### MariadbMetrics
@@ -3300,6 +3303,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
 | `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
 | `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
 | `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
@@ -3622,6 +3626,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
 | `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
 | `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
 | `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
