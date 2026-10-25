@@ -44,12 +44,15 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -225,6 +228,12 @@ var rootCmd = &cobra.Command{
 			},
 			Cache: cache.Options{
 				SyncPeriod: &syncPeriod,
+				ByObject: map[ctrlclient.Object]cache.ByObject{
+					// Helm stores every release revision in a Secret of this type. The operator never reads them.
+					&corev1.Secret{}: {
+						Field: fields.OneTermNotEqualSelector("type", "helm.sh/release.v1"),
+					},
+				},
 			},
 		}
 		if webhookEnabled {
