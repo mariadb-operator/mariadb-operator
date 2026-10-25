@@ -10,7 +10,8 @@
 </p>
 
 <p align="center">
-<a href="https://goreportcard.com/report/github.com/mariadb-operator/mariadb-operator"><img src="https://goreportcard.com/badge/github.com/mariadb-operator/mariadb-operator" alt="Go Report Card"></a>
+<a href="https://github.com/mariadb-operator/mariadb-operator/tree/main/docs"><img src="https://img.shields.io/badge/docs-latest-blue?logo=readthedocs&logoColor=white" alt="Docs"></a>
+<a href="https://github.com/mariadb-operator/mariadb-operator/pkgs/container/mariadb-operator"><img src="https://img.shields.io/badge/ghcr.io-mariadb--operator-blue?logo=docker&logoColor=white" alt="Container image"></a>
 <a href="https://pkg.go.dev/github.com/mariadb-operator/mariadb-operator/v26"><img src="https://pkg.go.dev/badge/github.com/mariadb-operator/mariadb-operator.svg" alt="Go Reference"></a>
 <a href="https://r.mariadb.com/join-community-slack"><img alt="Slack" src="https://img.shields.io/badge/slack-join_chat-blue?logo=Slack&label=slack&style=flat"></a>
 <a href="https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mariadb-operator" alt="Artifact Hub"></a>
