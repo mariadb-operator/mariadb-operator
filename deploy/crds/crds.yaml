@@ -4201,8 +4201,9 @@ spec:
                           type: object
                         type: array
                       image:
-                        description: Image name to be used by the MariaDB instances.
-                          The supported format is `<image>:<tag>`.
+                        description: Image name to be used by the init container.
+                          The supported format is `<image>:<tag>`. It defaults to
+                          the operator image.
                         type: string
                       imagePullPolicy:
                         description: ImagePullPolicy is the image pull policy. One
@@ -4559,8 +4560,6 @@ spec:
                           - name
                           type: object
                         type: array
-                    required:
-                    - image
                     type: object
                   initJob:
                     description: InitJob defines a Job that co-operates with mariadb-operator
@@ -6764,8 +6763,9 @@ spec:
                           type: object
                         type: array
                       image:
-                        description: Image name to be used by the MariaDB instances.
-                          The supported format is `<image>:<tag>`.
+                        description: Image name to be used by the init container.
+                          The supported format is `<image>:<tag>`. It defaults to
+                          the operator image.
                         type: string
                       imagePullPolicy:
                         description: ImagePullPolicy is the image pull policy. One
@@ -7122,8 +7122,6 @@ spec:
                           - name
                           type: object
                         type: array
-                    required:
-                    - image
                     type: object
                   primary:
                     description: Primary is the replication configuration for the

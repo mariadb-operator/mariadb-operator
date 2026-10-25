@@ -644,4 +644,40 @@ var _ = Describe("MariaDB Galera types", func() {
 			),
 		)
 	})
+
+	Context("When setting the init container image default", func() {
+		It("Should default the image when other init container fields are set", func() {
+			mdb := &MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "mariadb-galera", Namespace: testNamespace},
+				Spec:       MariaDBSpec{Replicas: 3},
+			}
+			resources := &ResourceRequirements{
+				Requests: corev1.ResourceList{"cpu": resource.MustParse("100m")},
+			}
+
+			galera := &Galera{
+				Enabled: true,
+				GaleraSpec: GaleraSpec{
+					InitContainer: InitContainer{
+						ContainerTemplate: ContainerTemplate{Resources: resources},
+					},
+				},
+			}
+			Expect(galera.SetDefaults(mdb, env)).To(Succeed())
+			Expect(galera.InitContainer.Image).To(Equal(env.MariadbOperatorImage))
+			Expect(galera.InitContainer.Resources).To(Equal(resources))
+
+			replication := &Replication{
+				Enabled: true,
+				ReplicationSpec: ReplicationSpec{
+					InitContainer: InitContainer{
+						ContainerTemplate: ContainerTemplate{Resources: resources},
+					},
+				},
+			}
+			Expect(replication.SetDefaults(mdb, env)).To(Succeed())
+			Expect(replication.InitContainer.Image).To(Equal(env.MariadbOperatorImage))
+			Expect(replication.InitContainer.Resources).To(Equal(resources))
+		})
+	})
 })

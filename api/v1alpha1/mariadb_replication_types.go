@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
@@ -368,10 +367,8 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 		r.StandaloneProbes = ptr.To(false)
 	}
 
-	if reflect.ValueOf(r.InitContainer).IsZero() {
-		r.InitContainer = InitContainer{
-			Image: env.MariadbOperatorImage,
-		}
+	if r.InitContainer.Image == "" {
+		r.InitContainer.Image = env.MariadbOperatorImage
 	}
 	if err := r.Agent.SetDefaults(mdb, env); err != nil {
 		return fmt.Errorf("error setting agent defaults: %v", err)
