@@ -91,6 +91,7 @@ var (
 
 	syncPeriod       time.Duration
 	cacheSyncTimeout time.Duration
+	reconcileTimeout time.Duration
 
 	webhookEnabled bool
 	webhookPort    int
@@ -159,6 +160,9 @@ func init() {
 
 	rootCmd.Flags().DurationVar(&syncPeriod, "sync-period", 10*time.Hour, "The interval at which watched resources are reconciled.")
 	rootCmd.Flags().DurationVar(&cacheSyncTimeout, "cache-sync-timeout", 2*time.Minute, "The time limit set to wait for syncing caches.")
+	rootCmd.Flags().DurationVar(&reconcileTimeout, "reconcile-timeout", 0,
+		"Maximum duration of a single reconcile, 0 disables it. Keep it above the longest expected reconcile, "+
+			"such as a PhysicalBackup waiting for its timeout.")
 
 	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", false, "Enable the webhook server.")
 	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server."+
@@ -222,6 +226,7 @@ var rootCmd = &cobra.Command{
 			Controller: config.Controller{
 				MaxConcurrentReconciles: maxConcurrentReconciles,
 				CacheSyncTimeout:        cacheSyncTimeout,
+				ReconciliationTimeout:   reconcileTimeout,
 			},
 			Cache: cache.Options{
 				SyncPeriod: &syncPeriod,
