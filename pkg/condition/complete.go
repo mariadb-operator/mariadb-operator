@@ -17,11 +17,11 @@ func SetCompleteWithCronJob(c Conditioner, cronJob *batchv1.CronJob) {
 		})
 	}
 
-	if cronJob.Status.LastScheduleTime == nil || cronJob.Status.LastSuccessfulTime == nil {
+	if cronJob.Status.LastScheduleTime == nil {
 		setScheduled()
 		return
 	}
-	if cronJob.Status.LastSuccessfulTime.Before(cronJob.Status.LastScheduleTime) {
+	if cronJob.Status.LastSuccessfulTime == nil || cronJob.Status.LastSuccessfulTime.Before(cronJob.Status.LastScheduleTime) {
 		if len(cronJob.Status.Active) > 0 {
 			c.SetCondition(metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeComplete,
