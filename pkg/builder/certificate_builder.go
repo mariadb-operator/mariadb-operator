@@ -15,6 +15,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+// commonNameMaxLength is the upper bound RFC 5280 sets on a common name (ub-common-name).
+// cert-manager rejects a Certificate whose commonName is longer.
+const commonNameMaxLength = 64
+
+// commonName returns the first DNS name that fits in a common name, or an empty string if none does.
+// cert-manager accepts a Certificate without commonName when it has DNS names.
+func commonName(dnsNames []string) string {
+	for _, name := range dnsNames {
+		if len(name) <= commonNameMaxLength {
+			return name
+		}
+	}
+	return ""
+}
+
 type CertOpts struct {
 	Key                   *types.NamespacedName
 	Owner                 metav1.Object
@@ -100,7 +115,7 @@ func (b *Builder) BuildCertificate(certOpts ...CertOpt) (*certmanagerv1.Certific
 			Duration:    &metav1.Duration{Duration: *opts.Lifetime},
 			RenewBefore: &metav1.Duration{Duration: *renewBefore},
 			DNSNames:    opts.DNSNames,
-			CommonName:  opts.DNSNames[0],
+			CommonName:  commonName(opts.DNSNames),
 			Usages:      opts.Usages,
 			IssuerRef:   *opts.IssuerRef,
 			IsCA:        false,
