@@ -304,13 +304,25 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFi
 			"echo 💾 Taking backup: %s",
 			b.getTargetFilePath(),
 		),
-		fmt.Sprintf(
-			"mariadb-backup %s %s > %s",
-			connFlags,
-			args,
-			b.getTargetFilePath(),
-		),
 	}
+	backupCmd := fmt.Sprintf(
+		"mariadb-backup %s %s > %s",
+		connFlags,
+		args,
+		b.getTargetFilePath(),
+	)
+	if isSafeSlaveBackup(mariadb, targetPodIndex) {
+		// --safe-slave-backup stops the replica SQL thread and only restarts it when mariadb-backup succeeds.
+		// Restart it on failure, otherwise the replica is left stopped without error and never recovers.
+		backupCmd = fmt.Sprintf(
+			"%s || { echo 💾 Backup failed, starting replica SQL thread; mariadb %s %s -e 'START SLAVE SQL_THREAD' || true; exit 1; }",
+			backupCmd,
+			connFlags,
+			strings.Join(b.tlsArgs(mariadb), " "),
+		)
+	}
+	cmds = append(cmds, backupCmd)
+
 	return NewBashCommand(cmds), nil
 }
 
@@ -718,8 +730,7 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 	if mariadb.IsTLSEnabled() {
 		args = append(args, b.tlsArgs(mariadb)...)
 	}
-	if mariadb.IsReplicationEnabled() &&
-		mariadb.Status.CurrentPrimaryPodIndex != nil && *mariadb.Status.CurrentPrimaryPodIndex != targetPodIndex {
+	if isSafeSlaveBackup(mariadb, targetPodIndex) {
 		args = append(args, []string{
 			"--slave-info",
 			"--safe-slave-backup",
@@ -727,6 +738,12 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 	}
 
 	return ds.UniqueArgs(ds.Merge(args, backupOpts)...)
+}
+
+// isSafeSlaveBackup reports whether the backup targets a replica, in which case mariadb-backup stops its SQL thread.
+func isSafeSlaveBackup(mariadb *mariadbv1alpha1.MariaDB, targetPodIndex int) bool {
+	return mariadb.IsReplicationEnabled() &&
+		mariadb.Status.CurrentPrimaryPodIndex != nil && *mariadb.Status.CurrentPrimaryPodIndex != targetPodIndex
 }
 
 // isDatabasesExcludeOpt reports whether opt is a single-element --databases-exclude flag
