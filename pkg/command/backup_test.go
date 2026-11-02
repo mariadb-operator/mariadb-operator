@@ -1147,6 +1147,77 @@ func TestMariadbRestoreArgs(t *testing.T) {
 	}
 }
 
+func TestMariadbBackup(t *testing.T) {
+	backupCmd := &BackupCommand{
+		BackupOpts: BackupOpts{
+			CommandOpts: CommandOpts{
+				UserEnv:     "MARIADB_OPERATOR_USER",
+				PasswordEnv: "MARIADB_OPERATOR_PASSWORD",
+			},
+			TargetFilePath: "/backups/0-backup-target.txt",
+		},
+	}
+	tests := []struct {
+		name               string
+		mariadb            *mariadbv1alpha1.MariaDB
+		targetPodIndex     int
+		wantStartSQLThread bool
+	}{
+		{
+			name:               "standalone",
+			mariadb:            &mariadbv1alpha1.MariaDB{},
+			targetPodIndex:     0,
+			wantStartSQLThread: false,
+		},
+		{
+			name: "replication targeting primary",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			targetPodIndex:     0,
+			wantStartSQLThread: false,
+		},
+		{
+			name: "replication targeting replica",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(1),
+				},
+			},
+			targetPodIndex:     0,
+			wantStartSQLThread: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd, err := backupCmd.MariadbBackup(tt.mariadb, "/backups/backup.xb", tt.targetPodIndex)
+			assert.NoError(t, err)
+			if assert.NotNil(t, cmd) {
+				script := cmd.Args[0]
+				if tt.wantStartSQLThread {
+					assert.Contains(t, script, "--safe-slave-backup")
+					assert.Contains(t, script, "-e 'START SLAVE SQL_THREAD' || true; exit 1; }")
+				} else {
+					assert.NotContains(t, script, "START SLAVE SQL_THREAD")
+				}
+			}
+		})
+	}
+}
+
 func TestMariadbBackupRestore(t *testing.T) {
 	tests := []struct {
 		name        string
