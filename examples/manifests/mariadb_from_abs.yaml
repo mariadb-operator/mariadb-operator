@@ -1,0 +1,34 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-from-abs
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+
+  storage:
+    size: 1Gi
+
+  bootstrapFrom:
+    azureBlob:
+      containerName: backup
+      serviceURL: https://azurite.default.svc.cluster.local:10000/devstoreaccount1
+      prefix: mariadb
+      storageAccountName: devstoreaccount1
+      storageAccountKey:
+        name: azurite-key
+        key: storageAccountKey
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: azurite-certs
+          key: cert.pem
+    targetRecoveryTime: 2023-12-19T09:00:00Z
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 1Gi
+        accessModes:
+          - ReadWriteOnce

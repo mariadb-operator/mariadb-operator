@@ -1043,6 +1043,12 @@ func getBackupWithS3Storage(key types.NamespacedName, bucket, prefix string) *ma
 	})
 }
 
+func getBackupWithABSStorage(key types.NamespacedName, containerName, prefix string) *mariadbv1alpha1.Backup {
+	return getBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
+		AzureBlob: getABSStorage(containerName, prefix),
+	})
+}
+
 func getBackupFromExternalWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
 	return getBackupFromExternalMariaDB(key, mariadbv1alpha1.BackupStorage{
 		Volume: &mariadbv1alpha1.StorageVolumeSource{

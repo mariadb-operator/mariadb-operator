@@ -856,6 +856,10 @@ type BackupStorage struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	S3 *S3 `json:"s3,omitempty"`
+	// AzureBlob defines the configuration to store backups in a AzureBlob compatible storage.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AzureBlob *AzureBlob `json:"azureBlob,omitempty"`
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

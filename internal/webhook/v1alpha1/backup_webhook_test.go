@@ -289,6 +289,140 @@ var _ = Describe("Backup webhook", func() {
 				true,
 			),
 			Entry(
+				"S3 and AzureBlob storages",
+				&v1alpha1.Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-s3-abs",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.BackupSpec{
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+							AzureBlob: &v1alpha1.AzureBlob{
+								ContainerName: "test",
+								ServiceURL:    "https://test.blob.core.windows.net/",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				true,
+			),
+			Entry(
+				"PersistentVolumeClaim and staging storage",
+				&v1alpha1.Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-pvc-staging",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.BackupSpec{
+						Storage: v1alpha1.BackupStorage{
+							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("300Mi"),
+									},
+								},
+							},
+						},
+						StagingStorage: &v1alpha1.StagingStorage{
+							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("300Mi"),
+									},
+								},
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				true,
+			),
+			Entry(
+				"AzureBlob storage",
+				&v1alpha1.Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-abs",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.BackupSpec{
+						Storage: v1alpha1.BackupStorage{
+							AzureBlob: &v1alpha1.AzureBlob{
+								ContainerName: "test",
+								ServiceURL:    "https://test.blob.core.windows.net/",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				false,
+			),
+			Entry(
+				"AzureBlob and staging storage",
+				&v1alpha1.Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-abs-staging",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.BackupSpec{
+						Storage: v1alpha1.BackupStorage{
+							AzureBlob: &v1alpha1.AzureBlob{
+								ContainerName: "test",
+								ServiceURL:    "https://test.blob.core.windows.net/",
+							},
+						},
+						StagingStorage: &v1alpha1.StagingStorage{
+							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("300Mi"),
+									},
+								},
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				false,
+			),
+			Entry(
 				"Valid",
 				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{

@@ -21,6 +21,9 @@ import (
 )
 
 var containers = []string{
+	"backup",
+	"test-backup",
+	"test-restore",
 	"physicalbackup",
 	"test-physicalbackup",
 	"binlogs",
