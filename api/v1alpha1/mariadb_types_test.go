@@ -2286,6 +2286,22 @@ var _ = Describe("MariaDB types", func() {
 				},
 			),
 			Entry(
+				"AzureBlob set returns RestoreSource",
+				BootstrapFrom{
+					AzureBlob: &AzureBlob{
+						ContainerName: "test",
+						ServiceURL:    "test",
+					},
+				},
+				false,
+				&RestoreSource{
+					AzureBlob: &AzureBlob{
+						ContainerName: "test",
+						ServiceURL:    "test",
+					},
+				},
+			),
+			Entry(
 				"all fields set returns RestoreSource",
 				BootstrapFrom{
 					BackupRef: &TypedLocalObjectReference{

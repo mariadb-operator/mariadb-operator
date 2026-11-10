@@ -108,6 +108,40 @@ var _ = Describe("Backup", Label("basic"), func() {
 			),
 			testS3Backup,
 		),
+		Entry("should reconcile a Job with ABS storage",
+			"backup-abs-test",
+			buildBackupWithABSStorage("test-backup", ""),
+			testS3Backup,
+		),
+		Entry("should reconcile a Job with ABS storage with prefix",
+			"backup-abs-test-prefix",
+			buildBackupWithABSStorage("test-backup", "mariadb"),
+			testS3Backup,
+		),
+		Entry("should reconcile a Job with ABS storage and zstd compression",
+			"backup-abs-zstd-test",
+			applyDecoratorChain(
+				buildBackupWithABSStorage("test-backup", ""),
+				decorateBackupWithZstdCompression,
+			),
+			testS3Backup,
+		),
+		Entry("should reconcile a Job with ABS storage and staging storage",
+			"backup-abs-staging-test",
+			applyDecoratorChain(
+				buildBackupWithABSStorage("test-backup", ""),
+				decorateBackupWithStagingStorage,
+			),
+			testS3Backup,
+		),
+		Entry("should reconcile a CronJob with ABS storage",
+			"backup-abs-scheduled-test",
+			applyDecoratorChain(
+				buildBackupWithABSStorage("test-backup", ""),
+				decorateBackupWithSchedule,
+			),
+			testS3Backup,
+		),
 		Entry("should reconcile a CronJob with PVC storage",
 			"backup-pvc-scheduled-test",
 			applyDecoratorChain(
@@ -581,6 +615,12 @@ func decorateBackupWithStagingStorage(backup *mariadbv1alpha1.Backup) *mariadbv1
 func buildBackupWithS3Storage(bucket, prefix string) func(key types.NamespacedName) *mariadbv1alpha1.Backup {
 	return func(key types.NamespacedName) *mariadbv1alpha1.Backup {
 		return getBackupWithS3Storage(key, bucket, prefix)
+	}
+}
+
+func buildBackupWithABSStorage(containerName, prefix string) func(key types.NamespacedName) *mariadbv1alpha1.Backup {
+	return func(key types.NamespacedName) *mariadbv1alpha1.Backup {
+		return getBackupWithABSStorage(key, containerName, prefix)
 	}
 }
 

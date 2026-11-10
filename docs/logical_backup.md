@@ -10,6 +10,7 @@
   - [Backup and restore specific databases](#backup-and-restore-specific-databases)
   - [Extra options](#extra-options)
   - [Staging area](#staging-area)
+  - [Azure Blob Storage credentials](#azure-blob-storage-credentials)
   - [Important considerations and limitations](#important-considerations-and-limitations)
   - [Migrations using logical backups](#migrations-using-logical-backups)
   - [Minio reference installation](#minio-reference-installation)
@@ -29,6 +30,7 @@ Although logical backups are a great fit for data mobility and migrations, they 
 
 Currently, the following storage types are supported:
 - **[S3](../examples/manifests/backup_s3.yaml) compatible storage**: Store backups in a S3 compatible storage, such as [AWS S3](https://aws.amazon.com/s3/) or [Minio](https://github.com/minio/minio). 
+- **[Azure Blob Storage](../examples/manifests/backup_abs.yaml)**: Store backups in an [Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs) container. See [Azure Blob Storage credentials](#azure-blob-storage-credentials).
 - **[PVCs](../examples/manifests/backup.yaml)**: Use the available [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) in your Kubernetes cluster to provision a PVC dedicated to store the backup files.
 - **[Kubernetes volumes](../examples/manifests/backup_nfs.yaml)**: Use any of the [volume types](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) supported natively by Kubernetes.
 
@@ -243,7 +245,7 @@ spec:
 
 This will trigger a `Job` that will mount the same storage as the `Backup` and apply the dump to your `MariaDB` database.
 
-Nevertheless, the `Restore` resource doesn't necessarily need to specify a `spec.backupRef`, you can point to other storage source that contains backup files, for example a S3 bucket:
+Nevertheless, the `Restore` resource doesn't necessarily need to specify a `spec.backupRef`, you can point to other storage source that contains backup files, for example a S3 bucket or an [Azure Blob Storage container](../examples/manifests/restore_abs.yaml):
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -412,9 +414,9 @@ Refer to the `mariadb-dump` and `mariadb` CLI options in the [reference](#refere
 ## Staging area
 
 > [!NOTE]  
-> S3 is the only storage type that requires a staging area.
+> S3 and Azure Blob Storage are the only storage types that require a staging area.
 
-When using S3 storage for backups, a staging area is used for keeping the external backups while they are being processed. By default, this staging area is an `emptyDir` volume, which means that the backups are temporarily stored in the node's local storage where the `Backup`/`Restore` `Job` is scheduled. In production environments, large backups may lead to issues if the node doesn't have sufficient space, potentially causing the backup/restore process to fail.
+When using S3 or Azure Blob Storage for backups, a staging area is used for keeping the external backups while they are being processed. By default, this staging area is an `emptyDir` volume, which means that the backups are temporarily stored in the node's local storage where the `Backup`/`Restore` `Job` is scheduled. In production environments, large backups may lead to issues if the node doesn't have sufficient space, potentially causing the backup/restore process to fail.
 
 To overcome this limitation, you are able to define your own staging area by setting the `stagingStorage` field to both the `Backup` and `Restore` CRs:
 
@@ -474,6 +476,52 @@ spec:
         accessModes:
           - ReadWriteOnce
 ```
+
+## Azure Blob Storage credentials
+
+Credentials for accessing Azure Blob Storage can be provided via the `azureBlob` field of the `Backup` storage, and of the `Restore` and `bootstrapFrom` sources. The storage account key is provided as a reference to a Kubernetes `Secret`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  storage:
+    azureBlob:
+      containerName: backup
+      serviceURL: https://exampleaccount.blob.core.windows.net/
+      prefix: mariadb
+      storageAccountName: exampleaccount
+      storageAccountKey:
+        name: azure-storage
+        key: storageAccountKey
+```
+
+Alternatively, you may omit `storageAccountName` and `storageAccountKey` to authenticate with the ambient identity of the `Job` Pod, such as [Microsoft Entra Workload ID](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview) or a [managed identity](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview). When using Workload ID, set `serviceAccountName` to a `ServiceAccount` federated with an identity that has the `Storage Blob Data Contributor` role on the container, and add the `azure.workload.identity/use: "true"` label to the `Job` Pods:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  serviceAccountName: mariadb-backup
+  podMetadata:
+    labels:
+      azure.workload.identity/use: "true"
+  storage:
+    azureBlob:
+      containerName: backup
+      serviceURL: https://exampleaccount.blob.core.windows.net/
+      prefix: mariadb
+```
+
+The same applies to the `Restore` resource, which needs read access to the container.
 
 ## Important considerations and limitations
 

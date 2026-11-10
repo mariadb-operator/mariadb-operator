@@ -288,6 +288,66 @@ spec:
                 items:
                   type: string
                 type: array
+              azureBlob:
+                description: AzureBlob defines the configuration to restore backups
+                  from a AzureBlob compatible storage. It has priority over Volume.
+                properties:
+                  containerName:
+                    description: ContainerName is the name of the storage container.
+                    type: string
+                  prefix:
+                    description: 'Prefix indicates a folder/subfolder in the container.
+                      For example: mariadb/ or mariadb/backups. A trailing slash ''/''
+                      is added if not provided.'
+                    type: string
+                  serviceURL:
+                    description: 'ServiceURL is the full URL for connecting to Azure,
+                      usually in the form: http(s)://<account>.blob.core.windows.net/.'
+                    type: string
+                  storageAccountKey:
+                    description: StorageAccountKey is a reference to a Secret key
+                      containing the Azure Blob Storage Storage account Key. Pairs
+                      with StorageAccountKey for static credential authentication
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        default: ""
+                        type: string
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  storageAccountName:
+                    description: StorageAccountName is the name of the storage account.
+                      Pairs with StorageAccountKey for static credential authentication
+                    type: string
+                  tls:
+                    description: TLS provides the configuration required to establish
+                      TLS connections with Azure Blob Storage.
+                    properties:
+                      caSecretKeyRef:
+                        description: |-
+                          CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+                          By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      enabled:
+                        description: Enabled is a flag to enable TLS.
+                        type: boolean
+                    type: object
+                required:
+                - containerName
+                - serviceURL
+                type: object
               backoffLimit:
                 default: 5
                 description: BackoffLimit defines the maximum number of attempts to
@@ -296,7 +356,7 @@ spec:
                 type: integer
               backupRef:
                 description: BackupRef is a reference to a Backup object. It has priority
-                  over S3 and Volume.
+                  over S3, AzureBlob and Volume.
                 properties:
                   name:
                     default: ""
@@ -660,7 +720,7 @@ spec:
                 type: string
               stagingStorage:
                 description: |-
-                  StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+                  StagingStorage defines the temporary storage used to keep external backups (i.e. S3 or AzureBlob) while they are being processed.
                   It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled.
                 properties:
                   persistentVolumeClaim:
