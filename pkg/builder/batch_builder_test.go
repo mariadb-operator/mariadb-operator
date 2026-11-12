@@ -3850,3 +3850,129 @@ func mustParseGtid(t *testing.T, rawGtid string) *replication.Gtid {
 	}
 	return gtid
 }
+
+func TestLogicalBackupJobsAzureBlob(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "logical-backup-abs",
+		Namespace: "test",
+	}
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: objMeta,
+		Spec:       mariadbv1alpha1.MariaDBSpec{},
+	}
+	mariadbRef := mariadbv1alpha1.MariaDBRef{
+		ObjectReference: mariadbv1alpha1.ObjectReference{
+			Name: objMeta.Name,
+		},
+	}
+	abs := &mariadbv1alpha1.AzureBlob{
+		ContainerName:      "backups",
+		ServiceURL:         "https://account.blob.core.windows.net/",
+		Prefix:             "mariadb",
+		StorageAccountName: "account",
+		StorageAccountKey: &mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: "azure",
+			},
+			Key: "account-key",
+		},
+		TLS: &mariadbv1alpha1.TLSConfig{
+			Enabled: true,
+			CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+					Name: "azure-ca",
+				},
+				Key: "ca.crt",
+			},
+		},
+	}
+	wantArgs := []string{
+		"--abs",
+		"--abs-container", "backups",
+		"--abs-service-url", "https://account.blob.core.windows.net/",
+		"--abs-tls",
+		"--abs-ca-cert-path",
+		"--abs-prefix", "mariadb",
+	}
+
+	backup := &mariadbv1alpha1.Backup{
+		ObjectMeta: objMeta,
+		Spec: mariadbv1alpha1.BackupSpec{
+			MariaDBRef: mariadbRef,
+			Storage: mariadbv1alpha1.BackupStorage{
+				AzureBlob: abs,
+			},
+			StagingStorage: &mariadbv1alpha1.StagingStorage{
+				PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
+			},
+		},
+	}
+	backupJob, err := builder.BuildBackupJob(client.ObjectKeyFromObject(backup), backup, mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error building backup Job: %v", err)
+	}
+	assertLogicalJobAzureBlob(t, backupJob, wantArgs)
+	backupArgs := strings.Join(jobOperatorContainer(t, backupJob).Args, " ")
+	assert.Contains(t, backupArgs, "--cleanup-target-file")
+
+	restore := &mariadbv1alpha1.Restore{
+		ObjectMeta: objMeta,
+		Spec: mariadbv1alpha1.RestoreSpec{
+			MariaDBRef: mariadbRef,
+			RestoreSource: mariadbv1alpha1.RestoreSource{
+				AzureBlob: abs,
+				Volume: &mariadbv1alpha1.StorageVolumeSource{
+					EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+				},
+			},
+		},
+	}
+	restoreJob, err := builder.BuildRestoreJob(client.ObjectKeyFromObject(restore), restore, mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error building restore Job: %v", err)
+	}
+	assertLogicalJobAzureBlob(t, restoreJob, wantArgs)
+}
+
+func assertLogicalJobAzureBlob(t *testing.T, job *v1.Job, wantArgs []string) {
+	t.Helper()
+	container := jobOperatorContainer(t, job)
+	args := strings.Join(container.Args, " ")
+	for _, arg := range wantArgs {
+		assert.Contains(t, args, arg)
+	}
+	assert.NotContains(t, args, "--s3")
+
+	env := make(map[string]corev1.EnvVar)
+	for _, e := range container.Env {
+		env[e.Name] = e
+	}
+	accountKey, ok := env[ABSStorageAccountKey]
+	if assert.True(t, ok, "expected %s env var", ABSStorageAccountKey) {
+		assert.Empty(t, accountKey.Value)
+		if assert.NotNil(t, accountKey.ValueFrom) && assert.NotNil(t, accountKey.ValueFrom.SecretKeyRef) {
+			assert.Equal(t, "azure", accountKey.ValueFrom.SecretKeyRef.Name)
+			assert.Equal(t, "account-key", accountKey.ValueFrom.SecretKeyRef.Key)
+		}
+	}
+	assert.Equal(t, "account", env[ABSStorageAccountName].Value)
+	assert.Contains(t, env, ABSCAPath)
+	assert.NotContains(t, env, S3AccessKeyId)
+	assert.NotContains(t, env, S3SecretAccessKey)
+
+	assert.NotNil(t, getVolumeSource(ABSPKI, job), "expected %s volume", ABSPKI)
+	assert.Nil(t, getVolumeSource(S3PKI, job), "unexpected %s volume", S3PKI)
+}
+
+func jobOperatorContainer(t *testing.T, job *v1.Job) corev1.Container {
+	t.Helper()
+	podSpec := job.Spec.Template.Spec
+	for _, c := range append(podSpec.InitContainers, podSpec.Containers...) {
+		if len(c.Args) > 0 && c.Args[0] == "backup" {
+			return c
+		}
+	}
+	t.Fatalf("mariadb-operator container not found in Job %s", job.Name)
+	return corev1.Container{}
+}

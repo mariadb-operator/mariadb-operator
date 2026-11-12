@@ -76,6 +76,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		command.WithExtraOpts(backup.Spec.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(backup.Spec.Storage.S3)...)
+	cmdOpts = append(cmdOpts, absOpts(backup.Spec.Storage.AzureBlob)...)
 
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {
@@ -94,8 +95,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	// TODO: ABS support in logical backups
-	volumes, volumeMounts := jobBatchStorageVolumes(volume, backup.Spec.Storage.S3, nil, mariadb)
+	volumes, volumeMounts := jobBatchStorageVolumes(volume, backup.Spec.Storage.S3, backup.Spec.Storage.AzureBlob, mariadb)
 	affinity := ptr.Deref(backup.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	mariadbContainer, err := b.jobMariadbContainer(
@@ -113,7 +113,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		operatorCmd,
 		volumeMounts,
-		s3Env(backup.Spec.Storage.S3),
+		append(s3Env(backup.Spec.Storage.S3), absEnv(backup.Spec.Storage.AzureBlob)...),
 		jobResources(backup.Spec.Resources),
 		mariadb,
 		b.env,
@@ -383,6 +383,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		command.WithExtraOpts(restore.Spec.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(restore.Spec.S3)...)
+	cmdOpts = append(cmdOpts, absOpts(restore.Spec.AzureBlob)...)
 
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {
@@ -398,14 +399,13 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	}
 
 	volume := ptr.Deref(restore.Spec.Volume, mariadbv1alpha1.StorageVolumeSource{})
-	// TODO: ABS support in logical backups
-	volumes, volumeMounts := jobBatchStorageVolumes(volume, restore.Spec.S3, nil, mariadb)
+	volumes, volumeMounts := jobBatchStorageVolumes(volume, restore.Spec.S3, restore.Spec.AzureBlob, mariadb)
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		operatorCmd,
 		volumeMounts,
-		s3Env(restore.Spec.S3),
+		append(s3Env(restore.Spec.S3), absEnv(restore.Spec.AzureBlob)...),
 		jobResources(restore.Spec.Resources),
 		mariadb,
 		b.env,
@@ -1106,7 +1106,7 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 }
 
 func backupShouldCleanupTargetFile(backup *mariadbv1alpha1.Backup) bool {
-	return backup.Spec.Storage.S3 != nil && backup.Spec.StagingStorage != nil
+	return (backup.Spec.Storage.S3 != nil || backup.Spec.Storage.AzureBlob != nil) && backup.Spec.StagingStorage != nil
 }
 
 func physicalBackupShouldCleanupTargetFile(pyhisicalBackup *mariadbv1alpha1.PhysicalBackup) bool {

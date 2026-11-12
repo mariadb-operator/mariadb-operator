@@ -116,9 +116,12 @@ _Appears in:_
 
 
 _Appears in:_
+- [BackupStorage](#backupstorage)
 - [BootstrapFrom](#bootstrapfrom)
 - [PhysicalBackupStorage](#physicalbackupstorage)
 - [PointInTimeRecoveryStorage](#pointintimerecoverystorage)
+- [RestoreSource](#restoresource)
+- [RestoreSpec](#restorespec)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -195,7 +198,7 @@ _Appears in:_
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip zstd] <br /> |
 | `compressionThreads` _integer_ | CompressionThreads defines the number of CPU threads to use for compression. It only has effect when compression is set to zstd.<br />Defaults to all available CPUs. |  | Minimum: 1 <br /> |
-| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
+| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3 or AzureBlob) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[BackupStorage](#backupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
 | `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
@@ -221,6 +224,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to store backups in a S3 compatible storage. |  |  |
+| `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob defines the configuration to store backups in a AzureBlob compatible storage. |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimSpec](#persistentvolumeclaimspec)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes volume specification. |  |  |
 
@@ -2810,11 +2814,12 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3 and Volume. |  |  |
+| `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3, AzureBlob and Volume. |  |  |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
+| `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob defines the configuration to restore backups from a AzureBlob compatible storage. It has priority over Volume. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
-| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
+| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3 or AzureBlob) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 
 
 #### RestoreSpec
@@ -2841,11 +2846,12 @@ _Appears in:_
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
-| `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3 and Volume. |  |  |
+| `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3, AzureBlob and Volume. |  |  |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
+| `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob defines the configuration to restore backups from a AzureBlob compatible storage. It has priority over Volume. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
-| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
+| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3 or AzureBlob) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `database` _string_ | Database defines the logical database to be restored. If not provided, all databases available in the backup are restored.<br />IMPORTANT: The database must previously exist. |  |  |
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. | info | Enum: [debug info warn error dpanic panic fatal] <br /> |
