@@ -58,7 +58,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 		Entry("should reconcile a Job with S3 storage",
 			"backup-s3-test",
 			buildBackupWithS3Storage("test-backup", ""),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a Job with S3 storage and bzip2 compression",
 			"backup-s3-bzip2-test",
@@ -66,7 +66,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithS3Storage("test-backup", ""),
 				decorateBackupWithBzip2Compression,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a Job with Volume storage and zstd compression",
 			"backup-volume-zstd-test",
@@ -82,7 +82,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithS3Storage("test-backup", ""),
 				decorateBackupWithZstdCompressionAndThreads,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a Job with S3 storage and SSEC",
 			"backup-s3-ssec-test",
@@ -90,7 +90,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithS3Storage("test-backup", ""),
 				decorateBackupWithSSEC,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a Job with S3 storage and staging storage",
 			"backup-s3-staging-test",
@@ -98,7 +98,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithS3Storage("test-backup", ""),
 				decorateBackupWithStagingStorage,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a Job with S3 storage with prefix",
 			"backup-s3-test-prefix",
@@ -106,17 +106,17 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithS3Storage("test-backup", "mariadb"),
 				decorateBackupWithNoneCompression,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a Job with ABS storage",
 			"backup-abs-test",
 			buildBackupWithABSStorage("test-backup", ""),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a Job with ABS storage with prefix",
 			"backup-abs-test-prefix",
 			buildBackupWithABSStorage("test-backup", "mariadb"),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a Job with ABS storage and zstd compression",
 			"backup-abs-zstd-test",
@@ -124,7 +124,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithABSStorage("test-backup", ""),
 				decorateBackupWithZstdCompression,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a Job with ABS storage and staging storage",
 			"backup-abs-staging-test",
@@ -132,7 +132,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithABSStorage("test-backup", ""),
 				decorateBackupWithStagingStorage,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a CronJob with ABS storage",
 			"backup-abs-scheduled-test",
@@ -140,7 +140,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithABSStorage("test-backup", ""),
 				decorateBackupWithSchedule,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a CronJob with PVC storage",
 			"backup-pvc-scheduled-test",
@@ -164,7 +164,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithS3Storage("test-backup", ""),
 				decorateBackupWithSchedule,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry(
 			"should reconcile a CronJob with S3 storage with prefix",
@@ -173,7 +173,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				buildBackupWithS3Storage("test-backup", "mariadb"),
 				decorateBackupWithSchedule,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry(
 			"should reconcile a CronJob with S3 storage and staging storage",
@@ -183,7 +183,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				decorateBackupWithSchedule,
 				decorateBackupWithStagingStorage,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a CronJob with PVC storage and history limits",
 			"backup-pvc-scheduled-with-limits-test",
@@ -210,7 +210,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				decorateBackupWithSchedule,
 				decorateBackupWithHistoryLimits,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry(
 			"should reconcile a CronJob with S3 storage with prefix and history limits",
@@ -220,7 +220,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				decorateBackupWithSchedule,
 				decorateBackupWithHistoryLimits,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry("should reconcile a CronJob with PVC storage and time zone setting",
 			"backup-pvc-scheduled-with-tz-test",
@@ -247,7 +247,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				decorateBackupWithSchedule,
 				decorateBackupWithTimeZone,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 		Entry(
 			"should reconcile a CronJob with S3 storage with prefix and time zone setting",
@@ -257,7 +257,7 @@ var _ = Describe("Backup", Label("basic"), func() {
 				decorateBackupWithSchedule,
 				decorateBackupWithTimeZone,
 			),
-			testS3Backup,
+			testBackupWithStorage,
 		),
 	)
 
@@ -525,8 +525,8 @@ func testBackupCronJob(backup *mariadbv1alpha1.Backup) {
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
-func testS3Backup(backup *mariadbv1alpha1.Backup) {
-	By("Creating Backup with S3 storage")
+func testBackupWithStorage(backup *mariadbv1alpha1.Backup) {
+	By("Creating Backup")
 	Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 	DeferCleanup(func() {
 		Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
