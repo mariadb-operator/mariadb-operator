@@ -523,6 +523,26 @@ spec:
 
 The same applies to the `Restore` resource, which needs read access to the container.
 
+When bootstrapping a `MariaDB` with `bootstrapFrom`, the restoration `Job` runs with the `MariaDB` `ServiceAccount` (`spec.serviceAccountName`), so it must be federated with an identity that has read access to the container. The Workload ID label is set via `bootstrapFrom.restoreJob.metadata`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  serviceAccountName: mariadb
+  bootstrapFrom:
+    azureBlob:
+      containerName: backup
+      serviceURL: https://exampleaccount.blob.core.windows.net/
+      prefix: mariadb
+    restoreJob:
+      metadata:
+        labels:
+          azure.workload.identity/use: "true"
+```
+
 ## Important considerations and limitations
 
 ### Root credentials
