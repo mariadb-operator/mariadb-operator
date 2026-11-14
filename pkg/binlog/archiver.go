@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"time"
 
@@ -219,7 +220,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 	}
 	a.logger.Info("Binlog archival done")
 
-	return a.updateStatus(ctx, binlogs, storageClient, sqlClient)
+	return a.updateStatus(ctx, binlogs, storageClient, sqlClient, uploader)
 }
 
 func (a *Archiver) getMariaDB(ctx context.Context) (*mariadbv1alpha1.MariaDB, error) {
@@ -395,12 +396,11 @@ func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, md
 		return fmt.Errorf("error getting binary log %s metadata: %v", binlogs[0], err)
 	}
 
-	if mdb.Status.PointInTimeRecovery.ServerId != meta.ServerId {
-		a.logger.Info(
-			"Detected server_id change. Resetting binary log archival status...",
-			"server-id", mdb.Status.PointInTimeRecovery.ServerId,
-			"new-server-id", meta.ServerId,
-		)
+	shouldReset, err := a.shouldResetArchivedBinlog(binlogs, meta, mdb.Status.PointInTimeRecovery)
+	if err != nil {
+		return err
+	}
+	if shouldReset {
 		if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			status.PointInTimeRecovery = &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{
 				StorageReadyForArchival: ptr.To(true), // skip storage check
@@ -410,6 +410,61 @@ func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, md
 		}
 	}
 	return nil
+}
+
+func (a *Archiver) shouldResetArchivedBinlog(binlogs []string, firstBinlogMeta *BinlogMetadata,
+	pitrStatus *mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus) (bool, error) {
+	if pitrStatus.ServerId != firstBinlogMeta.ServerId {
+		a.logger.Info(
+			"Detected server_id change. Resetting binary log archival status...",
+			"server-id", pitrStatus.ServerId,
+			"new-server-id", firstBinlogMeta.ServerId,
+		)
+		return true, nil
+	}
+	restarted, err := a.binlogNumberingRestarted(binlogs, pitrStatus)
+	if err != nil {
+		return false, err
+	}
+	if restarted {
+		a.logger.Info(
+			"Detected binary log numbering restart. Resetting binary log archival status...",
+			"last-binlog", binlogs[len(binlogs)-1],
+			"last-archived-binlog", pitrStatus.LastArchivedBinaryLog,
+		)
+		return true, nil
+	}
+	return false, nil
+}
+
+// binlogNumberingRestarted detects that the server restarted its binlog numbering, which happens when its data directory
+// is rebuilt, for instance after a replica recovery. The local binlog named like the last archived one then belongs to a
+// newer generation, starting after the last archived event.
+func (a *Archiver) binlogNumberingRestarted(binlogs []string,
+	pitrStatus *mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus) (bool, error) {
+	if pitrStatus.LastArchivedBinaryLog == "" {
+		return false, nil
+	}
+	if slices.Contains(binlogs, pitrStatus.LastArchivedBinaryLog) {
+		if pitrStatus.LastArchivedTime.IsZero() {
+			return false, nil
+		}
+		firstTime, err := getBinlogFirstTime(filepath.Join(a.dataDir, pitrStatus.LastArchivedBinaryLog))
+		if err != nil {
+			return false, err
+		}
+		return firstTime.After(pitrStatus.LastArchivedTime.Time), nil
+	}
+
+	lastNum, err := ParseBinlogNum(binlogs[len(binlogs)-1])
+	if err != nil {
+		return false, fmt.Errorf("error parsing binlog number in %s: %v", binlogs[len(binlogs)-1], err)
+	}
+	archivedNum, err := ParseBinlogNum(pitrStatus.LastArchivedBinaryLog)
+	if err != nil {
+		return false, fmt.Errorf("error parsing binlog number in %s: %v", pitrStatus.LastArchivedBinaryLog, err)
+	}
+	return lastNum.LessThan(archivedNum), nil
 }
 
 func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mariadbv1alpha1.MariaDB,
@@ -448,7 +503,7 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mar
 }
 
 func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, storageClient interfaces.BlobStorage,
-	sqlClient *sql.Client) error {
+	sqlClient *sql.Client, uploader *Uploader) error {
 	mdb, err := a.getMariaDB(ctx)
 	if err != nil {
 		return err
@@ -470,7 +525,7 @@ func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, storageCl
 	if err != nil {
 		return fmt.Errorf("error getting PITR status: %v", err)
 	}
-	binlogIndex, err := a.updateBinlogIndex(ctx, binlogs, pitrStatus.ServerId, storageClient)
+	binlogIndex, err := a.updateBinlogIndex(ctx, binlogs, pitrStatus.ServerId, mdb, pitr, storageClient, uploader)
 	if err != nil {
 		return fmt.Errorf("error updating binlog index: %v", err)
 	}
@@ -543,8 +598,8 @@ func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog string,
 	}, nil
 }
 
-func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serverId uint32,
-	storageClient interfaces.BlobStorage) (*BinlogIndex, error) {
+func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serverId uint32, mdb *mariadbv1alpha1.MariaDB,
+	pitr *mariadbv1alpha1.PointInTimeRecovery, storageClient interfaces.BlobStorage, uploader *Uploader) (*BinlogIndex, error) {
 	var index *BinlogIndex
 	exists, err := storageClient.Exists(ctx, BinlogIndexName)
 	if err != nil {
@@ -571,14 +626,33 @@ func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serv
 	}
 
 	for _, binlog := range binlogs {
-		if index.Exists(serverId, binlog) {
+		binlogPath := filepath.Join(a.dataDir, binlog)
+		firstTime, err := getBinlogFirstTime(binlogPath)
+		if err != nil {
+			return nil, err
+		}
+		if index.Exists(serverId, binlog, firstTime) {
 			a.logger.V(1).Info("binlog already present in index. Skipping...", "binlog", binlog)
 			continue
 		}
 
-		meta, err := GetBinlogMetadata(filepath.Join(a.dataDir, binlog), a.logger)
+		meta, err := GetBinlogMetadata(binlogPath, a.logger)
 		if err != nil {
 			return nil, fmt.Errorf("error getting binlog %s metadata: %v", binlog, err)
+		}
+		objectName, err := getObjectName(meta, pitr)
+		if err != nil {
+			return nil, fmt.Errorf("error getting object name: %v", err)
+		}
+		archived, err := storageClient.Exists(ctx, objectName)
+		if err != nil {
+			return nil, fmt.Errorf("error determining if binary log exists: %v", err)
+		}
+		if !archived {
+			a.logger.Info("Binary log missing in storage. Uploading...", "binlog", binlog, "object", objectName)
+			if err := uploader.Upload(ctx, binlog, mdb, pitr); err != nil {
+				return nil, fmt.Errorf("error uploading binary log %s: %v", binlog, err)
+			}
 		}
 		index.Add(serverId, *meta)
 	}
