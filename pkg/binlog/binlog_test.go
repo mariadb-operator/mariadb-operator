@@ -1,6 +1,7 @@
 package binlog
 
 import (
+	"encoding/binary"
 	"errors"
 	"os"
 	"path/filepath"
@@ -8,9 +9,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/google/go-cmp/cmp"
 	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -268,6 +271,33 @@ func TestBuildTimeline(t *testing.T) {
 			wantPath:   nil,
 			wantErr:    true,
 		},
+		{
+			name:       "reused filenames - across generations",
+			indexFile:  mustParseTestFile(t, "reused-filenames.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: mustParseDate(t, "2026-03-01T11:00:45Z"),
+			strictMode: true,
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000002",
+				"server-10/mariadb-repl-bin.000003",
+				// data directory rebuilt
+				"server-10/mariadb-repl-bin.000001.1772362800",
+				"server-10/mariadb-repl-bin.000002.1772362830",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "reused filenames - second generation",
+			indexFile:  mustParseTestFile(t, "reused-filenames.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-40"),
+			targetTime: mustParseDate(t, "2026-03-01T11:00:45Z"),
+			strictMode: true,
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000001.1772362800",
+				"server-10/mariadb-repl-bin.000002.1772362830",
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -302,6 +332,118 @@ func TestErrNoBinlogs(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrNoBinlogs))
 	assert.Nil(t, result)
+}
+
+func TestExists(t *testing.T) {
+	index := mustParseTestFile(t, "reused-filenames.yaml")
+
+	tests := []struct {
+		name      string
+		serverId  uint32
+		binlog    string
+		firstTime string
+		want      bool
+	}{
+		{
+			name:      "first generation",
+			serverId:  10,
+			binlog:    "mariadb-repl-bin.000003",
+			firstTime: "2026-03-01T10:01:00Z",
+			want:      true,
+		},
+		{
+			name:      "second generation",
+			serverId:  10,
+			binlog:    "mariadb-repl-bin.000001",
+			firstTime: "2026-03-01T11:00:00Z",
+			want:      true,
+		},
+		{
+			name:      "same filename with different first time",
+			serverId:  10,
+			binlog:    "mariadb-repl-bin.000003",
+			firstTime: "2026-03-01T12:00:00Z",
+			want:      false,
+		},
+		{
+			name:      "other server",
+			serverId:  11,
+			binlog:    "mariadb-repl-bin.000003",
+			firstTime: "2026-03-01T10:01:00Z",
+			want:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			firstTime := metav1.NewTime(mustParseDate(t, tt.firstTime))
+			assert.Equal(t, tt.want, index.Exists(tt.serverId, tt.binlog, firstTime))
+		})
+	}
+}
+
+func TestObjectStoragePath(t *testing.T) {
+	tests := []struct {
+		name string
+		meta BinlogMetadata
+		want string
+	}{
+		{
+			name: "legacy",
+			meta: BinlogMetadata{
+				ServerId:       10,
+				BinlogFilename: "mariadb-repl-bin.000001",
+			},
+			want: "server-10/mariadb-repl-bin.000001",
+		},
+		{
+			name: "object name",
+			meta: BinlogMetadata{
+				ServerId:       10,
+				BinlogFilename: "mariadb-repl-bin.000001",
+				ObjectName:     "server-10/mariadb-repl-bin.000001.1772362800",
+			},
+			want: "server-10/mariadb-repl-bin.000001.1772362800",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.meta.ObjectStoragePath())
+		})
+	}
+}
+
+func TestGetBinlogFirstTime(t *testing.T) {
+	binlogPath := filepath.Join(t.TempDir(), "mariadb-repl-bin.000001")
+	mustWriteTestBinlog(t, binlogPath, 1772362800)
+
+	firstTime, err := getBinlogFirstTime(binlogPath)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1772362800), firstTime.Unix())
+
+	meta, err := GetBinlogMetadata(binlogPath, logr.Discard())
+	assert.NoError(t, err)
+	assert.True(t, meta.FirstTime.Equal(&firstTime))
+	assert.Equal(t, "server-10/mariadb-repl-bin.000001.1772362800", meta.ObjectName)
+}
+
+// mustWriteTestBinlog writes a binlog of server 10 holding a single format description event.
+func mustWriteTestBinlog(t *testing.T, binlogPath string, timestamp uint32) {
+	t.Helper()
+	// format description event: binlog version, server version, create timestamp and event header length
+	body := make([]byte, 2+50+4+1)
+	binary.LittleEndian.PutUint16(body[0:], 4)
+	body[len(body)-1] = byte(replication.EventHeaderSize)
+	event := make([]byte, replication.EventHeaderSize, replication.EventHeaderSize+len(body))
+	binary.LittleEndian.PutUint32(event[0:], timestamp)
+	event[4] = byte(replication.FORMAT_DESCRIPTION_EVENT)
+	binary.LittleEndian.PutUint32(event[5:], 10)
+	binary.LittleEndian.PutUint32(event[9:], uint32(cap(event)))
+	event = append(event, body...)
+	if err := os.WriteFile(binlogPath, append(replication.BinLogFileHeader, event...), 0600); err != nil {
+		t.Fatalf("failed to write binlog: %v", err)
+	}
 }
 
 func mustParseTestFile(t *testing.T, file string) *BinlogIndex {

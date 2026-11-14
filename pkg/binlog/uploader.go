@@ -44,7 +44,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 	if err != nil {
 		return fmt.Errorf("error getting binary log %s metadata: %v", binlog, err)
 	}
-	objectName, err := getObjectName(binlog, meta, pitr)
+	objectName, err := getObjectName(meta, pitr)
 	if err != nil {
 		return fmt.Errorf("error getting object name: %v", err)
 	}
@@ -58,7 +58,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		return fmt.Errorf("error determining if binary log exists: %v", err)
 	}
 	if exists {
-		binlogLogger.V(1).Info("Binary log already exists. Skipping...")
+		binlogLogger.Info("Binary log already exists. Skipping...")
 		return nil
 	}
 
@@ -112,8 +112,8 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 	return nil
 }
 
-func getObjectName(binlog string, meta *BinlogMetadata, pitr *mariadbv1alpha1.PointInTimeRecovery) (string, error) {
-	name := binlog
+func getObjectName(meta *BinlogMetadata, pitr *mariadbv1alpha1.PointInTimeRecovery) (string, error) {
+	name := meta.ObjectStoragePath()
 	if pitr.Spec.Compression != "" && pitr.Spec.Compression != mariadbv1alpha1.CompressNone {
 		ext, err := pitr.Spec.Compression.Extension()
 		if err != nil {
@@ -121,5 +121,5 @@ func getObjectName(binlog string, meta *BinlogMetadata, pitr *mariadbv1alpha1.Po
 		}
 		name = fmt.Sprintf("%s.%s", name, ext)
 	}
-	return fmt.Sprintf("server-%d/%s", meta.ServerId, name), nil
+	return name, nil
 }

@@ -323,6 +323,7 @@ binlogs:
     lastGtid: 0-10-1041
     lastTime: "2026-02-27T16:03:50Z"
     logPosition: 268493636
+    objectName: server-10/mariadb-repl-bin.000003.1772208202
     previousGtids:
     - 0-10-526
     rotateEvent: true
@@ -336,6 +337,7 @@ binlogs:
     lastGtid: 0-10-1559
     lastTime: "2026-02-27T16:04:15Z"
     logPosition: 268506819
+    objectName: server-10/mariadb-repl-bin.000004.1772208230
     previousGtids:
     - 0-10-1041
     rotateEvent: true
@@ -343,6 +345,8 @@ binlogs:
     serverVersion: 11.8.5-2-MariaDB
     stopEvent: false
 ```
+
+Each binary log is archived under `objectName`, which is the server, the binary log filename and the Unix timestamp of its first event (plus the compression extension, if any). The timestamp tells apart binary logs that reuse a filename, as the server restarts its numbering at `000001` when its data directory is rebuilt, for example after a replica recovery. Binary logs archived by older operator versions have no `objectName` and are stored as `server-<id>/<filename>`.
 
 This file is used internally by the operator to keep track of the archived binary logs, and it is updated after each successful archival. It should not be modified manually, as it can lead to inconsistencies between the actual archived binary logs and the inventory.
 
