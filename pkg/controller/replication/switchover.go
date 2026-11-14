@@ -364,18 +364,29 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 				}
 				return fmt.Errorf("error getting pod: %w", err)
 			}
-			if !mariadbpod.PodReady(&pod) {
-				logger.V(1).Info("Skipping non ready Pod when connecting replicas to new primary", "pod", key.Name)
+			if !shouldConnectReplica(&pod) {
+				logger.V(1).Info("Skipping non running Pod when connecting replicas to new primary", "pod", key.Name)
 				return nil
 			}
+			// A replica loses readiness as soon as its master dies, so it must still be reconnected to the new primary.
+			// Errors are only tolerated for non ready Pods, as their SQL server may not be reachable yet.
+			tolerateErr := !mariadbpod.PodReady(&pod)
 
 			replClient, err := req.replClientSet.clientForIndex(ctx, i)
 			if err != nil {
+				if tolerateErr {
+					logger.V(1).Info("Skipping unreachable non ready Pod when connecting replicas to new primary", "pod", key.Name, "err", err)
+					return nil
+				}
 				return fmt.Errorf("error getting replica '%d' client: %v", i, err)
 			}
 			topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("replica", i))
 
 			if err := topology.ConfigureReplica(ctx, replClient, newPrimary, replicaOpts...); err != nil {
+				if tolerateErr {
+					logger.V(1).Info("Skipping non ready Pod that could not be configured as replica", "pod", key.Name, "err", err)
+					return nil
+				}
 				return fmt.Errorf("error configuring replica '%d': %v", i, err)
 			}
 
@@ -384,6 +395,15 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 	}
 
 	return g.Wait()
+}
+
+// shouldConnectReplica returns whether a replica Pod should be connected to the new primary during a switchover.
+// Ready Pods and running Pods that are not Ready are included, as a replica becomes non ready when its primary goes away.
+func shouldConnectReplica(pod *corev1.Pod) bool {
+	if mariadbpod.PodReady(pod) {
+		return true
+	}
+	return pod.Status.Phase == corev1.PodRunning && pod.DeletionTimestamp.IsZero()
 }
 
 func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
