@@ -227,7 +227,7 @@ func (c *Client) ListObjectsWithOptions(ctx context.Context) ([]string, error) {
 }
 
 func (c *Client) PutObjectWithOptions(ctx context.Context, fileName string, reader io.Reader, size int64) error {
-	putOpts, err := c.putObjectOptions()
+	putOpts, err := c.putObjectOptions(size)
 	if err != nil {
 		return err
 	}
@@ -238,12 +238,16 @@ func (c *Client) PutObjectWithOptions(ctx context.Context, fileName string, read
 }
 
 func (c *Client) FPutObjectWithOptions(ctx context.Context, fileName string) error {
-	putOpts, err := c.putObjectOptions()
+	filePath := c.getFilePath(fileName)
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return err
+	}
+	putOpts, err := c.putObjectOptions(fileInfo.Size())
 	if err != nil {
 		return err
 	}
 	prefixedFilePath := c.PrefixedFileName(fileName)
-	filePath := c.getFilePath(fileName)
 
 	_, err = c.FPutObject(ctx, c.bucket, prefixedFilePath, filePath, *putOpts)
 	return err
@@ -335,14 +339,31 @@ func (c *Client) GetCredentials() *credentials.Credentials {
 	return c.getCredentials()
 }
 
-func (c *Client) putObjectOptions() (*minio.PutObjectOptions, error) {
-	putOpts := minio.PutObjectOptions{}
+func (c *Client) putObjectOptions(size int64) (*minio.PutObjectOptions, error) {
+	putOpts := minio.PutObjectOptions{PartSize: multipartPartSize(size)}
 	if sse, err := c.getSSEC(); err != nil {
 		return nil, fmt.Errorf("error creating SSE-C encryption: %v", err)
 	} else if sse != nil {
 		putOpts.ServerSideEncryption = sse
 	}
 	return &putOpts, nil
+}
+
+const (
+	// minio-go uses 16MiB parts by default and scales them up only to stay within the 10000 parts limit of AWS S3.
+	defaultPartSize = 16 * 1024 * 1024
+	// Some S3-compatible providers have a lower limit than AWS S3, for example Scaleway allows 1000 parts per multipart upload.
+	maxParts = 1000
+)
+
+// multipartPartSize returns a part size that keeps the multipart upload within maxParts parts.
+// It returns 0, which lets minio-go choose the part size, when the default part size is already enough or the size is unknown.
+func multipartPartSize(size int64) uint64 {
+	if size <= 0 || size <= defaultPartSize*maxParts {
+		return 0
+	}
+	partSize := (uint64(size) + maxParts - 1) / maxParts
+	return (partSize + defaultPartSize - 1) / defaultPartSize * defaultPartSize
 }
 
 func (c *Client) getObjectOptions() (*minio.GetObjectOptions, error) {
