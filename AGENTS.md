@@ -295,6 +295,8 @@ Because of that host-to-container split, connectivity to the pods has to be simu
 
 Implications when writing integration tests: `make net` is a hard prerequisite (connections fail without it); a new MariaDB in a spec needs a unique pinned LB IP.
 
+The pinned IPs, per-Pod LoadBalancer Services (`hack/manifests/metallb/`) and `/etc/hosts` entries exist only for the names used by the test suites (e.g. `mariadb-repl` in the `default` namespace), so reuse those names when testing manually against a host-run operator.
+
 ### Local KIND troubleshooting
 
 The integration suite runs the operator **in-process** against the existing cluster: `suite_test.go` sets `UseExistingCluster: true` (it does not bring up its own control plane) and starts the manager with `k8sManager.Start` (`internal/controller/suite_test.go:103,365`). So `make cluster`, `make install`, `make install-minio` and `make net` must all be in place before `make test-int`. A focused single-spec run still takes several minutes (BeforeSuite boots the initial fixtures and each switchover/failover spec has a 300s `Eventually` window) — don't call it hung early.
@@ -304,6 +306,16 @@ Before each run, clear the three setup failures that masquerade as test regressi
 - **A stray process holding `:8080` breaks BeforeSuite.** The in-process manager binds `:8080` (controller-runtime's default metrics address; the operator binary's `--metrics-addr` defaults to the same, `cmd/controller/main.go:118`). A leftover `make run`, `make webhook` or `cert-controller` — or another agent's task sharing the host — makes `k8sManager.Start` fail. Find it with `lsof -i:8080 -sTCP:LISTEN` and kill it before re-running.
 - **Interrupted runs leave orphan fixtures → `already exists` (409) on the next run.** `testCreateInitialData` (`internal/controller/suite_test.go:372`) seeds shared CRs and Secrets; a run killed mid-flight can leave a `MariaDB` (e.g. `mdb-test`) plus the Secrets it generated (`password`, SSEC, cert) behind, which the next run cannot re-create. Delete the leftover CR and Secrets, or delete and recreate the test namespace. Nuclear reset: `make cluster-delete && make cluster && make install && make install-minio && make net`.
 - **A missing operator SA token masquerades as a replication bug.** The in-process manager authenticates to the in-cluster agent over the token file at `MARIADB_OPERATOR_SA_PATH` (`make/dev.mk:3`, default `/tmp/mariadb-operator/token`). `make serviceaccount` (`hack/create_serviceaccount.sh`) creates it — it is part of `make install` but **not** a prerequisite of the `test-int*` targets. When it is missing or stale (e.g. after `make cluster`), every agent-client call fails at V(1) once a second, the 60s poll in `ensureReplicationConfiguredInPod` (`internal/controller/mariadb_controller_init.go:440`) burns its budget, and the replica-cluster spec dies with `context deadline exceeded` — nothing in the operator log points at the cause. Re-run `make serviceaccount` (it re-extracts the token from the current cluster's SA secret).
+
+Other environment failures that look like operator bugs:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `lookup <pod>.<service>.default.svc.cluster.local ... no such host` | `/etc/hosts` lost the `make net` entries (e.g. after the host or dev container restarted) | `make host` |
+| Backup Job fails with `The specified bucket does not exist` | MinIO installed before the bucket was added to `hack/config/minio.yaml` | `make install-minio` |
+| Azure (ABS) specs time out | Azurite not installed | `make install-azurite` |
+| `helmtest` fails with missing chart dependencies | Chart CRDs not generated | `make helm-crds` before `make test` |
+| envtest fails to start (`etcd`/`kube-apiserver` not found) | Tests run with bare `go test` | Use `make test` / `make test-int`, which set up envtest |
 
 kubectl gotchas that burn cycles:
 
@@ -317,6 +329,17 @@ When a spec appears stuck with no error in the log:
 - **A green run prints a compact log.** Ginkgo only dumps each spec's writer buffer (the controller logs) on failure or with `--v`; a few KB of log for a 10-spec run is a pass, not truncation. Pass `TEST_ARGS="... --v"` to confirm a flow actually executed in a green run.
 - **The multi-cluster describes are `Ordered`** (`internal/controller/mariadb_controller_multicluster_test.go:87`): each spec applies the fixtures the later ones consume, so an early failure blocks every later spec (including the switchover spec), and `--focus` must target the whole container, not a single later spec.
 - **`kind load` may fail with containerd "content digest not found"** on some host Docker/containerd combinations. Workaround for data-plane images (`RELATED_IMAGE_*`): pull them into the node's containerd directly — `docker exec mdb-control-plane crictl pull <image>`.
+
+## GitHub access
+
+Reading PRs and issues, and pushing or posting when asked, goes through one of the following, tried in order and falling through only when the previous one is unavailable:
+
+1. **Project-scoped GitHub MCP tools** (`mcp__github-mariadb-operator__*`). They may be deferred tools whose schema has to be loaded before calling them.
+2. **`gh` CLI with the project-specific token**: `GH_TOKEN="$GITHUB_MARIADB_OPERATOR_TOKEN"`.
+3. **Generic GitHub MCP tools** (`mcp__github__*`).
+4. **`gh` CLI with default credentials** as the last resort.
+
+Pass `--repo mariadb-operator/mariadb-operator` explicitly to `gh` when working from a fork, as the bare command can resolve to the fork instead.
 
 ## CI — what a PR must pass
 
