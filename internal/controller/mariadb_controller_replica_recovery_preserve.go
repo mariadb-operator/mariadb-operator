@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -77,12 +78,13 @@ func (r *MariaDBReconciler) preserveReplicaBeforeRecovery(ctx context.Context, m
 
 	recoveryID := replicaRecoveryPreserveEpisode(mariadb, pvc)
 	if mariadb.Annotations[replicaRecoveryPreservedAnnotationKey(*podIndex)] == recoveryID {
-		return ctrl.Result{}, nil
+		return r.recheckRecoveryPrimary(ctx, mariadb, replica, *podIndex, recoveryID, logger)
 	}
-	gtids, result, err := r.verifyRecoveryPrimaryHoldsReplicaData(ctx, mariadb, replica, *podIndex, logger)
+	gtids, checked, result, err := r.verifyRecoveryPrimaryHoldsReplicaData(ctx, mariadb, replica, *podIndex, logger)
 	if !result.IsZero() || err != nil {
 		return result, err
 	}
+	checked.Episode = recoveryID
 	snapshots, err := r.listReplicaRecoveryPreserveSnapshots(ctx, mariadb, *podIndex)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -96,7 +98,7 @@ func (r *MariaDBReconciler) preserveReplicaBeforeRecovery(ctx context.Context, m
 		if !result.IsZero() || err != nil {
 			return result, err
 		}
-		return ctrl.Result{}, r.recordReplicaRecoveryPreserved(ctx, mariadb, *podIndex, recoveryID)
+		return ctrl.Result{}, r.recordReplicaRecoveryPreserved(ctx, mariadb, *podIndex, recoveryID, checked)
 	}
 
 	className := preserveVolumeSnapshotClassName(mariadb)
@@ -104,7 +106,7 @@ func (r *MariaDBReconciler) preserveReplicaBeforeRecovery(ctx context.Context, m
 		if result := r.verifyReplicaHoldsNoUniqueTransactions(mariadb, replica, gtids, logger); !result.IsZero() {
 			return result, nil
 		}
-		return ctrl.Result{}, r.recordReplicaRecoveryPreserved(ctx, mariadb, *podIndex, recoveryID)
+		return ctrl.Result{}, r.recordReplicaRecoveryPreserved(ctx, mariadb, *podIndex, recoveryID, checked)
 	}
 
 	snapshot := buildReplicaRecoveryPreserveSnapshot(mariadb, pvc, *podIndex, recoveryID, className, time.Now())
@@ -139,12 +141,17 @@ func replicaRecoveryPreservedAnnotationKey(podIndex int) string {
 }
 
 func (r *MariaDBReconciler) recordReplicaRecoveryPreserved(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	podIndex int, recoveryID string) error {
+	podIndex int, recoveryID string, checked *replicaRecoveryCheckedPrimary) error {
+	rawChecked, err := json.Marshal(checked)
+	if err != nil {
+		return fmt.Errorf("error encoding checked recovery primary: %v", err)
+	}
 	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
 		if mdb.Annotations == nil {
 			mdb.Annotations = map[string]string{}
 		}
 		mdb.Annotations[replicaRecoveryPreservedAnnotationKey(podIndex)] = recoveryID
+		mdb.Annotations[replicaRecoveryCheckedPrimaryAnnotationKey(podIndex)] = string(rawChecked)
 		return nil
 	}); err != nil {
 		return fmt.Errorf("error recording replica recovery preserve: %v", err)
@@ -332,7 +339,35 @@ type replicaRecoveryGtids struct {
 // does not lift the refusal. The writes of the replica itself are left to the preserve snapshot or to
 // verifyReplicaHoldsNoUniqueTransactions.
 func (r *MariaDBReconciler) verifyRecoveryPrimaryHoldsReplicaData(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	replica string, podIndex int, logger logr.Logger) (*replicaRecoveryGtids, ctrl.Result, error) {
+	replica string, podIndex int, logger logr.Logger) (*replicaRecoveryGtids, *replicaRecoveryCheckedPrimary,
+	ctrl.Result, error) {
+	checked, result, err := r.verifyRecoveryPrimaryStorage(ctx, mariadb, replica, logger)
+	if !result.IsZero() || err != nil {
+		return nil, nil, result, err
+	}
+
+	gtids, err := r.readReplicaRecoveryGtids(ctx, mariadb, podIndex)
+	if err != nil {
+		reason := fmt.Sprintf("the primary could not be checked: %v", err)
+		return nil, nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger), nil
+	}
+	if gtids.ReplicaErr != nil {
+		return gtids, checked, ctrl.Result{}, nil
+	}
+	replicaGtids := gtids.ReplicaBinlogState + "," + gtids.ReplicaSlavePos
+	if result := r.verifyPrimaryHoldsReplicatedTransactions(mariadb, replica, gtids.ReplicaServerID, replicaGtids,
+		gtids, logger); !result.IsZero() {
+		return nil, nil, result, nil
+	}
+	checked.ReplicaServerID = gtids.ReplicaServerID
+	checked.ReplicaGtids = replicaGtids
+	return gtids, checked, ctrl.Result{}, nil
+}
+
+// verifyRecoveryPrimaryStorage refuses a recovery from an unknown primary or from a primary whose storage PVC was
+// replaced, and returns the primary it checked.
+func (r *MariaDBReconciler) verifyRecoveryPrimaryStorage(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	replica string, logger logr.Logger) (*replicaRecoveryCheckedPrimary, ctrl.Result, error) {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, "the current primary is unknown", logger), nil
 	}
@@ -349,27 +384,26 @@ func (r *MariaDBReconciler) verifyRecoveryPrimaryHoldsReplicaData(ctx context.Co
 			stsobj.PodName(mariadb.ObjectMeta, primary), change.StoredUID, change.CurrentUID)
 		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger), nil
 	}
+	return &replicaRecoveryCheckedPrimary{
+		PrimaryIndex:  primary,
+		PrimaryPVCUID: primaryPVCUIDs[primary],
+	}, ctrl.Result{}, nil
+}
 
-	gtids, err := r.readReplicaRecoveryGtids(ctx, mariadb, podIndex)
-	if err != nil {
-		reason := fmt.Sprintf("the primary could not be checked: %v", err)
-		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger), nil
-	}
-	if gtids.ReplicaErr != nil {
-		return gtids, ctrl.Result{}, nil
-	}
-	missing, primarySeq, err := primaryLacksReplicatedTransactions(gtids.ReplicaServerID,
-		gtids.ReplicaBinlogState+","+gtids.ReplicaSlavePos, gtids.PrimaryBinlogState, gtids.PrimarySlavePos)
+func (r *MariaDBReconciler) verifyPrimaryHoldsReplicatedTransactions(mariadb *mariadbv1alpha1.MariaDB, replica string,
+	replicaServerID uint32, replicaGtids string, gtids *replicaRecoveryGtids, logger logr.Logger) ctrl.Result {
+	missing, primarySeq, err := primaryLacksReplicatedTransactions(replicaServerID, replicaGtids,
+		gtids.PrimaryBinlogState, gtids.PrimarySlavePos)
 	if err != nil {
 		reason := fmt.Sprintf("the replica transactions could not be compared with the primary: %v", err)
-		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger), nil
+		return r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger)
 	}
 	if missing != nil {
 		reason := fmt.Sprintf("the primary holds domain %d only up to sequence %d, but the replica holds %s",
 			missing.DomainID, primarySeq, missing)
-		return nil, r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger), nil
+		return r.refuseReplicaRecoveryFromPrimary(mariadb, replica, reason, logger)
 	}
-	return gtids, ctrl.Result{}, nil
+	return ctrl.Result{}
 }
 
 func (r *MariaDBReconciler) refuseReplicaRecoveryFromPrimary(mariadb *mariadbv1alpha1.MariaDB, replica, reason string,
