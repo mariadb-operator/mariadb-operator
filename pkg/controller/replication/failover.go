@@ -60,6 +60,138 @@ func (f *FailoverHandler) FurthestAdvancedReplica(ctx context.Context) (string, 
 	return furthestAdvanced.name, nil
 }
 
+// PrimaryLossCandidate finds a candidate to be promoted after the primary lost its storage. Another failover
+// authority, such as MaxScale auto_failover, may have promoted a replica before the operator noticed the loss.
+// That replica is writable and no longer replicates, so FurthestAdvancedReplica skips it, and with no other
+// replica left it finds no candidate at all. Being the node taking writes, it is the candidate, unless a replica
+// still replicating is further advanced or more than one replica has been promoted.
+func (f *FailoverHandler) PrimaryLossCandidate(ctx context.Context) (string, error) {
+	pods, err := mdbpod.ListMariaDBSecondaryPods(ctx, f.client, f.mariadb)
+	if err != nil {
+		return "", fmt.Errorf("error listing secondary Pods: %v", err)
+	}
+	f.logger.Info("Finding candidates to be promoted to primary after primary storage loss")
+
+	candidates, promoted := f.findPrimaryLossCandidates(ctx, pods)
+	return f.primaryLossCandidate(promoted, candidates)
+}
+
+func (f *FailoverHandler) primaryLossCandidate(promoted, candidates []promotionCandidate) (string, error) {
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].name < candidates[j].name
+	})
+	furthestAdvanced := f.furthestAdvancedCandidate(candidates)
+
+	switch len(promoted) {
+	case 0:
+		if furthestAdvanced == nil {
+			return "", errors.New("no promotion candidates were found")
+		}
+		return furthestAdvanced.name, nil
+	case 1:
+		if furthestAdvanced != nil {
+			ahead, err := furthestAdvanced.gtidCurrentPos.GreaterThan(promoted[0].gtidCurrentPos)
+			if err != nil {
+				return "", fmt.Errorf("error comparing promoted replica %s with replica %s: %v",
+					promoted[0].name, furthestAdvanced.name, err)
+			}
+			if ahead {
+				return "", fmt.Errorf("promoted replica %s at %s is behind replica %s at %s",
+					promoted[0].name, promoted[0].gtidCurrentPos, furthestAdvanced.name, furthestAdvanced.gtidCurrentPos)
+			}
+		}
+		f.logger.Info("Found replica already promoted", "candidate", promoted[0].name)
+		return promoted[0].name, nil
+	default:
+		return "", fmt.Errorf("more than one replica is writable: %v", getCandidateNames(promoted))
+	}
+}
+
+func (f *FailoverHandler) findPrimaryLossCandidates(ctx context.Context,
+	pods []corev1.Pod) (candidates []promotionCandidate, promoted []promotionCandidate) {
+	for _, pod := range pods {
+		podLogger := f.logger.WithValues("name", pod.Name)
+
+		sqlClient, ok := f.candidateSQLClient(ctx, pod, podLogger)
+		if !ok {
+			continue
+		}
+		if candidate := f.promotedReplicaForClient(ctx, pod.Name, sqlClient, podLogger); candidate != nil {
+			promoted = append(promoted, *candidate)
+		} else if candidate := f.promotionCandidateForClient(ctx, pod.Name, sqlClient, podLogger); candidate != nil {
+			candidates = append(candidates, *candidate)
+		}
+		sqlClient.Close()
+	}
+	return candidates, promoted
+}
+
+type promotedReplicaSQLClient interface {
+	IsSystemVariableEnabled(ctx context.Context, variable string) (bool, error)
+	IsReplicationReplica(ctx context.Context) (bool, error)
+	GtidCurrentPos(ctx context.Context) (string, error)
+	GtidDomainId(ctx context.Context) (*uint32, error)
+}
+
+func (f *FailoverHandler) promotedReplicaForClient(ctx context.Context, podName string,
+	sqlClient promotedReplicaSQLClient, podLogger logr.Logger) *promotionCandidate {
+	readOnly, err := sqlClient.IsSystemVariableEnabled(ctx, "read_only")
+	if err != nil || readOnly {
+		return nil
+	}
+	replica, err := sqlClient.IsReplicationReplica(ctx)
+	if err != nil {
+		podLogger.Info("Unable to determine replication state of writable Pod. Skipping...", "err", err)
+		return nil
+	}
+	if replica {
+		podLogger.Info("Writable Pod is still replicating. Skipping...")
+		return nil
+	}
+	gtidDomainId, err := sqlClient.GtidDomainId(ctx)
+	if err != nil {
+		podLogger.Info("Error getting GTID domain ID of writable Pod. Skipping...", "err", err)
+		return nil
+	}
+	rawGtid, err := sqlClient.GtidCurrentPos(ctx)
+	if err != nil || rawGtid == "" {
+		podLogger.Info("GTID current position of writable Pod not set. Skipping...", "err", err)
+		return nil
+	}
+	gtidCurrentPos, err := replication.ParseFurthestGtidWithDomainId(rawGtid, *gtidDomainId, f.logger)
+	if err != nil {
+		podLogger.Info("Error parsing GTID current position of writable Pod. Skipping...", "err", err)
+		return nil
+	}
+	return &promotionCandidate{
+		name:           podName,
+		gtidCurrentPos: gtidCurrentPos,
+	}
+}
+
+func (f *FailoverHandler) candidateSQLClient(ctx context.Context, pod corev1.Pod, podLogger logr.Logger) (*sql.Client, bool) {
+	if !mdbpod.PodReady(&pod) {
+		podLogger.Info("Pod not ready. Skipping...")
+		return nil, false
+	}
+	podIndex, err := mdbsts.PodIndex(pod.Name)
+	if err != nil {
+		podLogger.Info("Invalid Pod name. Skipping...", "err", err)
+		return nil, false
+	}
+	if diverged, status := divergedReplica(f.mariadb, pod.Name); diverged {
+		podLogger.Info("Replica diverged from the primary. Skipping...",
+			"diverged-since", status.DivergedSince, "gtid-delta", ptr.Deref(status.GtidDelta, 0))
+		return nil, false
+	}
+	sqlClient, err := sql.NewInternalClientWithPodIndex(ctx, f.mariadb, f.refResolver, *podIndex, sql.WithTimeout(3*time.Second))
+	if err != nil {
+		podLogger.Info("Unable to create SQL connection. Skipping...", "err", err)
+		return nil, false
+	}
+	return sqlClient, true
+}
+
 // divergedReplica reports whether a replica stayed above the GTID delta threshold. Promoting it would discard
 // every transaction it is missing: with a single replica the "furthest advanced" one is always that replica,
 // however stale, so a diverged replica is never a promotion candidate.
@@ -85,32 +217,15 @@ func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod)
 	for _, pod := range pods {
 		podLogger := f.logger.WithValues("name", pod.Name)
 
-		if !mdbpod.PodReady(&pod) {
-			podLogger.Info("Pod not ready. Skipping...")
+		sqlClient, ok := f.candidateSQLClient(ctx, pod, podLogger)
+		if !ok {
 			continue
 		}
-		podIndex, err := mdbsts.PodIndex(pod.Name)
-		if err != nil {
-			podLogger.Info("Invalid Pod name. Skipping...", "err", err)
-			continue
-		}
-		if diverged, status := divergedReplica(f.mariadb, pod.Name); diverged {
-			podLogger.Info("Replica diverged from the primary. Skipping...",
-				"diverged-since", status.DivergedSince, "gtid-delta", ptr.Deref(status.GtidDelta, 0))
-			continue
-		}
-
-		sqlClient, err := sql.NewInternalClientWithPodIndex(ctx, f.mariadb, f.refResolver, *podIndex, sql.WithTimeout(3*time.Second))
-		if err != nil {
-			podLogger.Info("Unable to create SQL connection. Skipping...", "err", err)
-			continue
-		}
-		defer sqlClient.Close()
-
 		candidate := f.promotionCandidateForClient(ctx, pod.Name, sqlClient, podLogger)
 		if candidate != nil {
 			candidates = append(candidates, *candidate)
 		}
+		sqlClient.Close()
 	}
 	return candidates
 }

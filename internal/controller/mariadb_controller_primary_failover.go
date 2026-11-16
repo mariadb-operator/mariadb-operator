@@ -134,19 +134,10 @@ func (r *MariaDBReconciler) switchPrimaryToIndex(ctx context.Context, mariadb *m
 	return ctrl.Result{Requeue: true}, nil
 }
 
-func (r *MariaDBReconciler) selectFailoverCandidate(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *MariaDBReconciler) selectPrimaryPVCFailoverCandidate(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (string, error) {
 	if r.FailoverCandidateFn != nil {
 		return r.FailoverCandidateFn(ctx, mariadb, logger)
 	}
-	return replication.NewFailoverHandler(r.Client, mariadb, logger.V(1)).FurthestAdvancedReplica(ctx)
-}
-
-func (r *MariaDBReconciler) selectPrimaryPVCFailoverCandidate(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (string, error) {
-	candidateName, err := r.selectFailoverCandidate(ctx, mariadb, logger)
-	if err == nil {
-		return candidateName, nil
-	}
-	return "", err
+	return replication.NewFailoverHandler(r.Client, mariadb, logger.V(1)).PrimaryLossCandidate(ctx)
 }
