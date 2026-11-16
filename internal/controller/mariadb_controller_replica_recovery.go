@@ -77,14 +77,18 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	activeRecoveryReplicas, currentPrimary, err := r.excludeCurrentPrimaryFromRecovery(ctx, mariadb, pvcUIDs,
+		getActiveReplicaRecoveryReplicas(mariadb), logger)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	replicaRecoveryEnabled := mariadb.IsReplicaRecoveryEnabled()
 	immediateRecoveryReplicas := r.gateErroredReplicaRecovery(
 		mariadb,
 		replicaRecoveryEnabled,
-		getReplicasWithImmediateRecoverableErrors(mariadb, logger),
+		withoutReplica(getReplicasWithImmediateRecoverableErrors(mariadb, logger), currentPrimary),
 		logger,
 	)
-	activeRecoveryReplicas := getActiveReplicaRecoveryReplicas(mariadb)
 
 	if handled, err := r.resetReplicaRecoveryIfNotNeeded(
 		ctx,
@@ -96,17 +100,8 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		return ctrl.Result{}, err
 	}
 
-	replicasToRecover := mergeReplicasToRecover(
-		activeRecoveryReplicas,
-		immediateRecoveryReplicas,
-		pvcRecoveryReplicas,
-	)
-	if replicaRecoveryEnabled {
-		replicasToRecover = mergeReplicasToRecover(
-			getReplicasToRecover(mariadb, podStates, logger),
-			replicasToRecover,
-		)
-	}
+	replicasToRecover := recoveryReplicaSet(mariadb, podStates, replicaRecoveryEnabled, currentPrimary, logger,
+		activeRecoveryReplicas, immediateRecoveryReplicas, pvcRecoveryReplicas)
 
 	if !mariadb.IsRecoveringReplicas() || mariadb.ReplicaRecoveryError() != nil {
 		if result, err := r.reconcileReplicaRecoveryError(
