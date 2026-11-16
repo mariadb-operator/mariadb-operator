@@ -12,6 +12,7 @@ import (
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
 	mdbmetadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
@@ -1136,10 +1137,8 @@ func absOpts(abs *mariadbv1alpha1.AzureBlob) []command.BackupOpt {
 
 func batchImagePullSecrets(mariadb interfaces.Imager,
 	pullSecrets []mariadbv1alpha1.LocalObjectReference) []corev1.LocalObjectReference {
-	var secrets []mariadbv1alpha1.LocalObjectReference
-	secrets = append(secrets, mariadb.GetImagePullSecrets()...)
-	secrets = append(secrets, pullSecrets...)
-	return kadapter.ToKubernetesSlice(secrets)
+	secrets := datastructures.Merge(mariadb.GetImagePullSecrets(), pullSecrets)
+	return kadapter.ToKubernetesSlice(datastructures.Unique(secrets...))
 }
 
 func jobBatchStorageVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,

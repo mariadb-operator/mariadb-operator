@@ -3758,3 +3758,142 @@ func mustParseGtid(t *testing.T, rawGtid string) *replication.Gtid {
 	}
 	return gtid
 }
+
+func TestBatchJobImagePullSecretsWithoutDuplicates(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "batch-image-pull-secrets-dedup",
+		Namespace: "test",
+	}
+	shared := mariadbv1alpha1.LocalObjectReference{Name: "shared-registry"}
+	own := mariadbv1alpha1.LocalObjectReference{Name: "own-registry"}
+	jobPodTemplate := mariadbv1alpha1.JobPodTemplate{
+		ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{shared, own, shared},
+	}
+	mariadbRef := mariadbv1alpha1.MariaDBRef{
+		ObjectReference: mariadbv1alpha1.ObjectReference{Name: objMeta.Name},
+	}
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: objMeta,
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+				ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{shared},
+			},
+		},
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "mariadb-0"},
+		Spec:       corev1.PodSpec{NodeName: "node-1"},
+	}
+	backup := &mariadbv1alpha1.Backup{
+		ObjectMeta: objMeta,
+		Spec: mariadbv1alpha1.BackupSpec{
+			JobPodTemplate: jobPodTemplate,
+			MariaDBRef:     mariadbRef,
+			Storage:        mariadbv1alpha1.BackupStorage{S3: &mariadbv1alpha1.S3{}},
+			Schedule:       &mariadbv1alpha1.Schedule{Cron: "*/1 * * * *"},
+		},
+	}
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: objMeta,
+		Spec: mariadbv1alpha1.PhysicalBackupSpec{
+			PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
+				ImagePullSecrets: jobPodTemplate.ImagePullSecrets,
+			},
+			MariaDBRef: mariadbRef,
+			Storage: mariadbv1alpha1.PhysicalBackupStorage{
+				Volume: &mariadbv1alpha1.StorageVolumeSource{
+					EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+				},
+			},
+		},
+	}
+	restore := &mariadbv1alpha1.Restore{
+		ObjectMeta: objMeta,
+		Spec: mariadbv1alpha1.RestoreSpec{
+			JobPodTemplate: jobPodTemplate,
+			MariaDBRef:     mariadbRef,
+			RestoreSource: mariadbv1alpha1.RestoreSource{
+				Volume: &mariadbv1alpha1.StorageVolumeSource{},
+			},
+		},
+	}
+	sqlJob := &mariadbv1alpha1.SqlJob{
+		ObjectMeta: objMeta,
+		Spec: mariadbv1alpha1.SqlJobSpec{
+			JobPodTemplate:     jobPodTemplate,
+			MariaDBRef:         mariadbRef,
+			SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
+		},
+	}
+	key := client.ObjectKeyFromObject(mariadb)
+	wantPullSecrets := []corev1.LocalObjectReference{{Name: shared.Name}, {Name: own.Name}}
+
+	tests := []struct {
+		name      string
+		podSpecFn func() (*corev1.PodSpec, error)
+	}{
+		{
+			name: "Backup Job",
+			podSpecFn: func() (*corev1.PodSpec, error) {
+				job, err := builder.BuildBackupJob(key, backup, mariadb)
+				if err != nil {
+					return nil, err
+				}
+				return &job.Spec.Template.Spec, nil
+			},
+		},
+		{
+			name: "Backup CronJob",
+			podSpecFn: func() (*corev1.PodSpec, error) {
+				cronJob, err := builder.BuildBackupCronJob(key, backup, mariadb)
+				if err != nil {
+					return nil, err
+				}
+				return &cronJob.Spec.JobTemplate.Spec.Template.Spec, nil
+			},
+		},
+		{
+			name: "PhysicalBackup Job",
+			podSpecFn: func() (*corev1.PodSpec, error) {
+				job, err := builder.BuildPhysicalBackupJob(key, physicalBackup, mariadb, pod, "backupfile")
+				if err != nil {
+					return nil, err
+				}
+				return &job.Spec.Template.Spec, nil
+			},
+		},
+		{
+			name: "Restore Job",
+			podSpecFn: func() (*corev1.PodSpec, error) {
+				job, err := builder.BuildRestoreJob(key, restore, mariadb)
+				if err != nil {
+					return nil, err
+				}
+				return &job.Spec.Template.Spec, nil
+			},
+		},
+		{
+			name: "SqlJob Job",
+			podSpecFn: func() (*corev1.PodSpec, error) {
+				job, err := builder.BuildSqlJob(key, sqlJob, mariadb)
+				if err != nil {
+					return nil, err
+				}
+				return &job.Spec.Template.Spec, nil
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podSpec, err := tt.podSpecFn()
+			if err != nil {
+				t.Fatalf("unexpected error building %s: %v", tt.name, err)
+			}
+			if !reflect.DeepEqual(wantPullSecrets, podSpec.ImagePullSecrets) {
+				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", wantPullSecrets, podSpec.ImagePullSecrets)
+			}
+		})
+	}
+}
