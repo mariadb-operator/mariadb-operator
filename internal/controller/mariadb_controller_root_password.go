@@ -182,12 +182,7 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 // reconcileRootPasswordInDataPlane updates the root password based on the current value of `RootPasswordSecretKeyRef`
 // - Inside the agents for the probes
 // - If galera is enabled, updates `wsrep_sst_auth`
-// @TODO: When https://github.com/mariadb-operator/mariadb-operator/pull/1621 is merged, we can remove the check for IsHAEnabled
 func (r *MariaDBReconciler) reconcileRootPasswordInDataPlane(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsHAEnabled() {
-		return ctrl.Result{}, nil
-	}
-
 	rootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)

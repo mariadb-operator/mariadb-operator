@@ -1,6 +1,6 @@
 # Data-plane
 
-In order to effectively manage the full lifecycle of both [replication](./replication.md) and [Galera](./galera.md) topologies, the operator relies on a set of components that run alonside the MariaDB instances and expose APIs for remote management. These components are collectively referred to as the "data-plane".
+In order to effectively manage the full lifecycle of the [replication](./replication.md), [Galera](./galera.md) and standalone topologies, the operator relies on a set of components that run alonside the MariaDB instances and expose APIs for remote management. These components are collectively referred to as the "data-plane". The standalone topology only runs the agent sidecar, as it does not require an init container; you may configure the agent via `spec.agent` in the `MariaDB` resource. @TODO: CHANGE IF AGENT IS MOVED TO `spec.agent` FOR ALL
 
 ## Table of contents
 <!-- toc -->

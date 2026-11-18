@@ -76,6 +76,7 @@ func init() {
 
 	RootCmd.AddCommand(galeraCommand)
 	RootCmd.AddCommand(replicationCommand)
+	RootCmd.AddCommand(standaloneCommand)
 }
 
 var RootCmd = &cobra.Command{

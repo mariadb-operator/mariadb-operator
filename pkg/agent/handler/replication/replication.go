@@ -7,10 +7,13 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/filemanager"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 )
 
+// TODO: deprecate in favor of handler/gtid
+// With the introduction of PITR, the GTID endpoint should not be tied to replication topology.
+// This is kept for backwards compatibility purposes.
 type ReplicationHandler struct {
 	fileManager    *filemanager.FileManager
 	responseWriter *mdbhttp.ResponseWriter
@@ -39,18 +42,18 @@ type GtidResponse struct {
 func (h *ReplicationHandler) GetGtid(w http.ResponseWriter, r *http.Request) {
 	h.logger.V(1).Info("getting GTID")
 
-	bytes, err := h.fileManager.ReadStateFile(replication.MariaDBOperatorFileName)
+	bytes, err := h.fileManager.ReadStateFile(gtid.MariaDBOperatorFileName)
 	if err != nil {
-		h.responseWriter.WriteErrorf(w, "error reading GTID file '%s': %v", replication.MariaDBOperatorFileName, err)
+		h.responseWriter.WriteErrorf(w, "error reading GTID file '%s': %v", gtid.MariaDBOperatorFileName, err)
 		return
 	}
-	gtid, err := replication.ParseRawGtidInMetaFile(bytes)
+	g, err := gtid.ParseRawGtidInMetaFile(bytes)
 	if err != nil {
 		h.responseWriter.WriteErrorf(w, "error parsing GTID: %v", err)
 		return
 	}
 
 	h.responseWriter.WriteOK(w, GtidResponse{
-		Gtid: gtid,
+		Gtid: g,
 	})
 }
