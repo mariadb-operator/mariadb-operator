@@ -100,9 +100,6 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 	if err != nil {
 		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
-	if !mariadb.IsHAEnabled() {
-		return nil
-	}
 
 	rules := []rbacv1.PolicyRule{
 		{

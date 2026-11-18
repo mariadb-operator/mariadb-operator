@@ -716,8 +716,8 @@ func TestMariadbPodBuilderResources(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
 			}
-			if len(podTpl.Spec.Containers) != 1 {
-				t.Error("expecting to have one container")
+			if len(podTpl.Spec.Containers) != 2 {
+				t.Error("expecting to have two containers")
 			}
 			resources := podTpl.Spec.Containers[0].Resources
 			if !reflect.DeepEqual(resources, tt.wantResources) {
@@ -1275,12 +1275,17 @@ func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
+					Agent: &mariadbv1alpha1.Agent{
+						Image:     "mariadb-operator:latest",
+						Port:      5555,
+						ProbePort: 5566,
+					},
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: nil,
 					},
 				},
 			},
-			wantContainers: 1,
+			wantContainers: 2,
 		},
 		{
 			name: "sidecar containers",
@@ -1288,6 +1293,11 @@ func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:11.4.3",
+					Agent: &mariadbv1alpha1.Agent{
+						Image:     "mariadb-operator:latest",
+						Port:      5555,
+						ProbePort: 5566,
+					},
 					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
@@ -1300,7 +1310,7 @@ func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
 					},
 				},
 			},
-			wantContainers: 3,
+			wantContainers: 4,
 		},
 	}
 

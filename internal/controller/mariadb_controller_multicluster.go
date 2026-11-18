@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	replicationctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -170,12 +170,12 @@ func (r *MariaDBReconciler) filterPrimaryBinlogByDomain(ctx context.Context, mdb
 		logger.Info("gtid_binlog_state is empty, skipping reconciliation...")
 		return nil
 	}
-	binlogStateGtids, err := replication.ParseAllGtids(rawBinlogState)
+	binlogStateGtids, err := gtid.ParseAllGtids(rawBinlogState)
 	if err != nil {
 		return fmt.Errorf("error parsing gtid_binlog_state GTIDs %s: %v", rawBinlogState, err)
 	}
-	primaryGtids := replication.GtidsToString(
-		replication.FilterByDomain(binlogStateGtids, domainId)...,
+	primaryGtids := gtid.GtidsToString(
+		gtid.FilterByDomain(binlogStateGtids, domainId)...,
 	)
 
 	// All replicas are stopped at the top level (reconfigurePrimaryClusterGtids), where they are started again.
@@ -200,12 +200,12 @@ func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, domai
 	if err != nil {
 		return fmt.Errorf("error getting replica GTID: %v", err)
 	}
-	replicaGtids, err := replication.ParseAllGtids(rawReplicaGtid)
+	replicaGtids, err := gtid.ParseAllGtids(rawReplicaGtid)
 	if err != nil {
 		return fmt.Errorf("error parsing replica GTID: %v", err)
 	}
-	replicaGtid := replication.GtidsToString(
-		replication.FilterByDomain(replicaGtids, domainId)...,
+	replicaGtid := gtid.GtidsToString(
+		gtid.FilterByDomain(replicaGtids, domainId)...,
 	)
 
 	// The replica was stopped at the top level (reconfigurePrimaryClusterGtids), where it is started again.
@@ -240,7 +240,7 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 		logger.Info("gtid_binlog_pos is empty, skipping reconciliation...")
 		return nil
 	}
-	replicaBinlogPosGtids, err := replication.ParseAllGtids(replicaBinlogPos)
+	replicaBinlogPosGtids, err := gtid.ParseAllGtids(replicaBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error parsing gtid_binlog_pos GTIDs: %v", err)
 	}
@@ -259,7 +259,7 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 		logger.Info("gtid_binlog_pos in external primary is empty, skipping reconciliation...")
 		return nil
 	}
-	primaryGtids, err := replication.ParseAllGtids(primaryBinlogPos)
+	primaryGtids, err := gtid.ParseAllGtids(primaryBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error parsing external gtid_binlog_pos GTIDs: %v", err)
 	}
@@ -268,10 +268,10 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	// Unlike the replication topology, a Galera primary cluster keeps the domains of the replica clusters in its binary
 	// logs, hence all of them must be checked.
 	primaryDomains := make([]uint32, len(primaryGtids))
-	for i, gtid := range primaryGtids {
-		primaryDomains[i] = gtid.DomainID
+	for i, g := range primaryGtids {
+		primaryDomains[i] = g.DomainID
 	}
-	if len(replication.FilterByDomain(replicaBinlogPosGtids, primaryDomains...)) == len(primaryDomains) {
+	if len(gtid.FilterByDomain(replicaBinlogPosGtids, primaryDomains...)) == len(primaryDomains) {
 		logger.Info(
 			"External domains found in primary replica GTID, skipping reconciliation...",
 			"domains", primaryDomains,
@@ -427,13 +427,13 @@ func killBinlogDumpers(ctx context.Context, client *sql.Client, podIndex int) er
 // Primary cluster: 1-20-4
 // Resulting replica cluster GTID: 0-10-6,1-20-4
 func composeReplicaClusterGTIDs(replicaGtid, primaryGtid string) (string, error) {
-	primaryGtids, err := replication.ParseAllGtids(primaryGtid)
+	primaryGtids, err := gtid.ParseAllGtids(primaryGtid)
 	if err != nil {
 		return "", fmt.Errorf("error parsing external GTID %s: %v", primaryGtid, err)
 	}
-	replicaGtids, err := replication.ParseAllGtids(replicaGtid)
+	replicaGtids, err := gtid.ParseAllGtids(replicaGtid)
 	if err != nil {
 		return "", fmt.Errorf("error parsing GTID %s: %v", replicaGtid, err)
 	}
-	return replication.GtidsToString(replication.MergeByDomain(primaryGtids, replicaGtids)...), nil
+	return gtid.GtidsToString(gtid.MergeByDomain(primaryGtids, replicaGtids)...), nil
 }
