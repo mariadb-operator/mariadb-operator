@@ -646,9 +646,9 @@ spec:
 
 - The referenced `MariaDB` must have TLS enabled (`spec.tls.enabled: true`).
 - The certificate is signed by the **same CA** the referenced `MariaDB` uses for its own client certificate (operator-managed CA, [bring your own CA](#bring-your-own-ca), or [cert-manager](#issue-certificates-with-cert-manager) via `spec.tls.clientCertIssuerRef`), and it is stored in a `Secret` named `<user-name>-client-cert` in the `User` namespace. Its subject common name is `<user-name>-client`.
-- When the referenced `MariaDB` uses a cert-manager `Issuer` (not a `ClusterIssuer`) for its client certificate, the `User` must be in the same namespace as the `MariaDB`, as `Issuers` are namespace-scoped.
 - Issuing the certificate does not by itself enforce certificate authentication: set [`spec.require`](#tls-requirements-for-users) to require it. Without `spec.require`, the `User` will still be able to connect with a password, if one is configured.
-- A `User` cannot be named after the `MariaDB` it references, as its certificate would clash with the `MariaDB` client certificate.
+
+See the [limitations](#user-client-certificates) that apply to `User` client certificates.
 
 The issued certificate can be used to test the connection by means of a [`Connection`](#test-tls-certificates-with-connections), passwordless:
 
@@ -664,8 +664,6 @@ spec:
   tlsClientCertSecretRef:
     name: user-client-cert
 ```
-
-Refer to [this example](../examples/manifests/user_client_certificate.yaml) for further detail.
 
 ## Secure application connections with TLS
 
@@ -974,6 +972,12 @@ Leaf certificates issued by [intermediate CAs](#intermediate-cas) are not suppor
 
 This doesn't affect `MaxScale`, as it is able to establish trust with intermediate CAs, and therefore you can still issue your application facing certificates (MaxScale listeners) with an intermediate CA, giving you more flexibility in your PKI setup.
 
+
+### `User` client certificates
+
+- **`ExternalMariaDB`**: [client certificates for `Users`](#client-certificates-for-users) are only supported when `spec.mariaDbRef` points to a `MariaDB` resource. They are not supported for `Users` referencing an `ExternalMariaDB`.
+- **cert-manager `Issuer`**: when the referenced `MariaDB` issues its client certificate with a cert-manager `Issuer` (`spec.tls.clientCertIssuerRef`), the `User` must be in the same namespace as the `MariaDB`, as `Issuers` are namespace-scoped. Use a `ClusterIssuer` to issue certificates for `Users` in other namespaces.
+- **Naming**: a `User` cannot be named after the `MariaDB` it references, as its certificate would clash with the `MariaDB` client certificate.
 
 ### MaxScale
 
