@@ -10,6 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -76,7 +77,8 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 // SetupWithManager sets up the controller with the Manager.
 func (r *UserReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&mariadbv1alpha1.User{})
+		For(&mariadbv1alpha1.User{}).
+		Owns(&corev1.Secret{})
 
 	if err := mariadbv1alpha1.IndexUser(ctx, mgr, builder, r.Client); err != nil {
 		return fmt.Errorf("error indexing User: %v", err)
