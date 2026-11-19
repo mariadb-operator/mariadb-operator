@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	. "github.com/onsi/ginkgo/v2"
@@ -9,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -63,6 +66,97 @@ var _ = Describe("User", Label("basic"), func() {
 
 		By("Expecting credentials to be valid")
 		testConnection(user.Name, testPasswordSecretRef, testTLSClientCertRef, testDatabase, true)
+	})
+
+	It("should issue a client certificate and authenticate with it", func() {
+		userKey := types.NamespacedName{
+			Name:      "user-client-cert",
+			Namespace: testNamespace,
+		}
+		user := mariadbv1alpha1.User{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      userKey.Name,
+				Namespace: userKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.UserSpec{
+				SQLTemplate: mariadbv1alpha1.SQLTemplate{
+					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicyDelete),
+				},
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				MaxUserConnections: 20,
+				ClientCertificate: &mariadbv1alpha1.UserClientCertificate{
+					Enabled: true,
+				},
+				Require: &mariadbv1alpha1.TLSRequirements{
+					Subject: ptr.To(fmt.Sprintf("/CN=%s-client", userKey.Name)),
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, &user))).To(Succeed())
+		})
+
+		By("Expecting User to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, userKey, &user); err != nil {
+				return false
+			}
+			return user.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting a client certificate Secret to be issued for the User")
+		Eventually(func(g Gomega) {
+			var certSecret corev1.Secret
+			g.Expect(k8sClient.Get(testCtx, user.TLSClientCertSecretKey(), &certSecret)).To(Succeed())
+			g.Expect(certSecret.Type).To(Equal(corev1.SecretTypeTLS))
+			g.Expect(certSecret.Data).To(HaveKey("tls.crt"))
+			g.Expect(certSecret.Data).To(HaveKey("tls.key"))
+		}, testTimeout, testInterval).Should(Succeed())
+
+		By("Expecting to authenticate as the User with the issued client certificate and no password")
+		connKey := types.NamespacedName{
+			Name:      "conn-user-client-cert",
+			Namespace: testNamespace,
+		}
+		conn := mariadbv1alpha1.Connection{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      connKey.Name,
+				Namespace: connKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.ConnectionSpec{
+				ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
+					SecretName: ptr.To(connKey.Name),
+				},
+				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				Username: user.UsernameOrDefault(),
+				TLSClientCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
+					Name: user.TLSClientCertSecretKey().Name,
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &conn)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, &conn))).To(Succeed())
+		})
+
+		By("Expecting Connection to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, connKey, &conn); err != nil {
+				return false
+			}
+			return conn.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
 	It("should update password", func() {

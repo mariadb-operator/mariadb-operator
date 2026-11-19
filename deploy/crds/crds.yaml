@@ -15267,6 +15267,18 @@ spec:
                 - Skip
                 - Delete
                 type: string
+              clientCertificate:
+                description: ClientCertificate configures whether the operator issues
+                  a dedicated TLS client certificate for this User.
+                properties:
+                  enabled:
+                    description: |-
+                      Enabled determines whether the operator issues a TLS client certificate for this User, signed by the same
+                      CA used by the referenced MariaDB (spec.tls.clientCASecretRef / spec.tls.clientCertIssuerRef, or the
+                      operator-managed CA otherwise). It requires the referenced MariaDB to have TLS enabled (spec.tls.enabled: true).
+                      It is disabled by default.
+                    type: boolean
+                type: object
               host:
                 description: Host related to the User.
                 maxLength: 255

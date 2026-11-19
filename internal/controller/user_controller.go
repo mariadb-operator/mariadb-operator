@@ -6,6 +6,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	certctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
@@ -19,15 +20,17 @@ type UserReconciler struct {
 	client.Client
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready
+	CertReconciler *certctrl.CertReconciler
 	SqlOpts        []sql.SqlOpt
 }
 
 func NewUserReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
-	sqlOpts ...sql.SqlOpt) *UserReconciler {
+	certReconciler *certctrl.CertReconciler, sqlOpts ...sql.SqlOpt) *UserReconciler {
 	return &UserReconciler{
 		Client:         client,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
+		CertReconciler: certReconciler,
 		SqlOpts:        sqlOpts,
 	}
 }
@@ -35,6 +38,8 @@ func NewUserReconciler(client client.Client, refResolver *refresolver.RefResolve
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=users,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=users/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=users/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -45,6 +50,18 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	wr := newWrapperUserReconciler(r.Client, r.RefResolver, &user)
+
+	if !user.IsBeingDeleted() {
+		if result, err := r.reconcileClientCertificate(ctx, &user); !result.IsZero() || err != nil {
+			if err != nil {
+				if patchErr := wr.PatchStatus(ctx, r.ConditionReady.PatcherFailed(err.Error())); patchErr != nil {
+					err = fmt.Errorf("%w, error patching status: %v", err, patchErr)
+				}
+			}
+			return result, err
+		}
+	}
+
 	wf := newWrappedUserFinalizer(r.Client, &user)
 	tf := sql.NewSqlFinalizer(r.Client, wf, r.SqlOpts...)
 	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.SqlOpts...)
@@ -149,7 +166,7 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlCl
 		if err := mdbClient.CreateUser(ctx, accountName, createUserOpts...); err != nil {
 			return fmt.Errorf("error creating User: %v", err)
 		}
-	} else if password != "" || passwordHash != "" || passwordVia != "" {
+	} else if password != "" || passwordHash != "" || passwordVia != "" || wr.user.Spec.Require != nil {
 		if err := mdbClient.AlterUser(ctx, accountName, createUserOpts...); err != nil {
 			return fmt.Errorf("error altering User: %v", err)
 		}

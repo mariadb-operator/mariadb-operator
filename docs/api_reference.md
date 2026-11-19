@@ -3508,6 +3508,22 @@ User is the Schema for the users API.  It is used to define grants as if you wer
 | `spec` _[UserSpec](#userspec)_ |  |  |  |
 
 
+#### UserClientCertificate
+
+
+
+UserClientCertificate configures whether the operator issues a dedicated TLS client certificate for a User.
+
+
+
+_Appears in:_
+- [UserSpec](#userspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled determines whether the operator issues a TLS client certificate for this User, signed by the same<br />CA used by the referenced MariaDB (spec.tls.clientCASecretRef / spec.tls.clientCertIssuerRef, or the<br />operator-managed CA otherwise). It requires the referenced MariaDB to have TLS enabled (spec.tls.enabled: true).<br />It is disabled by default. |  |  |
+
+
 #### UserSpec
 
 
@@ -3529,6 +3545,7 @@ _Appears in:_
 | `passwordHashSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordHashSecretKeyRef is a reference to the password hash to be used by the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash. |  |  |
 | `passwordPlugin` _[PasswordPlugin](#passwordplugin)_ | PasswordPlugin is a reference to the password plugin and arguments to be used by the User. |  |  |
 | `require` _[TLSRequirements](#tlsrequirements)_ | Require specifies TLS requirements for the user to connect. See: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls. |  |  |
+| `clientCertificate` _[UserClientCertificate](#userclientcertificate)_ | ClientCertificate configures whether the operator issues a dedicated TLS client certificate for this User. |  |  |
 | `maxUserConnections` _integer_ | MaxUserConnections defines the maximum number of simultaneous connections that the User can establish. | 10 |  |
 | `name` _string_ | Name overrides the default name provided by metadata.name. |  | MaxLength: 80 <br /> |
 | `host` _string_ | Host related to the User. |  | MaxLength: 255 <br /> |
