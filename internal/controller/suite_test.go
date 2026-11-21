@@ -30,7 +30,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
@@ -78,7 +77,7 @@ var _ = BeforeSuite(func() {
 	log.SetLogger(testLogger)
 
 	var err error
-	testCidrPrefix, err = docker.GetKindCidrPrefix(testCtx)
+	testCidrPrefix, err = testKindCidrPrefix(testCtx)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(testCidrPrefix).NotTo(BeEmpty())
 

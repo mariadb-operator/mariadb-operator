@@ -14,6 +14,12 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+# Running mode: 'host' (default) or 'in-cluster'. 'make cluster-init' binds the checkout to an in-cluster slot cluster via .cluster.mk.
+# See "Running modes" in docs/development.md.
+-include .cluster.mk
+MODE ?= host
+export MODE
+
 VERSION ?= 26.10.3
 
 # mariadb-operator
@@ -70,6 +76,7 @@ include make/dev.mk
 include make/docs.mk
 include make/gen.mk
 include make/helm.mk
+include make/mode.mk
 include make/net.mk
 include make/pki.mk
 include make/azure.mk

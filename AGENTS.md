@@ -76,7 +76,7 @@ mariadb-operator/
 ├── docs/                    # Feature docs + generated api_reference.md
 ├── examples/                # Example manifests (incl. multi-cluster/) and Flux GitOps setup
 ├── hack/                    # Dev/CI scripts (install_*.sh, config/, manifests/)
-├── make/                    # Modular Makefiles: build, deploy, deps, dev, docs, gen, helm, net, pki, azure
+├── make/                    # Modular Makefiles: build, deploy, deps, dev, docs, gen, helm, mode, net, pki, azure
 ├── test/e2e/                # E2E tests (Ginkgo) + test/utils/ — do NOT add new E2E tests for now
 └── csi-driver-host-path/    # Vendored submodule — ignore
 ```
@@ -102,6 +102,7 @@ The root `Makefile` includes `make/*.mk`. Run `make help` (or bare `make`) to li
 | `make manifests` | CRDs, RBAC, webhook configs via controller-gen |
 | `make code` | DeepCopy methods via controller-gen |
 | `make cluster` / `cluster-delete` | Create/delete KIND cluster |
+| `make host-lease-release` / `cluster-init` / `run-in-cluster` / `test-int*-in-cluster` / `delete-in-cluster` / `mode` | Running modes, see "Running modes" in `docs/development.md` |
 | `make net` | Local networking: MetalLB + `/etc/hosts` entries (host ↔ cluster connectivity) |
 | `make install` | CRDs + config + Prometheus CRDs + ServiceAccount + StorageClass + `docker-dev` |
 | `make install-minio` / `install-cert-manager` / `install-prometheus` / `install-azurite` / `install-csi-hostpath` | Optional per-feature dependencies |
@@ -113,23 +114,36 @@ Pass extra Ginkgo args with `TEST_ARGS`, e.g. `make test-int TEST_ARGS="--focus=
 
 ## Development Guides
 
-### Environment setup
+### Running modes
 
-```bash
-make cluster        # KIND cluster
-make install        # CRDs + dev dependencies + operator image
-make net            # MetalLB + /etc/hosts so host-run operator can reach MariaDB pods
-make run            # operator on your host, against the KIND cluster
-```
+There are two mutually exclusive running modes. Their setup and targets are documented in "Running modes" in `docs/development.md`, read it before using a KIND cluster.
+
+- **Host mode**: the operator (`make run`) and the integration tests (`make test-int*`) run on the host against the shared `mdb` cluster, reached through `make net`. Fastest feedback loop, no image builds. Only one checkout can use it at a time: host mode targets acquire a 4h lease on it.
+- **In-cluster mode**: the checkout is bound to its own slot cluster (`make cluster-init SLOT=<issue|pr-N>`), named after the issue, ticket or PR, where the operator runs as it does for users (Helm chart, webhooks, cert-controller, cluster DNS) and the integration tests run as a Job. Isolated and parallel, but every code change requires rebuilding and reloading the image.
+
+Choose the mode based on the task, then on availability:
+
+- **Prefer host mode** when it is available and the task does not call for one or the other, e.g. iterating on controller logic, debugging the operator, or running focused integration specs.
+- **Prefer in-cluster mode** when the task needs the operator to run exactly as users run it, or must stay isolated from other work. For example:
+  - testing a PR end-to-end;
+  - changing the Helm chart, RBAC, webhooks or cert-controller;
+  - disruptive or long-running scenarios, like killing nodes or Pods, or recreating clusters.
+- **Fall back to in-cluster mode** when the host is leased by someone else (host mode targets fail with a `GUARD:` error naming the holder).
+
+Rules:
+
+- **Release the host lease when done**: run `make host-lease-release` when the task is finished or blocked, so other agents can use the host cluster. In in-cluster mode, run `make delete-in-cluster` instead.
+- **Never mix modes, and never touch a KIND cluster that is not yours**: other slot clusters (`slot-*`) and `mdb` may belong to other agents. In in-cluster mode, always pass the slot context explicitly (`kubectl --context kind-slot-<name>`).
+- **A `GUARD:` error is not a bug: do not investigate it.** It means the target belongs to the other mode or another checkout holds the host lease. Do what the message says, or ask the user — never work around it (e.g. by deleting the lease).
 
 Feature-specific extras before testing those areas: `make install-minio` (S3 backups), `make install-azurite` (Azure backups), `make install-cert-manager` (TLS via cert-manager), `make install-prometheus` (metrics), `make install-csi-hostpath` (VolumeSnapshots).
 
 ### Development workflows
 
 - **Change API types** (`api/v1alpha1/`) → `make gen`, then commit the regenerated files (CI fails otherwise).
-- **Change code** → `make build` compiles; `make run` to exercise against KIND.
+- **Change code** → `make build` compiles; `make run` to exercise against KIND (`make run-in-cluster` in in-cluster mode).
 - **Lint** → `make lint`. Enabled linters (`.golangci.yml`, v2 config): bodyclose, errcheck, ginkgolinter, gocyclo (≤22), govet, ineffassign, lll (≤140), misspell, nestif (≤12), noctx, staticcheck, unused. Formatters: gofmt + goimports.
-- **Test** → `make test` for unit; `make test-int-basic` for a fast integration signal. Integration tests need a KIND cluster with `make install`, `make install-minio`, `make net` (and `make install-azurite` for Azure specs).
+- **Test** → `make test` for unit; `make test-int-basic` for a fast integration signal. In in-cluster mode, run the `-in-cluster` equivalents (see `docs/development.md`). In host mode they need a KIND cluster with `make install`, `make install-minio`, `make net` (and `make install-azurite` for Azure specs).
 
 ### Adding a new feature
 
@@ -285,6 +299,8 @@ Where to look when working on a specific feature:
 - **Integration** (`make test-int`): `internal/controller/*_test.go` against envtest, bootstrapped by `suite_test.go`. Ginkgo labels tier the suite: `basic` (PR smoke set), `multi-cluster` (separate target), `flaky`, `finalizer`. Requires a KIND cluster prepared with `make install`, `make install-minio`, `make net` (+ `make install-azurite` for Azure specs).
 
 ### Local cluster connectivity
+
+This section applies to host mode only; in in-cluster mode the operator uses the cluster DNS and no connectivity setup is needed.
 
 Whether you `make run` the operator or `make test-int`, the binary runs **on your host** while the KIND cluster (and its MariaDB pods) runs inside a container — and the SQL client (`pkg/sql`) connects to the pods over their internal Kubernetes FQDNs.
 
