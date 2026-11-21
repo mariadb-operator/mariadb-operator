@@ -594,6 +594,23 @@ type ReplicationStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	GtidStrictModePaused *bool `json:"gtidStrictModePaused,omitempty"`
+	// FailoverPosition is the replication position of the primary promoted by the last failover.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	FailoverPosition *FailoverPositionStatus `json:"failoverPosition,omitempty"`
+}
+
+// FailoverPositionStatus is the replication position of a primary promoted by a failover. The replicas of the failed
+// primary, including the failed primary itself once it is back, resume from it.
+type FailoverPositionStatus struct {
+	// AppliedGtid is the gtid_current_pos of the promoted primary right before its promotion, i.e. what it had applied
+	// from the failed primary.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	AppliedGtid string `json:"appliedGtid"`
+	// PromotionGtid is the gtid_binlog_pos of the promoted primary right after its promotion. A replica at AppliedGtid
+	// resumes from it.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	PromotionGtid string `json:"promotionGtid"`
 }
 
 // UseStandaloneProbes indicates whether to use the default non-HA startup and liveness probes.

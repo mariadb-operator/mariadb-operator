@@ -6806,6 +6806,24 @@ spec:
                 description: Replication is the replication current status per each
                   Pod.
                 properties:
+                  failoverPosition:
+                    description: FailoverPosition is the replication position of the
+                      primary promoted by the last failover.
+                    properties:
+                      appliedGtid:
+                        description: |-
+                          AppliedGtid is the gtid_current_pos of the promoted primary right before its promotion, i.e. what it had applied
+                          from the failed primary.
+                        type: string
+                      promotionGtid:
+                        description: |-
+                          PromotionGtid is the gtid_binlog_pos of the promoted primary right after its promotion. A replica at AppliedGtid
+                          resumes from it.
+                        type: string
+                    required:
+                    - appliedGtid
+                    - promotionGtid
+                    type: object
                   gtidStrictModePaused:
                     description: GtidStrictModePaused indicates that gtid_strict_mode
                       has been temporarily paused.

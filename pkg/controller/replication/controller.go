@@ -99,6 +99,7 @@ type ReconcileRequest struct {
 	agentClientSet         *agentclient.ClientSet
 	currentPrimaryReady    bool
 	replicasSynced         bool
+	failoverPosition       *mariadbv1alpha1.FailoverPositionStatus
 	currentPrimaryPodIndex *int // Inferred using MaxScale API, and fallback to MariaDB's status.currentPrimaryPodIndex
 }
 
@@ -328,7 +329,7 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	replicaOpts, err := r.getReplicaOpts(ctx, req, pod, podIndex, logger, reconcilePodOpts...)
+	replicaOpts, err := r.getReplicaOpts(ctx, req, client, pod, podIndex, logger, reconcilePodOpts...)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting replica opts: %v", err)
 	}
@@ -338,13 +339,17 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	return ctrl.Result{}, nil
 }
 
-func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *ReconcileRequest, pod string, index int,
-	logger logr.Logger, reconcilePodOpts ...ReconcilePodOpt) ([]ConfigureReplicaOpt, error) {
+func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *ReconcileRequest, client *sql.Client, pod string,
+	index int, logger logr.Logger, reconcilePodOpts ...ReconcilePodOpt) ([]ConfigureReplicaOpt, error) {
 	opts := ReconcilePodOpts{}
 	for _, setOpt := range reconcilePodOpts {
 		setOpt(&opts)
 	}
 	if !opts.forceReplicaConfiguration {
+		replStatus := ptr.Deref(req.mariadb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+		if replStatus.FailoverPosition != nil {
+			return failoverReplicaOpts(ctx, client, replStatus.FailoverPosition, logger.WithValues("pod", pod))
+		}
 		return nil, nil
 	}
 
