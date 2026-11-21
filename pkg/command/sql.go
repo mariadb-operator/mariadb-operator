@@ -63,7 +63,7 @@ func (s *SqlCommand) ExecCommand(mariadb interfaces.Connector) (*Command, error)
 		"set -euo pipefail",
 		"echo '⚙️ Executing SQL script'",
 		fmt.Sprintf(
-			"mariadb %s < %s",
+			"mariadb %s --abort-source-on-error -e 'source %s'",
 			sqlFlags,
 			s.SqlFile,
 		),
