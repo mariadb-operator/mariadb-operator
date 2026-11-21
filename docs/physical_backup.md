@@ -237,6 +237,8 @@ The following target policies are available:
 
 When using the `PreferReplica` target policy, you may be willing to schedule the backups even if the `MariaDB` resource is not ready. In this case, you can set `mariaDbRef.waitForIt=false` to allow scheduling the backup even if no replicas are available.
 
+When taking a backup in a replica, `mariadb-backup` stops the replica SQL thread during the backup (`--safe-slave-backup`). If an attempt fails after stopping it and the `Job` retries, the SQL thread may be left stopped. To prevent this, once a `PhysicalBackup` `Job` finishes, successfully or not, or is deleted after exceeding the `timeout`, and no other `PhysicalBackup` `Job` for the same `MariaDB` is running, the operator starts the SQL thread of any replica where it is stopped without an error. This happens once per `Job`, so stopping the SQL thread manually afterwards is respected. Replicas whose replication threads are not running are not selected as backup targets.
+
 ## Restoration
 
 Physical backups can only be restored in brand new `MariaDB` instances without any existing data. This means that you cannot restore a physical backup into an existing `MariaDB` instance that already has data.

@@ -805,6 +805,12 @@ func (c *Client) StartSlave(ctx context.Context, replOpts ...ReplicationOpt) err
 	return c.Exec(ctx, fmt.Sprintf("START SLAVE %s;", opts.ConnectionName))
 }
 
+// StartSlaveSQLThread starts the replica SQL thread. It is a no-op if the SQL thread is already running.
+func (c *Client) StartSlaveSQLThread(ctx context.Context, replOpts ...ReplicationOpt) error {
+	opts := getReplOpts(replOpts...)
+	return c.Exec(ctx, fmt.Sprintf("START SLAVE %s SQL_THREAD;", opts.ConnectionName))
+}
+
 func (c *Client) StopSlave(ctx context.Context, replOpts ...ReplicationOpt) error {
 	opts := getReplOpts(replOpts...)
 	return c.Exec(ctx, fmt.Sprintf("STOP SLAVE %s;", opts.ConnectionName))

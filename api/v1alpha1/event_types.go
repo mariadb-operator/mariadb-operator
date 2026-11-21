@@ -65,6 +65,9 @@ const (
 	// ReasonJobScheduled indicates that a Job has been scheduled.
 	ReasonJobScheduled = "JobScheduled"
 
+	// ReasonReplicaSQLThreadStarted indicates that the SQL thread of a replica was started after a PhysicalBackup Job finished.
+	ReasonReplicaSQLThreadStarted = "ReplicaSQLThreadStarted"
+
 	// ReasonVolumeSnapshotCreated indicates that a VolumeSnapshot has been scheduled.
 	ReasonVolumeSnapshotCreated = "VolumeSnapshotCreated"
 
