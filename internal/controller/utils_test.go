@@ -112,7 +112,7 @@ var (
 )
 
 func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
-	testCidrPrefix, err := docker.GetKindCidrPrefix(ctx)
+	testCidrPrefix, err := testKindCidrPrefix(ctx)
 	Expect(testCidrPrefix).ShouldNot(Equal(""))
 	Expect(err).ToNot(HaveOccurred())
 
@@ -1665,6 +1665,15 @@ func applyDecoratorChain[T any](
 		}
 		return backup
 	}
+}
+
+// testKindCidrPrefix returns the prefix of the KIND Docker network CIDR. It can be overridden by the TEST_CIDR_PREFIX
+// environment variable, i.e. when running the tests in-cluster without access to Docker.
+func testKindCidrPrefix(ctx context.Context) (string, error) {
+	if prefix := os.Getenv("TEST_CIDR_PREFIX"); prefix != "" {
+		return prefix, nil
+	}
+	return docker.GetKindCidrPrefix(ctx)
 }
 
 func prefixedIPAddr(ipAddr string) string {
