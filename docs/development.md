@@ -108,7 +108,7 @@ make cluster
 make run-in-cluster
 ```
 
-`make cluster-init` writes a git ignored `.cluster.mk` file, which makes all subsequent `make` invocations in the checkout target the slot cluster. Run `make mode` to print the mode, cluster and kubeconfig of the checkout. Each slot cluster has its own kubeconfig (`/tmp/mariadb-operator/slot-<name>/kubeconfig`), used by every `make` target of the checkout, so parallel checkouts never switch each other's current context in `~/.kube/config`. To inspect a slot cluster, point `KUBECONFIG` to it, e.g. `KUBECONFIG=/tmp/mariadb-operator/slot-pr-1234/kubeconfig k9s`.
+`make cluster-init` writes a git ignored `.cluster.mk` file, which makes all subsequent `make` invocations in the checkout target the slot cluster. Run `make cluster-info` to print the mode, cluster and kubeconfig of the checkout. Each slot cluster has its own kubeconfig (`/tmp/mariadb-operator/slot-<name>/kubeconfig`), used by every `make` target of the checkout, so parallel checkouts never switch each other's current context in `~/.kube/config`. To inspect a slot cluster, point `KUBECONFIG` to it, e.g. `KUBECONFIG=/tmp/mariadb-operator/slot-pr-1234/kubeconfig k9s`.
 
 After changing the code, run `make run-in-cluster` again to rebuild the image and restart the operator. To run the integration tests, install their dependencies and stop the operator, as the tests run their own operator in-process. The tests run as a compiled test binary, so flags are passed with `TEST_ARGS` in its format, i.e. Ginkgo flags with the `--ginkgo.` prefix:
 
