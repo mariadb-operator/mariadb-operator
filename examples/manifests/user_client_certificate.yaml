@@ -1,0 +1,27 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: user-client-cert
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  # This field defaults to 10
+  maxUserConnections: 20
+  host: "%"
+  # Delete the resource in the database whenever the CR gets deleted.
+  # Alternatively, you can specify Skip in order to omit deletion.
+  cleanupPolicy: Delete
+
+  # Issue a TLS client certificate for this User, signed by the same CA the referenced MariaDB uses for its
+  # own client certificate. This requires 'spec.tls.enabled: true' on the referenced MariaDB. The certificate
+  # is stored in a Secret named "user-client-cert-client-cert".
+  clientCertificate:
+    enabled: true
+
+  # Require the certificate issued above to actually authenticate this user, instead of just being issued.
+  # See: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls
+  require:
+    subject: "/CN=user-client-cert-client"
+
+  requeueInterval: 10h
+  retryInterval: 30s

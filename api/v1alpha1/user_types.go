@@ -3,9 +3,11 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -79,6 +81,10 @@ type UserSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Require *TLSRequirements `json:"require,omitempty"`
+	// ClientCertificate configures whether the operator issues a dedicated TLS client certificate for this User.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientCertificate *UserClientCertificate `json:"clientCertificate,omitempty"`
 	// MaxUserConnections defines the maximum number of simultaneous connections that the User can establish.
 	// +optional
 	// +kubebuilder:default=10
@@ -94,6 +100,17 @@ type UserSpec struct {
 	// +kubebuilder:validation:MaxLength=255
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Host string `json:"host,omitempty" webhook:"inmutable"`
+}
+
+// UserClientCertificate configures whether the operator issues a dedicated TLS client certificate for a User.
+type UserClientCertificate struct {
+	// Enabled determines whether the operator issues a TLS client certificate for this User, signed by the same
+	// CA used by the referenced MariaDB (spec.tls.clientCASecretRef / spec.tls.clientCertIssuerRef, or the
+	// operator-managed CA otherwise). It requires the referenced MariaDB to have TLS enabled (spec.tls.enabled: true).
+	// It is disabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
 }
 
 // UserStatus defines the observed state of User
@@ -170,6 +187,34 @@ func (u *User) RetryInterval() *metav1.Duration {
 
 func (u *User) CleanupPolicy() *CleanupPolicy {
 	return u.Spec.CleanupPolicy
+}
+
+// IsClientCertificateEnabled indicates whether the operator should issue a dedicated TLS client certificate
+// for this User (spec.clientCertificate.enabled).
+func (u *User) IsClientCertificateEnabled() bool {
+	return u.Spec.ClientCertificate != nil && u.Spec.ClientCertificate.Enabled
+}
+
+// TLSClientCertSecretKey defines the key for the User's TLS client cert.
+func (u *User) TLSClientCertSecretKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-client-cert", u.Name),
+		Namespace: u.Namespace,
+	}
+}
+
+// TLSClientNames are the X.509 subject common names for the User's TLS client cert.
+func (u *User) TLSClientNames() []string {
+	return []string{fmt.Sprintf("%s-client", u.Name)}
+}
+
+// ClientCertCollidesWith indicates whether the User's TLS client certificate would clash with the one of the MariaDB:
+// both are signed by the same client CA, so a User with the same common name would be able to impersonate the
+// operator-managed users, and one with the same Secret would overwrite the operator's certificate.
+func (u *User) ClientCertCollidesWith(mdb *MariaDB) bool {
+	return slices.ContainsFunc(u.TLSClientNames(), func(name string) bool {
+		return slices.Contains(mdb.TLSClientNames(), name)
+	}) || u.TLSClientCertSecretKey() == mdb.TLSClientCertSecretKey()
 }
 
 // +kubebuilder:object:root=true
