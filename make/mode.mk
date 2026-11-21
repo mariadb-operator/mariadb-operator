@@ -19,8 +19,8 @@ endif
 	@printf 'MODE := in-cluster\nCLUSTER := slot-%s\n' "$$(echo '$(SLOT)' | tr '[:upper:]' '[:lower:]')" > .cluster.mk
 	@cat .cluster.mk
 
-.PHONY: mode
-mode: ## Print the running mode and cluster of this checkout.
+.PHONY: cluster-info
+cluster-info: ## Print the running mode and cluster of this checkout.
 	@echo "MODE=$(MODE) CLUSTER=$(CLUSTER) CONTEXT=kind-$(CLUSTER) KUBECONFIG=$(or $(KUBECONFIG),$(HOME)/.kube/config)"
 
 .PHONY: require-host-mode
