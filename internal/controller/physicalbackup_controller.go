@@ -71,13 +71,12 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 	logger := log.FromContext(ctx).WithName("physicalbackup")
 
-	if backup.Spec.Schedule == nil && backup.IsSuccessful() {
-		logger.V(1).Info("PhysicalBackup completed successfully, skipping reconciliation")
-		return ctrl.Result{}, nil
-	}
-
 	mariadb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
+		if backup.Spec.Schedule == nil && backup.IsSuccessful() {
+			logger.V(1).Info("PhysicalBackup completed successfully, skipping reconciliation")
+			return ctrl.Result{}, nil
+		}
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
@@ -96,6 +95,16 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	sqlThreadPending, err := r.ensureSQLThread(ctx, &backup, mariadb, sqlThreadLogger)
 	if err != nil {
 		sqlThreadLogger.Error(err, "error ensuring replica SQL thread")
+	}
+
+	// Successful one-shot backups are otherwise skipped, so Jobs left without the annotation are only recovered here.
+	if backup.Spec.Schedule == nil && backup.IsSuccessful() {
+		if sqlThreadPending {
+			sqlThreadLogger.V(1).Info("Waiting for Jobs to finish before restarting SQL thread. Requeuing...")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+		logger.V(1).Info("PhysicalBackup completed successfully, skipping reconciliation")
+		return ctrl.Result{}, nil
 	}
 
 	if backup.Spec.MariaDBRef.WaitForIt && !mariadb.IsReady() {
