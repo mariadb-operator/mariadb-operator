@@ -102,7 +102,7 @@ The root `Makefile` includes `make/*.mk`. Run `make help` (or bare `make`) to li
 | `make manifests` | CRDs, RBAC, webhook configs via controller-gen |
 | `make code` | DeepCopy methods via controller-gen |
 | `make cluster` / `cluster-delete` | Create/delete KIND cluster |
-| `make host-lease-release` / `cluster-init` / `run-in-cluster` / `test-int*-in-cluster` / `delete-in-cluster` / `mode` | Running modes, see "Running modes" in `docs/development.md` |
+| `make host-lease-release` / `cluster-init` / `run-in-cluster` / `test-int*-in-cluster` / `delete-in-cluster` / `cluster-info` | Running modes, see "Running modes" in `docs/development.md` |
 | `make net` | Local networking: MetalLB + `/etc/hosts` entries (host ↔ cluster connectivity) |
 | `make install` | CRDs + config + Prometheus CRDs + ServiceAccount + StorageClass + `docker-dev` |
 | `make install-minio` / `install-cert-manager` / `install-prometheus` / `install-azurite` / `install-csi-hostpath` | Optional per-feature dependencies |
@@ -133,7 +133,7 @@ Choose the mode based on the task, then on availability:
 Rules:
 
 - **Release the host lease when done**: run `make host-lease-release` when the task is finished or blocked, so other agents can use the host cluster. In in-cluster mode, run `make delete-in-cluster` instead.
-- **Never mix modes, and never touch a KIND cluster that is not yours**: other slot clusters (`slot-*`) and `mdb` may belong to other agents. In in-cluster mode, always pass the slot context explicitly (`kubectl --context kind-slot-<name>`).
+- **Never mix modes, and never touch a KIND cluster that is not yours**: other slot clusters (`slot-*`) and `mdb` may belong to other agents. In in-cluster mode, always use the slot kubeconfig printed by `make cluster-info` (`KUBECONFIG=/tmp/mariadb-operator/slot-<name>/kubeconfig kubectl ...`), never `~/.kube/config` or `kubectl config use-context`: its current context is shared by every checkout.
 - **A `GUARD:` error is not a bug: do not investigate it.** It means the target belongs to the other mode or another checkout holds the host lease. Do what the message says, or ask the user — never work around it (e.g. by deleting the lease).
 
 Feature-specific extras before testing those areas: `make install-minio` (S3 backups), `make install-azurite` (Azure backups), `make install-cert-manager` (TLS via cert-manager), `make install-prometheus` (metrics), `make install-csi-hostpath` (VolumeSnapshots).
