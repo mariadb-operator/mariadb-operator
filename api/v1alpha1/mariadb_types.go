@@ -389,6 +389,7 @@ func (b *BootstrapFrom) RestoreSource() (*RestoreSource, error) {
 	return &RestoreSource{
 		BackupRef:          backupRef,
 		S3:                 b.S3,
+		AzureBlob:          b.AzureBlob,
 		Volume:             b.Volume,
 		TargetRecoveryTime: b.TargetRecoveryTime,
 		StagingStorage:     b.StagingStorage,

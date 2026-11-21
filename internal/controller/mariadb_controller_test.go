@@ -711,6 +711,23 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 				Namespace: testNamespace,
 			},
 		),
+		Entry(
+			"Bootstrap from ABS",
+			buildBackupWithABSStorage("test-backup", "bootstrap")(
+				types.NamespacedName{
+					Name:      "test-backup-from-abs",
+					Namespace: testNamespace,
+				},
+			),
+			newBootstrapFromRestoreSource(mariadbv1alpha1.RestoreSource{
+				AzureBlob:          getABSStorage("test-backup", "bootstrap"),
+				TargetRecoveryTime: testTargetRecoveryTime,
+			}),
+			types.NamespacedName{
+				Name:      "test-mariadb-from-abs",
+				Namespace: testNamespace,
+			},
+		),
 	)
 
 	DescribeTable("should bootstrap from physical backup",
@@ -846,6 +863,7 @@ func newBootstrapFromRestoreSource(source mariadbv1alpha1.RestoreSource) mariadb
 	return mariadbv1alpha1.BootstrapFrom{
 		BackupRef:          typedBackupRef,
 		S3:                 source.S3,
+		AzureBlob:          source.AzureBlob,
 		Volume:             source.Volume,
 		TargetRecoveryTime: source.TargetRecoveryTime,
 		StagingStorage:     source.StagingStorage,

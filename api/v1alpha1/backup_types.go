@@ -37,7 +37,7 @@ type BackupSpec struct {
 	// +kubebuilder:validation:Minimum=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CompressionThreads *int32 `json:"compressionThreads,omitempty"`
-	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3 or AzureBlob) while they are being processed.
 	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.
 	// The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately.
 	// +optional
@@ -146,8 +146,8 @@ func (b *Backup) Validate() error {
 	if err := b.Spec.Compression.Validate(); err != nil {
 		return fmt.Errorf("invalid Compression: %v", err)
 	}
-	if b.Spec.Storage.S3 == nil && b.Spec.StagingStorage != nil {
-		return errors.New("'spec.stagingStorage' may only be specified when 'spec.storage.s3' is set")
+	if b.Spec.Storage.S3 == nil && b.Spec.Storage.AzureBlob == nil && b.Spec.StagingStorage != nil {
+		return errors.New("'spec.stagingStorage' may only be specified when 'spec.storage.s3' or 'spec.storage.azureBlob' is set")
 	}
 	return nil
 }
@@ -183,7 +183,7 @@ func (b *Backup) SetExternalDefaults(mariadb *ExternalMariaDB) {
 }
 
 func (b *Backup) Volume() (StorageVolumeSource, error) {
-	if b.Spec.Storage.S3 != nil {
+	if b.Spec.Storage.S3 != nil || b.Spec.Storage.AzureBlob != nil {
 		stagingStorage := ptr.Deref(b.Spec.StagingStorage, StagingStorage{})
 		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
 	}
