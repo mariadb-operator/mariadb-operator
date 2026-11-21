@@ -217,6 +217,22 @@ func TestBackupJobVolumeSource(t *testing.T) {
 		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
 			ClaimName: "test-pvc",
 		},
+		Ephemeral: &mariadbv1alpha1.EphemeralVolumeSource{
+			VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+				PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
+					Resources: corev1.VolumeResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: resource.MustParse("1Gi"),
+						},
+					},
+					AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				},
+				Metadata: &mariadbv1alpha1.Metadata{
+					Labels:      map[string]string{"foo": "bar"},
+					Annotations: map[string]string{"a": "b"},
+				},
+			},
+		},
 	}
 
 	storageVolumeSourceType := reflect.TypeOf(volumeSources)
