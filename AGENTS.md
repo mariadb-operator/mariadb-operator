@@ -133,7 +133,7 @@ Choose the mode based on the task, then on availability:
 Rules:
 
 - **Release the host lease when done**: run `make host-lease-release` when the task is finished or blocked, so other agents can use the host cluster. In in-cluster mode, run `make delete-in-cluster` instead.
-- **Never mix modes, and never touch a KIND cluster that is not yours**: other slot clusters (`slot-*`) and `mdb` may belong to other agents. In in-cluster mode, always pass the slot context explicitly (`kubectl --context kind-slot-<name>`).
+- **Never mix modes, and never touch a KIND cluster that is not yours**: other slot clusters (`slot-*`) and `mdb` may belong to other agents. In in-cluster mode, always use the slot kubeconfig printed by `make mode` (`KUBECONFIG=/tmp/mariadb-operator/slot-<name>/kubeconfig kubectl ...`), never `~/.kube/config` or `kubectl config use-context`: its current context is shared by every checkout.
 - **A `GUARD:` error is not a bug: do not investigate it.** It means the target belongs to the other mode or another checkout holds the host lease. Do what the message says, or ask the user — never work around it (e.g. by deleting the lease).
 
 Feature-specific extras before testing those areas: `make install-minio` (S3 backups), `make install-azurite` (Azure backups), `make install-cert-manager` (TLS via cert-manager), `make install-prometheus` (metrics), `make install-csi-hostpath` (VolumeSnapshots).

@@ -8,6 +8,9 @@ KIND_IMAGE ?= kindest/node:v1.36.1
 
 .PHONY: cluster
 cluster: kind ## Create a single node kind cluster.
+ifeq ($(MODE),in-cluster)
+	mkdir -p $(dir $(KUBECONFIG))
+endif
 	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)
 
 .PHONY: cluster-ha
@@ -19,7 +22,11 @@ cluster-delete: kind ## Delete the kind cluster.
 	$(KIND) delete cluster --name $(CLUSTER)
 
 .PHONY: cluster-ctx
-cluster-ctx: kubectl ## Sets cluster context.
+cluster-ctx: kubectl kind ## Sets cluster context.
+ifeq ($(MODE),in-cluster)
+	mkdir -p $(dir $(KUBECONFIG))
+	$(KIND) get kubeconfig --name $(CLUSTER) > $(KUBECONFIG)
+endif
 	$(KUBECTL) config use-context kind-$(CLUSTER)
 
 .PHONY: cluster-ls
