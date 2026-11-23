@@ -138,6 +138,8 @@ The same applies to the Galera and standalone topologies: setting `pointInTimeRe
 
 > [!IMPORTANT]
 > When upgrading from a version that only supported PITR with asynchronous replication, existing Galera and standalone resources that already define `pointInTimeRecoveryRef` will start archiving binary logs. For Galera resources, enabling the required GTID and binary log configuration also triggers a rolling restart.
+>
+> Additionally, standalone resources now run the [agent sidecar](./data_plane.md#agent-sidecar), regardless of whether PITR is enabled.
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1

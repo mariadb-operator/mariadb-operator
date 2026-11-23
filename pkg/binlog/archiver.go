@@ -74,30 +74,42 @@ func (a *Archiver) Start(ctx context.Context) error {
 			a.logger.Info("Stopping binary log archiver")
 			return nil
 		case <-ticker.C:
-			mdb, err := a.getMariaDB(ctx)
-			if err != nil {
-				return fmt.Errorf("error getting MariaDB: %v", err)
-			}
-			pitr, err := a.getPointInTimeRecovery(ctx, mdb)
-			if err != nil {
-				a.logger.Error(err, "Error getting PointInTimeRecovery")
-				continue
-			}
-			shouldArchive, err := a.shouldArchiveBinlogs(mdb, pitr)
-			if err != nil {
-				a.logger.Error(err, "Error determining whether archival should be performed")
-				continue
-			}
-			if !shouldArchive {
-				continue
-			}
-			archiveErr := a.archiveBinaryLogs(ctx, mdb, pitr)
-
-			if err := a.updateStatusWithError(ctx, mdb, archiveErr); err != nil {
-				return fmt.Errorf("error updating status with error: %v", err)
+			if err := a.archiveTick(ctx); err != nil {
+				return err
 			}
 		}
 	}
+}
+
+// archiveTick runs a single archival cycle. A returned error is fatal for the archiver, whereas archival errors are reported in the MariaDB status.
+func (a *Archiver) archiveTick(ctx context.Context) error {
+	mdb, err := a.getMariaDB(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting MariaDB: %v", err)
+	}
+	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
+	if err != nil {
+		a.logger.Error(err, "Error getting PointInTimeRecovery")
+		return nil
+	}
+	shouldArchive, err := a.shouldArchiveBinlogs(mdb, pitr)
+	if err != nil {
+		// Surface it in the status and events, otherwise e.g. an out of bounds podArchiverIndex would only be visible in the agent logs.
+		a.logger.Error(err, "Error determining whether archival should be performed")
+		if err := a.updateStatusWithError(ctx, mdb, err); err != nil {
+			return fmt.Errorf("error updating status with error: %v", err)
+		}
+		return nil
+	}
+	if !shouldArchive {
+		return nil
+	}
+	archiveErr := a.archiveBinaryLogs(ctx, mdb, pitr)
+
+	if err := a.updateStatusWithError(ctx, mdb, archiveErr); err != nil {
+		return fmt.Errorf("error updating status with error: %v", err)
+	}
+	return nil
 }
 
 // isArchiverPod determines whether the current Pod is the one designated to archive binary logs.

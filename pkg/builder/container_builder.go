@@ -261,7 +261,7 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts
 		},
 	}
 	// Galera and replication share the generated MariaDB config dir ('/etc/mysql/mariadb.conf.d'), which is not mounted in the standalone topology.
-	// In stsandalone always-present projected config volume ('/etc/mysql/conf.d') is used instead.
+	// In standalone always-present projected config volume ('/etc/mysql/conf.d') is used instead.
 	configDir := galeraresources.GaleraConfigMountPath
 	if *topology == mariadbv1alpha1.TopologyStandalone {
 		configDir = ConfigMountPath

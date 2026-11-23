@@ -57,7 +57,7 @@ func (p *GaleraProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 		p.responseWriter.WriteOK(w, nil)
 		return
 	}
-	// During binlog replay, wsrep_on=OFF is set, this prevents the Pods from restarting
+	// During binlog replay, wsrep_gtid_mode is disabled in the archiver Pod, this prevents the Pods from restarting
 	if mdb.IsReplayingBinlogs() && mdb.HasPendingBinlogReplay() {
 		p.livenessLogger.Info("binary log replay pending. Returning OK to facilitate replay")
 		p.responseWriter.WriteOK(w, nil)
@@ -100,7 +100,7 @@ func (p *GaleraProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 	if err := p.k8sClient.Get(k8sCtx, p.mariadbKey, &mdb); err != nil {
 		p.readinessLogger.Error(err, "error getting MariaDB")
 	}
-	// During binlog replay, wsrep_on=OFF is set, this prevents primary Pod from being changed
+	// During binlog replay, wsrep_gtid_mode is disabled in the archiver Pod, this prevents primary Pod from being changed
 	if mdb.IsReplayingBinlogs() && mdb.HasPendingBinlogReplay() {
 		p.readinessLogger.Info("binary log replay pending. Returning OK to facilitate replay")
 		p.responseWriter.WriteOK(w, nil)

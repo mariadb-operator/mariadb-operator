@@ -111,7 +111,7 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 }
 
 // prepareBinlogReplay temporarily relaxes server settings for binlog replay:
-// - Galera: disables wsrep_gtid_mode on the archiver Pod so server_id can be overridden. wsrep_on remains enabled, so replayed transactions replicate normally.
+// - Galera: disables wsrep_gtid_mode on the archiver Pod so server_id can be overridden. wsrep_on is left untouched, so replayed transactions replicate normally.
 // - Replication: disables gtid_strict_mode on the primary.
 // - Standalone: no changes required.
 func (r *MariaDBReconciler) prepareBinlogReplay(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {

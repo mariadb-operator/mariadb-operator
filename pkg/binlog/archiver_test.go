@@ -1,14 +1,22 @@
 package binlog
 
 import (
+	"context"
 	"testing"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestShouldArchiveBinlogsPodSelection(t *testing.T) {
@@ -100,5 +108,55 @@ func TestShouldArchiveBinlogsPodSelection(t *testing.T) {
 			}
 			assert.Equal(t, tt.wantArchive, shouldArchive)
 		})
+	}
+}
+
+func TestArchiveTickReportsInvalidPodArchiverIndex(t *testing.T) {
+	mdb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{Name: "mariadb-galera", Namespace: "default"},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas:               3,
+			Galera:                 &mariadbv1alpha1.Galera{Enabled: true},
+			PointInTimeRecoveryRef: &mariadbv1alpha1.LocalObjectReference{Name: "pitr"},
+		},
+	}
+	pitr := &mariadbv1alpha1.PointInTimeRecovery{
+		ObjectMeta: metav1.ObjectMeta{Name: "pitr", Namespace: "default"},
+		Spec:       mariadbv1alpha1.PointInTimeRecoverySpec{PodArchiverIndex: ptr.To(3)},
+	}
+	scheme := runtime.NewScheme()
+	require.NoError(t, mariadbv1alpha1.AddToScheme(scheme))
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(mdb, pitr).
+		WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+		Build()
+	recorder := events.NewFakeRecorder(10)
+	archiver := &Archiver{
+		env: &environment.PodEnvironment{
+			PodName:      "mariadb-galera-0",
+			PodNamespace: "default",
+			MariadbName:  "mariadb-galera",
+		},
+		client:      k8sClient,
+		refResolver: refresolver.New(k8sClient),
+		recorder:    recorder,
+		logger:      logr.Discard(),
+	}
+
+	require.NoError(t, archiver.archiveTick(context.Background()))
+
+	var got mariadbv1alpha1.MariaDB
+	require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKeyFromObject(mdb), &got))
+	cond := meta.FindStatusCondition(got.Status.Conditions, mariadbv1alpha1.ConditionTypeBinlogsArchived)
+	require.NotNil(t, cond)
+	assert.Equal(t, metav1.ConditionFalse, cond.Status)
+	assert.Contains(t, cond.Message, "invalid spec.podArchiverIndex 3")
+
+	select {
+	case event := <-recorder.Events:
+		assert.Contains(t, event, mariadbv1alpha1.ReasonBinlogArchivalError)
+	default:
+		t.Fatal("expected a BinlogArchivalError event")
 	}
 }
