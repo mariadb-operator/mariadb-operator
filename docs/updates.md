@@ -76,6 +76,7 @@ This role-aware update strategy consists in rolling out the replica `Pods` one b
 - Write operations won't be affected until all the replica `Pods` have been rolled out. If something goes wrong in the update, such as an update to an incompatible MariaDB version, this is detected early when the replicas are being rolled out and the update operation will be paused at that point.
 - Read operations impact is minimized by only rolling one replica `Pod` at a time.
 - Waiting for every `Pod` to be synced minimizes the impact in the clustering protocols and the network.
+- Before the primary `Pod` is updated, the primary is switched to an already updated replica, so the `<mariadb-name>-primary` `Service` keeps pointing to a running `Pod`. With replication, this is a [primary switchover](./replication.md#primary-switchover). With Galera, where every node accepts writes, the operator moves the primary `Service` to the new primary and waits until it no longer routes to the former primary before updating it. Galera with MaxScale or with the multi-cluster topology keeps updating the primary without a prior switchover.
 
 ## `RollingUpdate`
 

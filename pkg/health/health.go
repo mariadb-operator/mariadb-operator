@@ -206,6 +206,30 @@ func IsServiceHealthy(ctx context.Context, client ctrlclient.Client, serviceKey 
 	return false, nil
 }
 
+// IsServiceEndpoint indicates whether the Pod is one of the endpoints of the Service.
+func IsServiceEndpoint(ctx context.Context, client ctrlclient.Client, serviceKey types.NamespacedName, podName string) (bool, error) {
+	endpointSliceList := discoveryv1.EndpointSliceList{}
+	listOpts := &ctrlclient.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			map[string]string{
+				metadata.KubernetesServiceLabel: serviceKey.Name,
+			},
+		),
+		Namespace: serviceKey.Namespace,
+	}
+	if err := client.List(ctx, &endpointSliceList, listOpts); err != nil {
+		return false, err
+	}
+	for _, endpointSlice := range endpointSliceList.Items {
+		for _, endpoint := range endpointSlice.Endpoints {
+			if endpoint.TargetRef != nil && endpoint.TargetRef.Kind == "Pod" && endpoint.TargetRef.Name == podName {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 func sortPods(pods []corev1.Pod) {
 	sort.Slice(pods, func(i, j int) bool {
 		return pods[i].Name < pods[j].Name
