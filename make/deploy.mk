@@ -8,6 +8,9 @@ KIND_IMAGE ?= kindest/node:v1.36.1
 
 .PHONY: cluster
 cluster: kind ## Create a single node kind cluster.
+ifeq ($(MODE),in-cluster)
+	mkdir -p $(dir $(KUBECONFIG))
+endif
 	$(KIND) create cluster --name $(CLUSTER) --image $(KIND_IMAGE)
 
 .PHONY: cluster-ha
@@ -19,7 +22,11 @@ cluster-delete: kind ## Delete the kind cluster.
 	$(KIND) delete cluster --name $(CLUSTER)
 
 .PHONY: cluster-ctx
-cluster-ctx: kubectl ## Sets cluster context.
+cluster-ctx: kubectl kind ## Sets cluster context.
+ifeq ($(MODE),in-cluster)
+	mkdir -p $(dir $(KUBECONFIG))
+	$(KIND) get kubeconfig --name $(CLUSTER) > $(KUBECONFIG)
+endif
 	$(KUBECTL) config use-context kind-$(CLUSTER)
 
 .PHONY: cluster-ls
@@ -105,7 +112,7 @@ install-trust-manager: helm cluster-ctx install-cert-manager ## Install trust-ma
 
 METALLB_VERSION ?= "0.15.3"
 .PHONY: install-metallb
-install-metallb: helm cluster-ctx ## Install metallb helm chart.
+install-metallb: require-host-mode helm cluster-ctx ## Install metallb helm chart.
 	@METALLB_VERSION=$(METALLB_VERSION) HELM=$(HELM) ./hack/install_metallb.sh
 
 MINIO_VERSION ?= "5.4.0"
@@ -136,7 +143,7 @@ install-config: cluster-ctx  ## Install common configuration.
 
 .PHONY: serviceaccount
 serviceaccount: cluster-ctx  ## Create long-lived ServiceAccount token for development.
-	@./hack/create_serviceaccount.sh
+	@MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) ./hack/create_serviceaccount.sh
 
 .PHONY: serviceaccount-token
 serviceaccount-get: cluster-ctx ## Get ServiceAccount token for development.

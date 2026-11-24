@@ -62,3 +62,5 @@ pprof.out
 
 # Git patches
 *.patch
+# Running mode slot binding
+/.cluster.mk

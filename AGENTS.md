@@ -76,7 +76,7 @@ mariadb-operator/
 ├── docs/                    # Feature docs + generated api_reference.md
 ├── examples/                # Example manifests (incl. multi-cluster/) and Flux GitOps setup
 ├── hack/                    # Dev/CI scripts (install_*.sh, config/, manifests/)
-├── make/                    # Modular Makefiles: build, deploy, deps, dev, docs, gen, helm, net, pki, azure
+├── make/                    # Modular Makefiles: build, deploy, deps, dev, docs, gen, helm, mode, net, pki, azure
 ├── test/e2e/                # E2E tests (Ginkgo) + test/utils/ — do NOT add new E2E tests for now
 └── csi-driver-host-path/    # Vendored submodule — ignore
 ```
@@ -102,6 +102,7 @@ The root `Makefile` includes `make/*.mk`. Run `make help` (or bare `make`) to li
 | `make manifests` | CRDs, RBAC, webhook configs via controller-gen |
 | `make code` | DeepCopy methods via controller-gen |
 | `make cluster` / `cluster-delete` | Create/delete KIND cluster |
+| `make host-lease-release` / `cluster-init` / `run-in-cluster` / `test-int*-in-cluster` / `delete-in-cluster` / `cluster-info` | Running modes, see "Running modes" in `docs/development.md` |
 | `make net` | Local networking: MetalLB + `/etc/hosts` entries (host ↔ cluster connectivity) |
 | `make install` | CRDs + config + Prometheus CRDs + ServiceAccount + StorageClass + `docker-dev` |
 | `make install-minio` / `install-cert-manager` / `install-prometheus` / `install-azurite` / `install-csi-hostpath` | Optional per-feature dependencies |
@@ -113,23 +114,36 @@ Pass extra Ginkgo args with `TEST_ARGS`, e.g. `make test-int TEST_ARGS="--focus=
 
 ## Development Guides
 
-### Environment setup
+### Running modes
 
-```bash
-make cluster        # KIND cluster
-make install        # CRDs + dev dependencies + operator image
-make net            # MetalLB + /etc/hosts so host-run operator can reach MariaDB pods
-make run            # operator on your host, against the KIND cluster
-```
+There are two mutually exclusive running modes. Their setup and targets are documented in "Running modes" in `docs/development.md`, read it before using a KIND cluster.
+
+- **Host mode**: the operator (`make run`) and the integration tests (`make test-int*`) run on the host against the shared `mdb` cluster, reached through `make net`. Fastest feedback loop, no image builds. Only one checkout can use it at a time: host mode targets acquire a 4h lease on it.
+- **In-cluster mode**: the checkout is bound to its own slot cluster (`make cluster-init SLOT=<issue|pr-N>`), named after the issue, ticket or PR, where the operator runs as it does for users (Helm chart, webhooks, cert-controller, cluster DNS) and the integration tests run as a Job. Isolated and parallel, but every code change requires rebuilding and reloading the image.
+
+Choose the mode based on the task, then on availability:
+
+- **Prefer host mode** when it is available and the task does not call for one or the other, e.g. iterating on controller logic, debugging the operator, or running focused integration specs.
+- **Prefer in-cluster mode** when the task needs the operator to run exactly as users run it, or must stay isolated from other work. For example:
+  - testing a PR end-to-end;
+  - changing the Helm chart, RBAC, webhooks or cert-controller;
+  - disruptive or long-running scenarios, like killing nodes or Pods, or recreating clusters.
+- **Fall back to in-cluster mode** when the host is leased by someone else (host mode targets fail with a `GUARD:` error naming the holder).
+
+Rules:
+
+- **Release the host lease when done**: run `make host-lease-release` when the task is finished or blocked, so other agents can use the host cluster. In in-cluster mode, run `make delete-in-cluster` instead.
+- **Never mix modes, and never touch a KIND cluster that is not yours**: other slot clusters (`slot-*`) and `mdb` may belong to other agents. In in-cluster mode, always use the slot kubeconfig printed by `make cluster-info` (`KUBECONFIG=/tmp/mariadb-operator/slot-<name>/kubeconfig kubectl ...`), never `~/.kube/config` or `kubectl config use-context`: its current context is shared by every checkout.
+- **A `GUARD:` error is not a bug: do not investigate it.** It means the target belongs to the other mode or another checkout holds the host lease. Do what the message says, or ask the user — never work around it (e.g. by deleting the lease).
 
 Feature-specific extras before testing those areas: `make install-minio` (S3 backups), `make install-azurite` (Azure backups), `make install-cert-manager` (TLS via cert-manager), `make install-prometheus` (metrics), `make install-csi-hostpath` (VolumeSnapshots).
 
 ### Development workflows
 
 - **Change API types** (`api/v1alpha1/`) → `make gen`, then commit the regenerated files (CI fails otherwise).
-- **Change code** → `make build` compiles; `make run` to exercise against KIND.
+- **Change code** → `make build` compiles; `make run` to exercise against KIND (`make run-in-cluster` in in-cluster mode).
 - **Lint** → `make lint`. Enabled linters (`.golangci.yml`, v2 config): bodyclose, errcheck, ginkgolinter, gocyclo (≤22), govet, ineffassign, lll (≤140), misspell, nestif (≤12), noctx, staticcheck, unused. Formatters: gofmt + goimports.
-- **Test** → `make test` for unit; `make test-int-basic` for a fast integration signal. Integration tests need a KIND cluster with `make install`, `make install-minio`, `make net` (and `make install-azurite` for Azure specs).
+- **Test** → `make test` for unit; `make test-int-basic` for a fast integration signal. In in-cluster mode, run the `-in-cluster` equivalents (see `docs/development.md`). In host mode they need a KIND cluster with `make install`, `make install-minio`, `make net` (and `make install-azurite` for Azure specs).
 
 ### Adding a new feature
 
@@ -286,6 +300,8 @@ Where to look when working on a specific feature:
 
 ### Local cluster connectivity
 
+This section applies to host mode only; in in-cluster mode the operator uses the cluster DNS and no connectivity setup is needed.
+
 Whether you `make run` the operator or `make test-int`, the binary runs **on your host** while the KIND cluster (and its MariaDB pods) runs inside a container — and the SQL client (`pkg/sql`) connects to the pods over their internal Kubernetes FQDNs.
 
 Because of that host-to-container split, connectivity to the pods has to be simulated. That is what `make net` (`install-metallb` + `host`) provides:
@@ -294,6 +310,8 @@ Because of that host-to-container split, connectivity to the pods has to be simu
 - **`/etc/hosts`** entries (added by `make net` → `hack/add_host.sh`) map the in-cluster FQDNs to those MetalLB IPs, so the host-side `sql.Open` resolves them.
 
 Implications when writing integration tests: `make net` is a hard prerequisite (connections fail without it); a new MariaDB in a spec needs a unique pinned LB IP.
+
+The pinned IPs, per-Pod LoadBalancer Services (`hack/manifests/metallb/`) and `/etc/hosts` entries exist only for the names used by the test suites (e.g. `mariadb-repl` in the `default` namespace), so reuse those names when testing manually against a host-run operator.
 
 ### Local KIND troubleshooting
 
@@ -304,6 +322,16 @@ Before each run, clear the three setup failures that masquerade as test regressi
 - **A stray process holding `:8080` breaks BeforeSuite.** The in-process manager binds `:8080` (controller-runtime's default metrics address; the operator binary's `--metrics-addr` defaults to the same, `cmd/controller/main.go:118`). A leftover `make run`, `make webhook` or `cert-controller` — or another agent's task sharing the host — makes `k8sManager.Start` fail. Find it with `lsof -i:8080 -sTCP:LISTEN` and kill it before re-running.
 - **Interrupted runs leave orphan fixtures → `already exists` (409) on the next run.** `testCreateInitialData` (`internal/controller/suite_test.go:372`) seeds shared CRs and Secrets; a run killed mid-flight can leave a `MariaDB` (e.g. `mdb-test`) plus the Secrets it generated (`password`, SSEC, cert) behind, which the next run cannot re-create. Delete the leftover CR and Secrets, or delete and recreate the test namespace. Nuclear reset: `make cluster-delete && make cluster && make install && make install-minio && make net`.
 - **A missing operator SA token masquerades as a replication bug.** The in-process manager authenticates to the in-cluster agent over the token file at `MARIADB_OPERATOR_SA_PATH` (`make/dev.mk:3`, default `/tmp/mariadb-operator/token`). `make serviceaccount` (`hack/create_serviceaccount.sh`) creates it — it is part of `make install` but **not** a prerequisite of the `test-int*` targets. When it is missing or stale (e.g. after `make cluster`), every agent-client call fails at V(1) once a second, the 60s poll in `ensureReplicationConfiguredInPod` (`internal/controller/mariadb_controller_init.go:440`) burns its budget, and the replica-cluster spec dies with `context deadline exceeded` — nothing in the operator log points at the cause. Re-run `make serviceaccount` (it re-extracts the token from the current cluster's SA secret).
+
+Other environment failures that look like operator bugs:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `lookup <pod>.<service>.default.svc.cluster.local ... no such host` | `/etc/hosts` lost the `make net` entries (e.g. after the host or dev container restarted) | `make host` |
+| Backup Job fails with `The specified bucket does not exist` | MinIO installed before the bucket was added to `hack/config/minio.yaml` | `make install-minio` |
+| Azure (ABS) specs time out | Azurite not installed | `make install-azurite` |
+| `helmtest` fails with missing chart dependencies | Chart CRDs not generated | `make helm-crds` before `make test` |
+| envtest fails to start (`etcd`/`kube-apiserver` not found) | Tests run with bare `go test` | Use `make test` / `make test-int`, which set up envtest |
 
 kubectl gotchas that burn cycles:
 
@@ -317,6 +345,17 @@ When a spec appears stuck with no error in the log:
 - **A green run prints a compact log.** Ginkgo only dumps each spec's writer buffer (the controller logs) on failure or with `--v`; a few KB of log for a 10-spec run is a pass, not truncation. Pass `TEST_ARGS="... --v"` to confirm a flow actually executed in a green run.
 - **The multi-cluster describes are `Ordered`** (`internal/controller/mariadb_controller_multicluster_test.go:87`): each spec applies the fixtures the later ones consume, so an early failure blocks every later spec (including the switchover spec), and `--focus` must target the whole container, not a single later spec.
 - **`kind load` may fail with containerd "content digest not found"** on some host Docker/containerd combinations. Workaround for data-plane images (`RELATED_IMAGE_*`): pull them into the node's containerd directly — `docker exec mdb-control-plane crictl pull <image>`.
+
+## GitHub access
+
+Reading PRs and issues, and pushing or posting when asked, goes through one of the following, tried in order and falling through only when the previous one is unavailable:
+
+1. **Project-scoped GitHub MCP tools** (`mcp__github-mariadb-operator__*`). They may be deferred tools whose schema has to be loaded before calling them.
+2. **`gh` CLI with the project-specific token**: `GH_TOKEN="$GITHUB_MARIADB_OPERATOR_TOKEN"`.
+3. **Generic GitHub MCP tools** (`mcp__github__*`).
+4. **`gh` CLI with default credentials** as the last resort.
+
+Pass `--repo mariadb-operator/mariadb-operator` explicitly to `gh` when working from a fork, as the bare command can resolve to the fork instead.
 
 ## CI — what a PR must pass
 
