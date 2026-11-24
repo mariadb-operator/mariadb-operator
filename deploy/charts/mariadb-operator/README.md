@@ -62,8 +62,8 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.tolerations | list | `[]` | Tolerations to add to cert-controller container |
 | certController.topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to cert-controller container |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
-| config | object | `{"exporterImage":{"repository":"prom/mysqld-exporter","tag":"v0.15.1"},"exporterMaxscaleImage":{"repository":"mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"},"galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"12.3","mariadbImage":{"repository":"mariadb","tag":"12.3.3"},"mariadbImageName":"mariadb","maxscaleImage":{"repository":"mariadb/maxscale","tag":"23.08.13-2"}}` | Operator configuration |
-| config.exporterImage | object | `{"repository":"prom/mysqld-exporter","tag":"v0.15.1"}` | Default MariaDB exporter image |
+| config | object | `{"exporterImage":{"repository":"prom/mysqld-exporter","tag":"v0.21.0"},"exporterMaxscaleImage":{"repository":"mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"},"galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"12.3","mariadbImage":{"repository":"mariadb","tag":"12.3.3"},"mariadbImageName":"mariadb","maxscaleImage":{"repository":"mariadb/maxscale","tag":"23.08.13-2"}}` | Operator configuration |
+| config.exporterImage | object | `{"repository":"prom/mysqld-exporter","tag":"v0.21.0"}` | Default MariaDB exporter image |
 | config.exporterMaxscaleImage | object | `{"repository":"mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"}` | Default MaxScale exporter image |
 | config.galeraLibPath | string | `"/usr/lib/galera/libgalera_smm.so"` | Galera library path to be used with MariaDB Galera |
 | config.mariadbDefaultVersion | string | `"12.3"` | Default MariaDB version to be used when unable to infer it via image tag |

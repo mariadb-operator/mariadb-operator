@@ -336,7 +336,7 @@ config:
   # -- Default MariaDB exporter image
   exporterImage:
     repository: prom/mysqld-exporter
-    tag: v0.15.1
+    tag: v0.21.0
   # -- Default MaxScale exporter image
   exporterMaxscaleImage:
     repository: mariadb/maxscale-prometheus-exporter-ubi

@@ -48,7 +48,7 @@ spec:
   metrics:
     enabled: true
     exporter:
-      image: harbor.mycompany.com/mysqld-exporter:v0.15.1
+      image: harbor.mycompany.com/mysqld-exporter:v0.21.0
       imagePullPolicy: IfNotPresent
       imagePullSecrets:
         - name: registry
