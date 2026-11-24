@@ -426,6 +426,18 @@ func TestOperatorHelmConfigMap(t *testing.T) {
 	Expect(configMap.Data["RELATED_IMAGE_EXPORTER_MAXSCALE"]).To(Equal("exporter-maxscale:1.0"))
 }
 
+func TestOperatorHelmConfigMapDefaultExporterImage(t *testing.T) {
+	RegisterTestingT(t)
+	testCtx := t.Context()
+	opts := &helm.Options{}
+	configMapData := helm.RenderTemplateContext(t, testCtx, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/configmap.yaml"})
+	var configMap corev1.ConfigMap
+	helm.UnmarshalK8SYaml(t, configMapData, &configMap)
+	Expect(configMap.Data["RELATED_IMAGE_EXPORTER"]).To(Equal("prom/mysqld-exporter:v0.21.0"))
+}
+
 func TestOperatorHelmPprof(t *testing.T) {
 	RegisterTestingT(t)
 	testCtx := t.Context()
