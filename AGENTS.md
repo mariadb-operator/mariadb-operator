@@ -121,14 +121,15 @@ There are two mutually exclusive running modes. Their setup and targets are docu
 - **Host mode**: the operator (`make run`) and the integration tests (`make test-int*`) run on the host against the shared `mdb` cluster, reached through `make net`. Fastest feedback loop, no image builds. Only one checkout can use it at a time: host mode targets acquire a 4h lease on it.
 - **In-cluster mode**: the checkout is bound to its own slot cluster (`make cluster-init SLOT=<issue|pr-N>`), named after the issue, ticket or PR, where the operator runs as it does for users (Helm chart, webhooks, cert-controller, cluster DNS) and the integration tests run as a Job. Isolated and parallel, but every code change requires rebuilding and reloading the image.
 
-Choose the mode based on the task, then on availability:
+**You MUST use host mode whenever it is available.** It is the default for every task, including testing a PR, reproducing a reported issue, debugging the operator and running integration tests. Do not pick in-cluster mode because it looks safer, more isolated or more realistic: that is not a valid reason.
 
-- **Prefer host mode** when it is available and the task does not call for one or the other, e.g. iterating on controller logic, debugging the operator, or running focused integration specs.
-- **Prefer in-cluster mode** when the task needs the operator to run exactly as users run it, or must stay isolated from other work. For example:
-  - testing a PR end-to-end;
-  - changing the Helm chart, RBAC, webhooks or cert-controller;
-  - disruptive or long-running scenarios, like killing nodes or Pods, or recreating clusters.
-- **Fall back to in-cluster mode** when the host is leased by someone else (host mode targets fail with a `GUARD:` error naming the holder).
+Always try host mode first. Fall back to in-cluster mode **only** when using the host cluster would conflict with other work or cannot exercise the change:
+
+- **The host is leased by someone else**: a host mode target fails with a `GUARD:` error naming the holder. This is the main reason to fall back.
+- **The task would outlive or break the shared cluster**: it recreates or deletes the KIND cluster, kills nodes, or needs to keep running beyond the 4h lease.
+- **The change cannot run on the host**: it is in the Helm chart, RBAC, webhooks or cert-controller, which only in-cluster mode deploys.
+
+If none of these applies, you are in host mode. If unsure, use host mode.
 
 Rules:
 
