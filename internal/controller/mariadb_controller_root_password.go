@@ -104,61 +104,19 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 
 		patchCtx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
-		return wait.PollUntilContextCancel(patchCtx, time.Second, true, func(ctx context.Context) (done bool, err error) {
-			var errBundle *multierror.Error
-			errBundle = multierror.Append(
-				errBundle,
-				sqlClient.AlterUser(
-					patchCtx,
-					"'root'@'localhost'",
-					mariadbsql.WithIdentifiedBy(string(internalRootPassword)),
-					mariadbsql.WithMaxUserConnections(10),
-				),
-			)
-			errBundle = multierror.Append(
-				errBundle,
-				sqlClient.AlterUser(
-					patchCtx,
-					"'root'@'%'",
-					mariadbsql.WithIdentifiedBy(string(internalRootPassword)),
-					mariadbsql.WithMaxUserConnections(10),
-				),
-			)
-
-			if errBundle.ErrorOrNil() == nil {
-				return true, nil
-
+		return wait.PollUntilContextCancel(patchCtx, time.Second, true, func(pollCtx context.Context) (done bool, err error) {
+			if err := updateRootUserPassword(pollCtx, sqlClient.AlterUser, string(internalRootPassword)); err != nil {
+				rootPassLogger.Error(err, "error while restoring root user password")
+				return false, nil
 			}
-			rootPassLogger.Error(errBundle.ErrorOrNil(), "error while restoring root user password")
-
-			return false, nil
+			return true, nil
 		})
 	}
 
-	var errBundle *multierror.Error
-	errBundle = multierror.Append(
-		errBundle,
-		sqlClient.AlterUser(
-			ctx,
-			"'root'@'localhost'",
-			mariadbsql.WithIdentifiedBy(newRootPassword),
-			mariadbsql.WithMaxUserConnections(10),
-		),
-	)
-	errBundle = multierror.Append(
-		errBundle,
-		sqlClient.AlterUser(
-			ctx,
-			"'root'@'%'",
-			mariadbsql.WithIdentifiedBy(newRootPassword),
-			mariadbsql.WithMaxUserConnections(10),
-		),
-	)
-
-	if errBundle.ErrorOrNil() != nil {
+	if err := updateRootUserPassword(ctx, sqlClient.AlterUser, newRootPassword); err != nil {
 		return ctrl.Result{}, fmt.Errorf(
 			"error updating root user password: %v",
-			multierror.Append(errBundle, restoreFunc(errBundle.ErrorOrNil())),
+			multierror.Append(err, restoreFunc(err)),
 		)
 	}
 
@@ -177,6 +135,27 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 	rootPassLogger.Info("Root password updated successfully. Requeuing...")
 
 	return ctrl.Result{RequeueAfter: time.Second}, nil
+}
+
+// updateRootUserPassword updates both root accounts without imposing a per-user connection cap.
+func updateRootUserPassword(
+	ctx context.Context,
+	alterUser func(context.Context, string, ...mariadbsql.CreateUserOpt) error,
+	password string,
+) error {
+	var errBundle *multierror.Error
+	for _, account := range []string{"'root'@'localhost'", "'root'@'%'"} {
+		errBundle = multierror.Append(
+			errBundle,
+			alterUser(
+				ctx,
+				account,
+				mariadbsql.WithIdentifiedBy(password),
+				mariadbsql.WithMaxUserConnections(0),
+			),
+		)
+	}
+	return errBundle.ErrorOrNil()
 }
 
 // reconcileRootPasswordInDataPlane updates the root password based on the current value of `RootPasswordSecretKeyRef`
