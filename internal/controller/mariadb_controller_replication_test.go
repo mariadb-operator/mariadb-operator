@@ -7,6 +7,7 @@ import (
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -184,6 +185,42 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 			}
 			return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == stsobj.PodName(mdb.ObjectMeta, podIndex)
 		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	// Without log_slave_updates, the promoted primary's binary log starts at its promotion. The former primary must resume
+	// from there instead of requesting its own last GTID, which the promoted primary rejects with error 1236.
+	It("should rejoin the former primary as replica after a failover", func() {
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.Status.CurrentPrimaryPodIndex != nil
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		By("Writing to the primary")
+		withSemiSyncSqlClient(Default, mdb, *mdb.Status.CurrentPrimaryPodIndex, func(sqlClient *sql.Client) {
+			Expect(sqlClient.Exec(testCtx, "CREATE DATABASE IF NOT EXISTS failover_rejoin")).To(Succeed())
+			Expect(sqlClient.Exec(testCtx, "CREATE TABLE IF NOT EXISTS failover_rejoin.t (id INT AUTO_INCREMENT PRIMARY KEY)")).To(Succeed())
+			for i := 0; i < 5; i++ {
+				Expect(sqlClient.Exec(testCtx, "INSERT INTO failover_rejoin.t VALUES ()")).To(Succeed())
+			}
+		})
+
+		formerPrimary := failoverPrimary(mdb)
+
+		By("Expecting the failover position to be recorded")
+		Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+		Expect(mdb.Status.Replication).ToNot(BeNil())
+		Expect(mdb.Status.Replication.FailoverPosition).ToNot(BeNil())
+
+		By("Expecting the former primary to replicate without errors")
+		expectMariadbFn(testCtx, k8sClient, key, func(m *mariadbv1alpha1.MariaDB) bool {
+			repl := ptr.Deref(m.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+			replica, ok := repl.Replicas[formerPrimary]
+			return ok && m.IsReady() && repl.ReplicaToRecover == nil &&
+				ptr.Deref(replica.SlaveIORunning, false) && ptr.Deref(replica.LastIOErrno, 0) == 0
+		})
 	})
 
 	// Consecutive failovers promote nodes that may have retained binary logs from a previous primary.

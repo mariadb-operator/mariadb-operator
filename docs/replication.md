@@ -311,6 +311,8 @@ Once the new primary is selected, the failover process will be performed, consis
 2. Promote the selected replica to be the new primary.
 3. Connect replicas to the new primary.
 
+The new primary's binary log starts at its promotion, as `log_slave_updates` is only enabled in [multi-cluster](./multi-cluster.md) topologies. Therefore, the operator records the position the new primary had applied and its first GTID after the promotion in `status.replication.failoverPosition`. A replica whose `gtid_current_pos` matches the applied position resumes replication from that first GTID: the replicas connected during the failover, as well as the former primary once it is back. A replica that does not match, because it was behind or it executed transactions the new primary never received, is not reset: it fails with error 1236, and it is re-seeded if [replica recovery](#replica-recovery) is enabled, which discards its diverging transactions.
+
 ## Updates
 
 When updating a replication cluster, all the considerations and procedures described in the [updates](./updates.md) documentation apply.

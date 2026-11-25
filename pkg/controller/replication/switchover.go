@@ -115,6 +115,11 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.UpdateCurrentPrimary(req.mariadb, newPrimary)
 		condition.SetPrimarySwitched(&req.mariadb.Status)
+		if status.Replication == nil {
+			status.Replication = &mariadbv1alpha1.ReplicationStatus{}
+		}
+		// A switchover leaves no replica behind, and a position recorded by an earlier failover refers to another primary.
+		status.Replication.FailoverPosition = req.failoverPosition
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
@@ -273,17 +278,29 @@ func (r *ReplicationReconciler) waitForNewPrimarySync(ctx context.Context, req *
 		mariadbv1alpha1.ReasonReplicationPrimaryNewSync, "Waiting for new primary to be synced")
 
 	syncTimeout := ptr.Deref(replication.Replica.SyncTimeout, metav1.Duration{Duration: 10 * time.Second}).Duration
-	syncCtx, cancel := context.WithTimeout(ctx, syncTimeout)
+	if err := waitForRelayLogApplied(ctx, newPrimaryClient, syncTimeout, logger); err != nil {
+		logger.Error(err, "Error waiting for new primary to be synced")
+		r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationPrimaryNewSyncErr,
+			mariadbv1alpha1.ReasonReplicationPrimaryNewSyncErr, "Error waiting for new primary to be synced: %v", err)
+		return err
+	}
+
+	logger.V(1).Info("New primary synced")
+	return nil
+}
+
+func waitForRelayLogApplied(ctx context.Context, client *sql.Client, timeout time.Duration, logger logr.Logger) error {
+	syncCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	if err := wait.PollUntilSuccessOrContextCancel(syncCtx, logger, func(ctx context.Context) error {
-		status, err := newPrimaryClient.ReplicaStatus(ctx, logger)
+	return wait.PollUntilSuccessOrContextCancel(syncCtx, logger, func(ctx context.Context) error {
+		status, err := client.ReplicaStatus(ctx, logger)
 		if err != nil {
-			return fmt.Errorf("error getting new primary status: %v", err)
+			return fmt.Errorf("error getting replica status: %v", err)
 		}
-		gtidDomainId, err := newPrimaryClient.GtidDomainId(ctx)
+		gtidDomainId, err := client.GtidDomainId(ctx)
 		if err != nil {
-			return fmt.Errorf("error getting GTID domain ID in new primary: %v", err)
+			return fmt.Errorf("error getting GTID domain ID: %v", err)
 		}
 		hasRelayLogEvents, err := HasRelayLogEvents(status, *gtidDomainId, logger)
 		if err != nil {
@@ -293,15 +310,7 @@ func (r *ReplicationReconciler) waitForNewPrimarySync(ctx context.Context, req *
 			return errors.New("relay log events detected")
 		}
 		return nil
-	}); err != nil {
-		logger.Error(err, "Error waiting for new primary to be synced")
-		r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationPrimaryNewSyncErr,
-			mariadbv1alpha1.ReasonReplicationPrimaryNewSyncErr, "Error waiting for new primary to be synced: %v", err)
-		return err
-	}
-
-	logger.V(1).Info("New primary synced")
-	return nil
+	})
 }
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
@@ -316,8 +325,27 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *Re
 
 	topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger)
 
+	var appliedGtid string
+	if !req.currentPrimaryReady {
+		// ConfigurePrimary resets gtid_slave_pos, the only record of what the new primary applied from the failed one.
+		appliedGtid, err = newPrimaryClient.GtidCurrentPos(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting new primary current position: %v", err)
+		}
+	}
 	if err := topology.ConfigurePrimary(ctx, newPrimaryClient); err != nil {
 		return fmt.Errorf("error configuring new primary vars: %v", err)
+	}
+	if appliedGtid != "" {
+		promotionGtid, err := newPrimaryClient.GtidBinlogPos(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting new primary binlog position: %v", err)
+		}
+		logger.Info("Recording failover position", "applied-gtid", appliedGtid, "promotion-gtid", promotionGtid)
+		req.failoverPosition = &mariadbv1alpha1.FailoverPositionStatus{
+			AppliedGtid:   appliedGtid,
+			PromotionGtid: promotionGtid,
+		}
 	}
 	return nil
 }
@@ -342,7 +370,9 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 		return fmt.Errorf("error getting replica options: %v", err)
 	}
 
-	replicationPrimaryPodIndex := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
+	replication := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	replicationPrimaryPodIndex := replication.Primary.PodIndex
+	syncTimeout := ptr.Deref(replication.Replica.SyncTimeout, metav1.Duration{Duration: 10 * time.Second}).Duration
 
 	g := new(errgroup.Group)
 	g.SetLimit(int(req.mariadb.Spec.Replicas))
@@ -373,9 +403,20 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 			if err != nil {
 				return fmt.Errorf("error getting replica '%d' client: %v", i, err)
 			}
-			topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("replica", i))
+			replicaLogger := logger.WithValues("replica", i)
+			topology := r.topologyManager.TopologyForMariaDB(req.mariadb, replicaLogger)
 
-			if err := topology.ConfigureReplica(ctx, replClient, newPrimary, replicaOpts...); err != nil {
+			opts := replicaOpts
+			if !req.replicasSynced && req.failoverPosition != nil {
+				// A replica may still be applying events received from the failed primary, which its position must include.
+				if err := waitForRelayLogApplied(ctx, replClient, syncTimeout, replicaLogger); err != nil {
+					replicaLogger.Info("Replica did not apply its relay log in time", "err", err)
+				}
+				if opts, err = failoverReplicaOpts(ctx, replClient, req.failoverPosition, replicaLogger); err != nil {
+					return fmt.Errorf("error getting replica '%d' failover options: %v", i, err)
+				}
+			}
+			if err := topology.ConfigureReplica(ctx, replClient, newPrimary, opts...); err != nil {
 				return fmt.Errorf("error configuring replica '%d': %v", i, err)
 			}
 
