@@ -100,7 +100,7 @@ make host-lease-release
 
 #### In-cluster mode
 
-When the task calls for it, or the host cluster is leased by someone else, bind your checkout to a slot cluster, named after an issue or pull request:
+Only fall back to this mode when the host cluster is leased by someone else, the task recreates the cluster or outlives the lease, or the change is in the Helm chart, RBAC, webhooks or cert-controller. Otherwise, use host mode. In that case, bind your checkout to a slot cluster, named after an issue or pull request:
 
 ```bash
 make cluster-init SLOT=pr-1234
