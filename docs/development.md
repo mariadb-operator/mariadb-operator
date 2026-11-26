@@ -6,6 +6,7 @@ In this guide, we will be configuring a local environment to run `mariadb-operat
 <!-- toc -->
 - [Flavours](#flavours)
 - [Getting started](#getting-started)
+- [Running modes](#running-modes)
 - [Cluster](#cluster)
 - [Network](#network)
 - [Dependencies](#dependencies)
@@ -67,6 +68,61 @@ Operator
 
 ...
 ```
+
+## Running modes
+
+There are two running modes, which are mutually exclusive and should not be mixed:
+
+| | Host mode (preferred) | In-cluster mode |
+|---|---|---|
+| Operator runs | On your host, via `go run` | In the KIND cluster, deployed with Helm |
+| Cluster | `mdb`, one checkout at a time (lease) | One slot cluster per checkout, `slot-<name>` |
+| Networking | `make net`: MetalLB + `/etc/hosts` | None, the operator uses the cluster DNS |
+| Image build | Not needed | On each `make run-in-cluster` |
+| Integration tests | `make test-int*` on your host | `make test-int*-in-cluster`, as a `Job` in the slot cluster |
+
+#### Host mode
+
+Host mode is the preferred mode, as it does not require building an image and gives you the fastest feedback loop. It is used by the rest of this guide:
+
+```bash
+make cluster
+make install
+make net
+make run
+```
+
+Only one checkout can use the host cluster at a time: host mode targets (`make net`, `make run`, `make test-int*`...) transparently acquire or renew a Kubernetes `Lease` (`default/mariadb-operator-dev`) for 4 hours. If another checkout holds it, they fail suggesting the in-cluster mode. Release it when you are done, so others can use the host cluster:
+
+```bash
+make host-lease-release
+```
+
+#### In-cluster mode
+
+Only fall back to this mode when the host cluster is leased by someone else, the task recreates the cluster or outlives the lease, or the change is in the Helm chart, RBAC, webhooks or cert-controller. Otherwise, use host mode. In that case, bind your checkout to a slot cluster, named after an issue or pull request:
+
+```bash
+make cluster-init SLOT=pr-1234
+make cluster
+make run-in-cluster
+```
+
+`make cluster-init` writes a git ignored `.cluster.mk` file, which makes all subsequent `make` invocations in the checkout target the slot cluster. Run `make cluster-info` to print the mode, cluster and kubeconfig of the checkout. Each slot cluster has its own kubeconfig (`/tmp/mariadb-operator/slot-<name>/kubeconfig`), used by every `make` target of the checkout, so parallel checkouts never switch each other's current context in `~/.kube/config`. To inspect a slot cluster, point `KUBECONFIG` to it, e.g. `KUBECONFIG=/tmp/mariadb-operator/slot-pr-1234/kubeconfig k9s`.
+
+After changing the code, run `make run-in-cluster` again to rebuild the image and restart the operator. To run the integration tests, install their dependencies and stop the operator, as the tests run their own operator in-process. The tests run as a compiled test binary, so flags are passed with `TEST_ARGS` in its format, i.e. Ginkgo flags with the `--ginkgo.` prefix:
+
+```bash
+make install-in-cluster
+make stop-in-cluster
+make test-int-basic-in-cluster
+make test-int-in-cluster TEST_ARGS="--ginkgo.focus=Galera"
+make test-int-multi-cluster-in-cluster
+```
+
+When you are done, delete the slot cluster and unbind the checkout with `make delete-in-cluster`.
+
+Running a target in the wrong mode fails fast with a `GUARD:` error. This is a safeguard, not a bug: switch to the right mode instead.
 
 ## Cluster
 

@@ -32,15 +32,15 @@ test: envtest ginkgo ## Run unit tests.
 	$(TEST) ./api/... ./pkg/... ./internal/helmtest/... ./internal/webhook/...
 
 .PHONY: test-int-basic
-test-int-basic: envtest ginkgo ## Run integration tests with label 'basic'
+test-int-basic: require-host-mode envtest ginkgo ## Run integration tests with label 'basic'
 	$(MAKE) TEST_ARGS="--label-filter=basic" test-int
 
 .PHONY: test-int
-test-int: envtest ginkgo ## Run integration tests, excluding feature-specific tests.
+test-int: require-host-mode envtest ginkgo ## Run integration tests, excluding feature-specific tests.
 	$(TEST) --label-filter="!multi-cluster" ./internal/controller/...
 
 .PHONY: test-int-multi-cluster
-test-int-multi-cluster: envtest ginkgo ## Run multi-cluster integration tests.
+test-int-multi-cluster: require-host-mode envtest ginkgo ## Run multi-cluster integration tests.
 	$(TEST) --label-filter="multi-cluster" ./internal/controller/...
 
 .PHONY: test-api
@@ -86,14 +86,14 @@ RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601
 # 	MARIADB_OPERATOR_LOG_TIME_ENCODER=iso8601
 
 .PHONY: run
-run: lint ## Run a controller from your host.
+run: require-host-mode lint ## Run a controller from your host.
 	$(ENV) $(RUN_ENV) $(GO) run cmd/controller/*.go $(RUN_FLAGS)
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
 	--ca-cert-path=$(CA_CERT) --cert-dir=$(WEBHOOK_PKI_DIR) \
 	--validate-cert=false
 .PHONY: webhook
-webhook: lint cert-webhook ## Run a webhook from your host.
+webhook: require-host-mode lint cert-webhook ## Run a webhook from your host.
 	$(GO) run cmd/controller/*.go webhook $(WEBHOOK_FLAGS)
 
 # CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
@@ -101,7 +101,7 @@ webhook: lint cert-webhook ## Run a webhook from your host.
 CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
 	--ca-lifetime=1h --cert-lifetime=1m --renew-before-percentage=33 --requeue-duration=30s
 .PHONY: cert-controller
-cert-controller: lint ## Run a cert-controller from your host.
+cert-controller: require-host-mode lint ## Run a cert-controller from your host.
 	$(GO) run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
 BACKUP_ENV ?= AWS_ACCESS_KEY_ID=mariadb-operator AWS_SECRET_ACCESS_KEY=Minio11!

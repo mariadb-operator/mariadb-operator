@@ -140,4 +140,4 @@ host-multi-cluster-mxs: ## Add multi-cluster maxscale hosts to /etc/hosts.
 host: host-mariadb host-mdb-test host-mdb-pitr host-mdb-emulated-external-test host-mxs-test host-mariadb-repl host-mariadb-galera host-mariadb-galera-test host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui host-multi-cluster host-multi-cluster-mxs host-azurite ## Configure hosts for local development.
 
 .PHONY: net
-net: install-metallb host ## Configure networking for local development.
+net: require-host-mode install-metallb host ## Configure networking for local development.

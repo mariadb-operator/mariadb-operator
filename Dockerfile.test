@@ -1,0 +1,23 @@
+FROM golang:1.27.2-alpine3.23 AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+ENV CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}
+
+WORKDIR /app
+
+COPY go.mod go.sum /app/
+RUN go mod download
+
+COPY . /app
+RUN go test -c -o controller.test ./internal/controller
+RUN go build -o azurite-seed ./hack/azurite
+
+FROM gcr.io/distroless/static
+
+COPY --from=builder /app/config/crd/bases /test/config/crd/bases
+COPY --from=builder /app/azurite-seed /test/azurite-seed
+COPY --from=builder /app/controller.test /test/internal/controller/controller.test
+WORKDIR /test/internal/controller
+
+ENTRYPOINT ["/test/internal/controller/controller.test"]
