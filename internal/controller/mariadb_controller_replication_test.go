@@ -6,10 +6,13 @@ import (
 
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -141,6 +144,133 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		// The original primary was serving as primary until the switchover above, so it may have retained binary logs
 		// from its own primary term: promoting it back exercises the Error 1948 path in 'ConfigurePrimary'.
 		switchPrimaryTo(mdb, originalPrimary)
+	})
+
+	It("should start replica SQL thread after PhysicalBackup", func() {
+		backupKey := types.NamespacedName{
+			Name:      "physicalbackup-repl-sql-thread",
+			Namespace: key.Namespace,
+		}
+		backup := buildPhysicalBackupWithS3Storage(key, "test-physicalbackup", "")(backupKey)
+		testPhysicalBackup(backup)
+
+		getJob := func(g Gomega) *batchv1.Job {
+			jobList, err := job.ListJobs(testCtx, k8sClient, backup)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(jobList.Items).To(HaveLen(1))
+			return &jobList.Items[0]
+		}
+		By("Expecting Job to have SQL thread ensured annotation eventually")
+		Eventually(func(g Gomega) {
+			g.Expect(getJob(g).Annotations).To(HaveKey(metadata.PhysicalBackupSQLThreadStartedAnnotation))
+		}, testTimeout, testInterval).Should(Succeed())
+
+		Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+		replicaPodIndex := (*mdb.Status.CurrentPrimaryPodIndex + 1) % int(mdb.Spec.Replicas)
+		replicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, mdb, testRefResolver, replicaPodIndex)
+		Expect(err).ToNot(HaveOccurred())
+		defer replicaClient.Close()
+
+		By("Stopping replica SQL thread")
+		Expect(replicaClient.Exec(testCtx, "STOP SLAVE SQL_THREAD;")).To(Succeed())
+
+		By("Removing annotation from Job to simulate a Job that left the SQL thread stopped")
+		Eventually(func(g Gomega) {
+			backupJob := getJob(g)
+			patch := client.MergeFrom(backupJob.DeepCopy())
+			delete(backupJob.Annotations, metadata.PhysicalBackupSQLThreadStartedAnnotation)
+			g.Expect(k8sClient.Patch(testCtx, backupJob, patch)).To(Succeed())
+		}, testTimeout, testInterval).Should(Succeed())
+
+		By("Expecting replica SQL thread to be running eventually")
+		Eventually(func(g Gomega) {
+			status, err := replicaClient.ReplicaStatus(testCtx, GinkgoLogr)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(ptr.Deref(status.SlaveSQLRunning, false)).To(BeTrue())
+		}, testTimeout, testInterval).Should(Succeed())
+
+		By("Expecting Job to have SQL thread ensured annotation eventually")
+		Eventually(func(g Gomega) {
+			g.Expect(getJob(g).Annotations).To(HaveKey(metadata.PhysicalBackupSQLThreadStartedAnnotation))
+		}, testTimeout, testInterval).Should(Succeed())
+
+		By("Deleting PhysicalBackup")
+		deletePhysicalBackup(backupKey, false)
+	})
+
+	It("should start replica SQL thread after a killed PhysicalBackup attempt", func() {
+		backupKey := types.NamespacedName{
+			Name:      "physicalbackup-repl-sql-thread-killed",
+			Namespace: key.Namespace,
+		}
+		backup := buildPhysicalBackupWithS3Storage(key, "test-physicalbackup", "")(backupKey)
+		backup.Spec.Target = ptr.To(mariadbv1alpha1.PhysicalBackupTargetReplica)
+		// Slow the backup down to be able to kill the attempt while the replica SQL thread is stopped.
+		backup.Spec.Args = []string{"--throttle=2"}
+
+		By("Creating PhysicalBackup")
+		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+		DeferCleanup(func() {
+			deletePhysicalBackup(backupKey, false)
+		})
+
+		var backupPod corev1.Pod
+		By("Expecting to create a backup Pod eventually")
+		Eventually(func(g Gomega) {
+			jobList, err := job.ListJobs(testCtx, k8sClient, backup)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(jobList.Items).To(HaveLen(1))
+
+			var podList corev1.PodList
+			g.Expect(k8sClient.List(testCtx, &podList, client.InNamespace(key.Namespace),
+				client.MatchingLabels{"batch.kubernetes.io/job-name": jobList.Items[0].Name})).To(Succeed())
+			g.Expect(podList.Items).To(HaveLen(1))
+			backupPod = podList.Items[0]
+		}, testTimeout, testInterval).Should(Succeed())
+
+		Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+		var replicaClient *sql.Client
+		By("Expecting mariadb-backup to stop a replica SQL thread eventually")
+		Eventually(func(g Gomega) {
+			for i := 0; i < int(mdb.Spec.Replicas); i++ {
+				if i == *mdb.Status.CurrentPrimaryPodIndex {
+					continue
+				}
+				sqlClient, err := sql.NewInternalClientWithPodIndex(testCtx, mdb, testRefResolver, i)
+				g.Expect(err).ToNot(HaveOccurred())
+				status, err := sqlClient.ReplicaStatus(testCtx, GinkgoLogr)
+				if err == nil && !ptr.Deref(status.SlaveSQLRunning, true) {
+					replicaClient = sqlClient
+					return
+				}
+				sqlClient.Close()
+			}
+			g.Expect(replicaClient).ToNot(BeNil())
+		}, testTimeout, testInterval).Should(Succeed())
+		defer replicaClient.Close()
+
+		// The Job retries the attempt in a new Pod, which finds the SQL thread already stopped and does not start it at the end.
+		By("Killing the backup Pod while the replica SQL thread is stopped")
+		Expect(k8sClient.Delete(testCtx, &backupPod, client.GracePeriodSeconds(0))).To(Succeed())
+
+		By("Expecting PhysicalBackup to complete eventually")
+		Eventually(func(g Gomega) {
+			g.Expect(k8sClient.Get(testCtx, backupKey, backup)).To(Succeed())
+			g.Expect(backup.IsComplete()).To(BeTrue())
+		}, testHighTimeout, testInterval).Should(Succeed())
+
+		By("Expecting replica SQL thread to be running eventually")
+		Eventually(func(g Gomega) {
+			status, err := replicaClient.ReplicaStatus(testCtx, GinkgoLogr)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(ptr.Deref(status.SlaveSQLRunning, false)).To(BeTrue())
+		}, testTimeout, testInterval).Should(Succeed())
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func(g Gomega) {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			g.Expect(mdb.IsReady()).To(BeTrue())
+		}, testHighTimeout, testInterval).Should(Succeed())
 	})
 
 	It("should fail and switch over primary", func() {

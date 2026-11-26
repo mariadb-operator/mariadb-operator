@@ -15,6 +15,8 @@ var (
 	GaleraAnnotation      = "k8s.mariadb.com/galera"
 	MariadbAnnotation     = "k8s.mariadb.com/mariadb"
 
+	PhysicalBackupSQLThreadStartedAnnotation = "k8s.mariadb.com/sql-thread-started"
+
 	ConfigAnnotation       = "k8s.mariadb.com/config"
 	ConfigTLSAnnotation    = "k8s.mariadb.com/config-tls"
 	ConfigGaleraAnnotation = "k8s.mariadb.com/config-galera"

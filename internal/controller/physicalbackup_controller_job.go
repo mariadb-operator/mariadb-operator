@@ -46,7 +46,7 @@ func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *ma
 	if err := r.cleanupJobs(ctx, backup, jobList, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
 	}
-	if result, err := r.waitForRunningJobs(ctx, backup, jobList, logger); !result.IsZero() || err != nil {
+	if result, err := r.waitForRunningJobs(ctx, backup, mariadb, jobList, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 
@@ -217,7 +217,7 @@ func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mari
 }
 
 func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	jobList *batchv1.JobList, logger logr.Logger) (ctrl.Result, error) {
+	mariadb *mariadbv1alpha1.MariaDB, jobList *batchv1.JobList, logger logr.Logger) (ctrl.Result, error) {
 	for _, job := range jobList.Items {
 		if jobpkg.IsJobRunning(&job) {
 			if backup.Spec.Timeout != nil && !job.CreationTimestamp.IsZero() &&
@@ -226,6 +226,10 @@ func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, backu
 				logger.Info("PhysicalBackup Job timed out. Deleting...", "job", job.Name)
 				if err := r.deleteJobSync(ctx, &job, logger); err != nil {
 					return ctrl.Result{}, fmt.Errorf("error deleting expired Job: %v", err)
+				}
+				// The deleted Job may have stopped the replica SQL thread, and it no longer exists to be ensured once finished.
+				if _, err := r.ensureReplicaSQLThreads(ctx, backup, mariadb, logger.WithName("sql-thread")); err != nil {
+					logger.Error(err, "error ensuring replica SQL thread")
 				}
 				return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Requeue gives exponential backoff, which RequeueAfter cannot express.
 			}

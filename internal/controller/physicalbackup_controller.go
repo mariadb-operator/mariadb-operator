@@ -71,13 +71,12 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 	logger := log.FromContext(ctx).WithName("physicalbackup")
 
-	if backup.Spec.Schedule == nil && backup.IsSuccessful() {
-		logger.V(1).Info("PhysicalBackup completed successfully, skipping reconciliation")
-		return ctrl.Result{}, nil
-	}
-
 	mariadb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
+		if backup.Spec.Schedule == nil && backup.IsSuccessful() {
+			logger.V(1).Info("PhysicalBackup completed successfully, skipping reconciliation")
+			return ctrl.Result{}, nil
+		}
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
@@ -88,6 +87,26 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
+	logger = logger.WithValues("mariadb", mariadb.Name)
+
+	// A replica left with a stopped SQL thread makes the MariaDB not ready, so this must run before waiting for it.
+	// Errors are not returned to avoid blocking backups, the check is retried in the next reconciliation.
+	sqlThreadLogger := logger.WithName("sql-thread")
+	sqlThreadPending, err := r.ensureSQLThread(ctx, &backup, mariadb, sqlThreadLogger)
+	if err != nil {
+		sqlThreadLogger.Error(err, "error ensuring replica SQL thread")
+	}
+
+	// Successful one-shot backups are otherwise skipped, so Jobs left without the annotation are only recovered here.
+	if backup.Spec.Schedule == nil && backup.IsSuccessful() {
+		if sqlThreadPending {
+			sqlThreadLogger.V(1).Info("Waiting for Jobs to finish before restarting SQL thread. Requeuing...")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+		logger.V(1).Info("PhysicalBackup completed successfully, skipping reconciliation")
+		return ctrl.Result{}, nil
+	}
+
 	if backup.Spec.MariaDBRef.WaitForIt && !mariadb.IsReady() {
 		if err := r.patchStatus(ctx, &backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
 			r.ConditionComplete.PatcherFailed("MariaDB not ready")(status)
@@ -105,8 +124,6 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
-	logger = logger.WithValues("mariadb", mariadb.Name)
-
 	if !shouldReconcilePhysicalBackup(mariadb, logger) {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
@@ -114,7 +131,12 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := r.setDefaults(ctx, &backup, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error defaulting PhysicalBackup: %v", err)
 	}
-	return r.reconcile(ctx, &backup, mariadb, logger)
+	result, err := r.reconcile(ctx, &backup, mariadb, logger)
+	if err == nil && result.IsZero() && sqlThreadPending {
+		sqlThreadLogger.V(1).Info("Waiting for Jobs to finish before restarting SQL thread. Requeuing...")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+	return result, err
 }
 
 func (r *PhysicalBackupReconciler) setDefaults(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
@@ -459,6 +481,8 @@ func isReplicationReady(ctx context.Context, client *sql.Client, logger logr.Log
 	if err != nil {
 		return false, fmt.Errorf("error getting replica status: %v", err)
 	}
+	// A stopped SQL thread without error may belong to a backup in progress, which must not be overlapped by another one.
 	return replStatus.LastIOErrno != nil && *replStatus.LastIOErrno == 0 &&
-		replStatus.LastSQLErrno != nil && *replStatus.LastSQLErrno == 0, nil
+		replStatus.LastSQLErrno != nil && *replStatus.LastSQLErrno == 0 &&
+		ptr.Deref(replStatus.SlaveIORunning, false) && ptr.Deref(replStatus.SlaveSQLRunning, false), nil
 }
