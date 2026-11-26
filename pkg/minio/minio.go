@@ -336,7 +336,15 @@ func (c *Client) GetCredentials() *credentials.Credentials {
 }
 
 func (c *Client) putObjectOptions() (*minio.PutObjectOptions, error) {
-	putOpts := minio.PutObjectOptions{}
+	putOpts := minio.PutObjectOptions{
+		// Send a Content-MD5 header on every PutObject and UploadPart request. S3 requires an integrity
+		// header (Content-MD5 or x-amz-checksum-*) when the bucket has an Object Lock default retention,
+		// and rejects the upload otherwise. minio-go only adds its automatic CRC32C checksum when the client
+		// has TrailingHeaders enabled and, for single-part uploads, uses TLS. Content-MD5 is supported by
+		// every S3-compatible backend and also works over plain HTTP.
+		// See: https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock-managing.html
+		SendContentMd5: true,
+	}
 	if sse, err := c.getSSEC(); err != nil {
 		return nil, fmt.Errorf("error creating SSE-C encryption: %v", err)
 	} else if sse != nil {
