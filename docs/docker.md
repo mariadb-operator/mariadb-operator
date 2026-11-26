@@ -26,7 +26,7 @@
     </tr>
     <tr>
       <td>Mysqld Exporter</td>
-	    <td><code>prom/mysqld-exporter:v0.15.1</code></td>
+	    <td><code>prom/mysqld-exporter:v0.21.0</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
     <tr>
