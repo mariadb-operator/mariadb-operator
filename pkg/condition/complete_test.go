@@ -47,8 +47,8 @@ func TestSetCompleteWithCronJob(t *testing.T) {
 				},
 			},
 			wantStatus:  metav1.ConditionFalse,
-			wantReason:  "CronJobScheduled",
-			wantMessage: "Scheduled",
+			wantReason:  "CronJobFailed",
+			wantMessage: "Failed",
 		},
 		{
 			name: "running",
