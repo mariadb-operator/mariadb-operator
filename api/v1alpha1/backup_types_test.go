@@ -255,6 +255,48 @@ var _ = Describe("Backup types", func() {
 				false,
 			),
 			Entry(
+				"AzureBlob",
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						Storage: BackupStorage{
+							AzureBlob: &AzureBlob{},
+						},
+					},
+				},
+				StorageVolumeSource{
+					EmptyDir: &EmptyDirVolumeSource{},
+				},
+				false,
+			),
+			Entry(
+				"AzureBlob with staging",
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						Storage: BackupStorage{
+							AzureBlob: &AzureBlob{},
+						},
+						StagingStorage: &StagingStorage{
+							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+								StorageClassName: ptr.To("my-sc"),
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+							},
+						},
+					},
+				},
+				StorageVolumeSource{
+					PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+						ClaimName: backup.StagingPVCKey().Name,
+					},
+				},
+				false,
+			),
+			Entry(
 				"PVC",
 				&Backup{
 					ObjectMeta: objMeta,

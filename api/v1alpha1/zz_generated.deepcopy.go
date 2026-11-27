@@ -281,6 +281,11 @@ func (in *BackupStorage) DeepCopyInto(out *BackupStorage) {
 		*out = new(S3)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.AzureBlob != nil {
+		in, out := &in.AzureBlob, &out.AzureBlob
+		*out = new(AzureBlob)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.PersistentVolumeClaim != nil {
 		in, out := &in.PersistentVolumeClaim, &out.PersistentVolumeClaim
 		*out = new(PersistentVolumeClaimSpec)
@@ -4679,6 +4684,11 @@ func (in *RestoreSource) DeepCopyInto(out *RestoreSource) {
 	if in.S3 != nil {
 		in, out := &in.S3, &out.S3
 		*out = new(S3)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.AzureBlob != nil {
+		in, out := &in.AzureBlob, &out.AzureBlob
+		*out = new(AzureBlob)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Volume != nil {

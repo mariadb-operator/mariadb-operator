@@ -244,6 +244,27 @@ var _ = Describe("Restore types", func() {
 				false,
 			),
 			Entry(
+				"AzureBlob",
+				&RestoreSource{
+					AzureBlob: &AzureBlob{
+						ContainerName: "test",
+						ServiceURL:    "test",
+					},
+				},
+				nil,
+				&RestoreSource{
+					AzureBlob: &AzureBlob{
+						ContainerName: "test",
+						ServiceURL:    "test",
+					},
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
 				"Volume",
 				&RestoreSource{
 					Volume: &StorageVolumeSource{
@@ -358,6 +379,31 @@ var _ = Describe("Restore types", func() {
 					S3: &S3{
 						Bucket:   "test",
 						Endpoint: "test",
+					},
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"Backup AzureBlob",
+				&RestoreSource{},
+				&Backup{
+					Spec: BackupSpec{
+						Storage: BackupStorage{
+							AzureBlob: &AzureBlob{
+								ContainerName: "test",
+								ServiceURL:    "test",
+							},
+						},
+					},
+				},
+				&RestoreSource{
+					AzureBlob: &AzureBlob{
+						ContainerName: "test",
+						ServiceURL:    "test",
 					},
 					Volume: &StorageVolumeSource{
 						EmptyDir: &EmptyDirVolumeSource{},

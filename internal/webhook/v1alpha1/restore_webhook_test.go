@@ -203,6 +203,88 @@ var _ = Describe("Restore webhook", func() {
 				false,
 			),
 			Entry(
+				"AzureBlob source",
+				&v1alpha1.Restore{
+					ObjectMeta: objMeta,
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							AzureBlob: &v1alpha1.AzureBlob{
+								ContainerName: "test",
+								ServiceURL:    "https://test.blob.core.windows.net/",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				false,
+			),
+			Entry(
+				"AzureBlob and staging storage",
+				&v1alpha1.Restore{
+					ObjectMeta: objMeta,
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							AzureBlob: &v1alpha1.AzureBlob{
+								ContainerName: "test",
+								ServiceURL:    "https://test.blob.core.windows.net/",
+							},
+							StagingStorage: &v1alpha1.StagingStorage{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
+									Resources: corev1.VolumeResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("300Mi"),
+										},
+									},
+								},
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				false,
+			),
+			Entry(
+				"S3 and AzureBlob sources",
+				&v1alpha1.Restore{
+					ObjectMeta: objMeta,
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							S3: &v1alpha1.S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+							AzureBlob: &v1alpha1.AzureBlob{
+								ContainerName: "test",
+								ServiceURL:    "https://test.blob.core.windows.net/",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				true,
+			),
+			Entry(
 				"Volume and stagingStorage",
 				&v1alpha1.Restore{
 					ObjectMeta: objMeta,

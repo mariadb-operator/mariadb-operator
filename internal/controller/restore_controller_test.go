@@ -333,7 +333,101 @@ var _ = Describe("Restore", Label("basic"), func() {
 		}
 		testS3BackupRestore(key, "test-restore", "mariadb", true)
 	})
+
+	It("should reconcile a Job with ABS storage", func() {
+		key := types.NamespacedName{
+			Name:      "restore-abs-test",
+			Namespace: testNamespace,
+		}
+		testABSBackupRestore(key, "test-restore", "", false, false)
+	})
+
+	It("should reconcile a Job with ABS storage with prefix and staging storage", func() {
+		key := types.NamespacedName{
+			Name:      "restore-abs-test-prefix-staging",
+			Namespace: testNamespace,
+		}
+		testABSBackupRestore(key, "test-restore", "mariadb", true, false)
+	})
+
+	It("should reconcile a Job with a BackupRef to a Backup with ABS storage", func() {
+		key := types.NamespacedName{
+			Name:      "restore-abs-test-backupref",
+			Namespace: testNamespace,
+		}
+		testABSBackupRestore(key, "test-restore", "mariadb-backupref", false, true)
+	})
 })
+
+func testABSBackupRestore(key types.NamespacedName, containerName, prefix string, stagingStorage, backupRef bool) {
+	backupKey := types.NamespacedName{
+		Name:      fmt.Sprintf("%s-%s", key.Name, "backup"),
+		Namespace: testNamespace,
+	}
+	backup := getBackupWithABSStorage(backupKey, containerName, prefix)
+	if stagingStorage {
+		decorateBackupWithStagingStorage(backup)
+	}
+
+	By("Creating Backup")
+	Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+
+	By("Expecting Backup to complete eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
+			return false
+		}
+		return backup.IsComplete()
+	}, testTimeout, testInterval).Should(BeTrue())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+	})
+
+	restoreSource := mariadbv1alpha1.RestoreSource{
+		AzureBlob: getABSStorage(containerName, prefix),
+	}
+	if backupRef {
+		restoreSource = mariadbv1alpha1.RestoreSource{
+			BackupRef: &mariadbv1alpha1.LocalObjectReference{
+				Name: backupKey.Name,
+			},
+		}
+	}
+
+	By("Creating Restore")
+	restore := &mariadbv1alpha1.Restore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.RestoreSpec{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
+					Name: testMdbkey.Name,
+				},
+				WaitForIt: true,
+			},
+			RestoreSource: restoreSource,
+		},
+	}
+	Expect(k8sClient.Create(testCtx, restore)).To(Succeed())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, restore)).To(Succeed())
+	})
+
+	By("Expecting Restore to complete eventually")
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, restore); err != nil {
+			return false
+		}
+		return restore.IsComplete()
+	}, testTimeout, testInterval).Should(BeTrue())
+
+	if backupRef {
+		By("Expecting Restore to be defaulted from the Backup AzureBlob storage")
+		Expect(restore.Spec.AzureBlob).To(Equal(backup.Spec.Storage.AzureBlob))
+	}
+}
 
 func testS3BackupRestore(key types.NamespacedName, bucket, prefix string, stagingStorage bool) {
 	backupKey := types.NamespacedName{
