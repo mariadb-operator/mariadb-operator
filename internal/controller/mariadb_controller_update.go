@@ -15,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	galeraconfig "github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/hash"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
@@ -74,6 +75,9 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 			logger.V(1).Info("Replica Pod up to date", "pod", replicaPod.Name)
 			continue
 		}
+		if result, err := r.waitForPodOutOfPrimaryService(ctx, mdb, &replicaPod, logger); !result.IsZero() || err != nil {
+			return result, err
+		}
 		logger.Info("Updating replica Pod", "pod", replicaPod.Name)
 		if err := r.updatePod(ctx, mdb, &replicaPod, stsUpdateRevision, logger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error updating replica Pod '%s': %v", replicaPod.Name, err)
@@ -93,6 +97,11 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 
 	if err := r.triggerSwitchover(ctx, mdb, logger); err != nil {
+		// returns ErrSkipReconciliationPhase if switchover was triggered
+		return ctrl.Result{}, err
+	}
+
+	if err := r.triggerGaleraSwitchover(ctx, mdb, podsByRole.replicas, stsUpdateRevision, logger); err != nil {
 		// returns ErrSkipReconciliationPhase if switchover was triggered
 		return ctrl.Result{}, err
 	}
@@ -412,4 +421,77 @@ func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
 		return false
 	}
 	return mariadb.IsReplicationEnabled() && mariadb.HasConfiguredReplica()
+}
+
+// triggerGaleraSwitchover moves the primary to an up to date replica before the primary Pod is updated, so the primary Service
+// keeps pointing to a running Pod. Every Galera node accepts writes, so switching only means updating the current primary:
+// the Service phase, which runs after the StatefulSet phase, then moves the primary Service.
+func (r *MariaDBReconciler) triggerGaleraSwitchover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, replicas []corev1.Pod,
+	updateRevision string, logger logr.Logger) error {
+	if !shouldTriggerGaleraSwitchover(mariadb) {
+		return nil
+	}
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	newPrimary, err := galeraSwitchoverCandidate(replicas, updateRevision)
+	if err != nil {
+		return fmt.Errorf("error getting promotion candidate: %v", err)
+	}
+	if newPrimary == nil {
+		logger.V(1).Info("No up to date replica available. Updating primary without switchover")
+		return nil
+	}
+	primary := *mariadb.Status.CurrentPrimaryPodIndex
+	switchoverLogger := logger.WithName("switchover").WithValues("primary", primary, "new-primary", *newPrimary)
+	switchoverLogger.Info("Switching Galera primary")
+
+	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
+		mdb.Spec.Galera.Primary.PodIndex = newPrimary
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error patching Galera primary: %v", err)
+	}
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		status.UpdateCurrentPrimary(mariadb, *newPrimary)
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error patching current primary: %v", err)
+	}
+	r.Recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched, mariadbv1alpha1.ReasonPrimarySwitched,
+		"Primary switched from index '%d' to index '%d' before updating it", primary, *newPrimary)
+
+	// Continue with the Service phase. The next reconciliation updates the former primary as a replica.
+	return ErrSkipReconciliationPhase
+}
+
+func shouldTriggerGaleraSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
+	// MaxScale routes the traffic by itself, and the multi-cluster topology reconciles the primary in its own phase.
+	return mariadb.IsGaleraEnabled() && !mariadb.IsMaxScaleEnabled() && !mariadb.IsMultiClusterEnabled() && !mariadb.IsRestoringBackup()
+}
+
+func galeraSwitchoverCandidate(replicas []corev1.Pod, updateRevision string) (*int, error) {
+	for _, pod := range replicas {
+		if mdbpod.PodReady(&pod) && mdbpod.PodUpdated(&pod, updateRevision) {
+			return statefulset.PodIndex(pod.Name)
+		}
+	}
+	return nil, nil
+}
+
+// waitForPodOutOfPrimaryService requeues while the primary Service still routes to the Pod, e.g. right after a switchover.
+func (r *MariaDBReconciler) waitForPodOutOfPrimaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pod *corev1.Pod,
+	logger logr.Logger) (ctrl.Result, error) {
+	if !mariadb.IsHAEnabled() {
+		return ctrl.Result{}, nil
+	}
+	isEndpoint, err := health.IsServiceEndpoint(ctx, r.Client, mariadb.PrimaryServiceKey(), pod.Name)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking primary Service endpoints: %v", err)
+	}
+	if isEndpoint {
+		logger.V(1).Info("Waiting for the primary Service to stop routing to the Pod. Requeuing...", "pod", pod.Name)
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
 }
