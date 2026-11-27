@@ -1,0 +1,69 @@
+apiVersion: v1
+binlogs:
+  server-10:
+  - binlogFilename: mariadb-repl-bin.000001
+    binlogVersion: 4
+    firstGtid: null
+    firstTime: "2026-03-01T10:00:00Z"
+    lastGtid: null
+    lastTime: "2026-03-01T10:00:02Z"
+    logPosition: 358
+    previousGtids: []
+    rotateEvent: false
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: true
+  - binlogFilename: mariadb-repl-bin.000002
+    binlogVersion: 4
+    firstGtid: 0-10-1
+    firstTime: "2026-03-01T10:00:02Z"
+    lastGtid: 0-10-18
+    lastTime: "2026-03-01T10:01:00Z"
+    logPosition: 4299
+    previousGtids: []
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000003
+    binlogVersion: 4
+    firstGtid: 0-10-19
+    firstTime: "2026-03-01T10:01:00Z"
+    lastGtid: 0-10-35
+    lastTime: "2026-03-01T10:02:00Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-10-18
+    rotateEvent: false
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: true
+  # data directory rebuilt: binlog numbering restarts at 000001
+  - binlogFilename: mariadb-repl-bin.000001
+    binlogVersion: 4
+    firstGtid: 0-10-36
+    firstTime: "2026-03-01T11:00:00Z"
+    lastGtid: 0-10-52
+    lastTime: "2026-03-01T11:00:30Z"
+    logPosition: 4278
+    objectName: server-10/mariadb-repl-bin.000001.1772362800
+    previousGtids:
+    - 0-10-35
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000002
+    binlogVersion: 4
+    firstGtid: 0-10-53
+    firstTime: "2026-03-01T11:00:30Z"
+    lastGtid: 0-10-69
+    lastTime: "2026-03-01T11:01:00Z"
+    logPosition: 4278
+    objectName: server-10/mariadb-repl-bin.000002.1772362830
+    previousGtids:
+    - 0-10-52
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false

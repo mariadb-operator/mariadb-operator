@@ -3,6 +3,8 @@ package binlog
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -27,13 +29,14 @@ type BinlogIndex struct {
 	Binlogs map[string][]BinlogMetadata `json:"binlogs"`
 }
 
-func (b *BinlogIndex) Exists(serverId uint32, binlog string) bool {
+// Exists also matches the first event time, since the server restarts its binlog numbering when its data directory is rebuilt.
+func (b *BinlogIndex) Exists(serverId uint32, binlog string, firstTime metav1.Time) bool {
 	binlogs, ok := b.Binlogs[serverKey(serverId)]
 	if !ok {
 		return false
 	}
 	return datastructures.Any(binlogs, func(meta BinlogMetadata) bool {
-		return meta.BinlogFilename == binlog
+		return meta.BinlogFilename == binlog && meta.FirstTime.Equal(&firstTime)
 	})
 }
 
@@ -292,9 +295,15 @@ type BinlogMetadata struct {
 	LastGtid       *mariadbrepl.Gtid   `json:"lastGtid,omitempty"`
 	RotateEvent    bool                `json:"rotateEvent"`
 	StopEvent      bool                `json:"stopEvent"`
+	ObjectName     string              `json:"objectName,omitempty"`
 }
 
+// ObjectStoragePath returns the object name without the compression extension.
+// Binlogs archived before ObjectName was introduced are stored under the legacy name.
 func (b *BinlogMetadata) ObjectStoragePath() string {
+	if b.ObjectName != "" {
+		return b.ObjectName
+	}
 	return fmt.Sprintf("%s/%s", serverKey(b.ServerId), b.BinlogFilename)
 }
 
@@ -343,6 +352,7 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 	}); err != nil {
 		return nil, fmt.Errorf("error getting binlog metadata: %v", err)
 	}
+	meta.ObjectName = fmt.Sprintf("%s/%s.%d", serverKey(meta.ServerId), meta.BinlogFilename, meta.FirstTime.Unix())
 
 	if rawFormatDescriptionEvent != nil {
 		formatDescription := &replication.FormatDescriptionEvent{}
@@ -396,6 +406,32 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 	}
 
 	return &meta, nil
+}
+
+// getBinlogFirstTime only parses the first event, as parsing every local binlog in each archival cycle would be expensive.
+func getBinlogFirstTime(binlogPath string) (metav1.Time, error) {
+	file, err := os.Open(binlogPath)
+	if err != nil {
+		return metav1.Time{}, fmt.Errorf("error opening binlog %s: %v", binlogPath, err)
+	}
+	defer file.Close()
+	if _, err := file.Seek(int64(len(replication.BinLogFileHeader)), io.SeekStart); err != nil {
+		return metav1.Time{}, fmt.Errorf("error seeking binlog %s: %v", binlogPath, err)
+	}
+
+	parser := replication.NewBinlogParser()
+	parser.SetFlavor(mysql.MariaDBFlavor)
+	parser.SetVerifyChecksum(false)
+	parser.SetRawMode(true)
+
+	var firstTime metav1.Time
+	if _, err := parser.ParseSingleEvent(file, func(e *replication.BinlogEvent) error {
+		firstTime = metav1.NewTime(time.Unix(int64(e.Header.Timestamp), 0))
+		return nil
+	}); err != nil {
+		return metav1.Time{}, fmt.Errorf("error getting binlog %s first event: %v", binlogPath, err)
+	}
+	return firstTime, nil
 }
 
 func decodeGTIDEvent(rawEvent []byte, serverId uint32) (*replication.MariadbGTIDEvent, error) {
