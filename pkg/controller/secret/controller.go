@@ -1,8 +1,10 @@
 package secret
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"maps"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
@@ -105,6 +107,9 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) er
 	}
 
 	if req.SkipIfExists {
+		return nil
+	}
+	if maps.EqualFunc(existingSecret.Data, secret.Data, bytes.Equal) {
 		return nil
 	}
 
