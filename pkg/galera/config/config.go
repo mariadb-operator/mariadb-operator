@@ -54,6 +54,7 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 		return nil, fmt.Errorf("error getting gtid_domain_id: %v", err)
 	}
 
+	// The [sst] group must stay last: there is no way back to [mariadb], so any option after it is ignored by mariadbd.
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
@@ -80,13 +81,6 @@ wsrep_sst_method="{{ .SST }}"
 wsrep_sst_auth="root:{{ .RootPassword }}"
 {{- end }}
 {{ .SSTReceiveAddressKey }}="{{ .SSTReceiveAddress }}"
-{{- if .SSTSSLEnabled }}
-[sst]
-encrypt=3
-tca={{ .SSTSSLCAPath }}
-tcert={{ .SSTSSLCertPath }}
-tkey={{ .SSTSSLKeyPath }}
-{{- end }}
 {{- if and .PITREnabled (not .MultiClusterEnabled) }}
 
 # PITR
@@ -109,6 +103,13 @@ server_id={{ .ServerID }}
 {{- if .PITREnabled }}
 log_basename={{ .LogBaseName }}
 {{- end }}
+{{- end }}
+{{- if .SSTSSLEnabled }}
+[sst]
+encrypt=3
+tca={{ .SSTSSLCAPath }}
+tcert={{ .SSTSSLCertPath }}
+tkey={{ .SSTSSLKeyPath }}
 {{- end }}
 `)
 	buf := new(bytes.Buffer)
