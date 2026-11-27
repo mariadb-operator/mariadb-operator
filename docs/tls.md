@@ -23,6 +23,7 @@
 - [Certificate renewal](#certificate-renewal)
 - [Certificate status](#certificate-status)
 - [TLS requirements for `Users`](#tls-requirements-for-users)
+- [Client certificates for `Users`](#client-certificates-for-users)
 - [Secure application connections with TLS](#secure-application-connections-with-tls)
 - [Test TLS certificates with `Connections`](#test-tls-certificates-with-connections)
 - [Enabling TLS in existing instances](#enabling-tls-in-existing-instances)
@@ -625,6 +626,45 @@ When any of these TLS requirements are not met, the user will not be able to con
 
 See [MariaDB docs](https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls) and the [API reference](./api_reference.md) for further detail.
 
+## Client certificates for `Users`
+
+The operator can issue a dedicated TLS client certificate for a `User` by setting `spec.clientCertificate.enabled`, allowing the `User` to authenticate with its own X.509 client certificate instead of a password:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: user
+spec:
+  mariaDbRef:
+    name: mariadb
+  clientCertificate:
+    enabled: true
+  require:
+    subject: "/CN=user-client"
+```
+
+- The referenced `MariaDB` must have TLS enabled (`spec.tls.enabled: true`).
+- The certificate is signed by the **same CA** the referenced `MariaDB` uses for its own client certificate (operator-managed CA, [bring your own CA](#bring-your-own-ca), or [cert-manager](#issue-certificates-with-cert-manager) via `spec.tls.clientCertIssuerRef`), and it is stored in a `Secret` named `<user-name>-client-cert` in the `User` namespace. Its subject common name is `<user-name>-client`.
+- Issuing the certificate does not by itself enforce certificate authentication: set [`spec.require`](#tls-requirements-for-users) to require it. Without `spec.require`, the `User` will still be able to connect with a password, if one is configured.
+
+See the [limitations](#user-client-certificates) that apply to `User` client certificates.
+
+The issued certificate can be used to test the connection by means of a [`Connection`](#test-tls-certificates-with-connections), passwordless:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Connection
+metadata:
+  name: connection-user
+spec:
+  mariaDbRef:
+    name: mariadb
+  username: user
+  tlsClientCertSecretRef:
+    name: user-client-cert
+```
+
 ## Secure application connections with TLS
 
 In this guide, we will configure TLS for an application running in the `app` namespace to connect with `MariaDB` and `MaxScale` instances deployed in the `default` namespace. We assume that the following resources are already present in the `default` namespace with TLS enabled.
@@ -932,6 +972,12 @@ Leaf certificates issued by [intermediate CAs](#intermediate-cas) are not suppor
 
 This doesn't affect `MaxScale`, as it is able to establish trust with intermediate CAs, and therefore you can still issue your application facing certificates (MaxScale listeners) with an intermediate CA, giving you more flexibility in your PKI setup.
 
+
+### `User` client certificates
+
+- **`ExternalMariaDB`**: [client certificates for `Users`](#client-certificates-for-users) are only supported when `spec.mariaDbRef` points to a `MariaDB` resource. They are not supported for `Users` referencing an `ExternalMariaDB`.
+- **cert-manager `Issuer`**: when the referenced `MariaDB` issues its client certificate with a cert-manager `Issuer` (`spec.tls.clientCertIssuerRef`), the `User` must be in the same namespace as the `MariaDB`, as `Issuers` are namespace-scoped. Use a `ClusterIssuer` to issue certificates for `Users` in other namespaces.
+- **Naming**: a `User` cannot be named after the `MariaDB` it references, as its certificate would clash with the `MariaDB` client certificate.
 
 ### MaxScale
 
