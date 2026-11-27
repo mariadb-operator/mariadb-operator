@@ -508,3 +508,45 @@ func TestNewMinioClientFromS3ConfigOptionalCACert(t *testing.T) {
 		})
 	}
 }
+
+func TestMultipartPartSize(t *testing.T) {
+	const (
+		mib = int64(1024 * 1024)
+		gib = 1024 * mib
+	)
+	tests := []struct {
+		name string
+		size int64
+		want uint64
+	}{
+		{name: "unknown size", size: -1, want: 0},
+		{name: "empty", size: 0, want: 0},
+		{name: "small", size: gib, want: 0},
+		{name: "at limit of default part size", size: 16 * mib * 1000, want: 0},
+		{name: "just above limit", size: 16*mib*1000 + 1, want: uint64(32 * mib)},
+		{name: "100GiB", size: 100 * gib, want: uint64(112 * mib)},
+		{name: "1TiB", size: 1024 * gib, want: uint64(1056 * mib)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := multipartPartSize(tt.size)
+			if got != tt.want {
+				t.Fatalf("multipartPartSize(%d) = %d, want %d", tt.size, got, tt.want)
+			}
+			if tt.size > 0 && got > 0 && (tt.size+int64(got)-1)/int64(got) > 1000 {
+				t.Errorf("multipartPartSize(%d) = %d exceeds 1000 parts", tt.size, got)
+			}
+		})
+	}
+}
+
+func TestPutObjectOptionsPartSize(t *testing.T) {
+	c := &Client{}
+	opts, err := c.putObjectOptions(100 * 1024 * 1024 * 1024)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if opts.PartSize != 112*1024*1024 {
+		t.Errorf("PartSize = %d, want %d", opts.PartSize, 112*1024*1024)
+	}
+}
