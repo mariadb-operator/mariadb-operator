@@ -16,6 +16,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/auth"
 	certctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/deployment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pdb"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/service"
@@ -66,6 +67,7 @@ type MaxScaleReconciler struct {
 	AuthReconciler           *auth.AuthReconciler
 	StatefulSetReconciler    *statefulset.StatefulSetReconciler
 	ServiceReconciler        *service.ServiceReconciler
+	PDBReconciler            *pdb.PDBReconciler
 	DeploymentReconciler     *deployment.DeploymentReconciler
 	ServiceMonitorReconciler *servicemonitor.ServiceMonitorReconciler
 	CertReconciler           *certctrl.CertReconciler
@@ -100,7 +102,7 @@ type reconcilePhaseMaxScale struct {
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;deletecollection
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=list;watch;create;patch
@@ -501,50 +503,35 @@ func (r *MaxScaleReconciler) reconcileStatefulSet(ctx context.Context, req *requ
 
 func (r *MaxScaleReconciler) reconcilePodDisruptionBudget(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	mxs := req.mxs
-	if mxs.Spec.PodDisruptionBudget != nil {
-		return ctrl.Result{}, r.reconcilePDBWithAvailability(
-			ctx,
-			mxs,
-			mxs.Spec.PodDisruptionBudget.MinAvailable,
-			mxs.Spec.PodDisruptionBudget.MaxUnavailable,
-		)
-	}
-	if mxs.Spec.Replicas > 1 {
-		minAvailable := intstr.FromString("50%")
-		return ctrl.Result{}, r.reconcilePDBWithAvailability(
-			ctx,
-			mxs,
-			&minAvailable,
-			nil,
-		)
-	}
-	return ctrl.Result{}, nil
-}
-
-func (r *MaxScaleReconciler) reconcilePDBWithAvailability(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
-	minAvailable, maxUnavailable *intstr.IntOrString) error {
-	key := client.ObjectKeyFromObject(maxscale)
-	var existingPDB policyv1.PodDisruptionBudget
-	if err := r.Get(ctx, key, &existingPDB); err == nil {
-		return nil
+	key := client.ObjectKeyFromObject(mxs)
+	var minAvailable, maxUnavailable *intstr.IntOrString
+	switch {
+	case mxs.Spec.PodDisruptionBudget != nil:
+		minAvailable = mxs.Spec.PodDisruptionBudget.MinAvailable
+		maxUnavailable = mxs.Spec.PodDisruptionBudget.MaxUnavailable
+	case mxs.Spec.Replicas > 1:
+		defaultMinAvailable := intstr.FromString("50%")
+		minAvailable = &defaultMinAvailable
+	default:
+		return ctrl.Result{}, r.PDBReconciler.DeleteControlled(ctx, key, mxs)
 	}
 
 	selectorLabels :=
 		labels.NewLabelsBuilder().
-			WithMaxScaleSelectorLabels(maxscale).
+			WithMaxScaleSelectorLabels(mxs).
 			Build()
 	opts := builder.PodDisruptionBudgetOpts{
-		Metadata:       maxscale.Spec.InheritMetadata,
+		Metadata:       mxs.Spec.InheritMetadata,
 		Key:            key,
 		MinAvailable:   minAvailable,
 		MaxUnavailable: maxUnavailable,
 		SelectorLabels: selectorLabels,
 	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(opts, maxscale)
+	desiredPDB, err := r.Builder.BuildPodDisruptionBudget(opts, mxs)
 	if err != nil {
-		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error building PodDisruptionBudget: %v", err)
 	}
-	return r.Create(ctx, pdb)
+	return ctrl.Result{}, r.PDBReconciler.Reconcile(ctx, desiredPDB)
 }
 
 func (r *MaxScaleReconciler) reconcileService(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {

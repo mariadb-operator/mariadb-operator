@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -115,6 +116,41 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		By("Expecting to create a PodDisruptionBudget")
 		var pdb policyv1.PodDisruptionBudget
 		Expect(k8sClient.Get(testCtx, key, &pdb)).To(Succeed())
+	})
+
+	It("should reconcile PodDisruptionBudget changes", func() {
+		updatePDBSpec := func(pdbSpec *mariadbv1alpha1.PodDisruptionBudget) {
+			Eventually(func(g Gomega) bool {
+				g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+				mdb.Spec.PodDisruptionBudget = pdbSpec
+				g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
+		}
+		expectPDB := func(minAvailable, maxUnavailable *intstr.IntOrString) {
+			Eventually(func(g Gomega) bool {
+				var pdb policyv1.PodDisruptionBudget
+				g.Expect(k8sClient.Get(testCtx, key, &pdb)).To(Succeed())
+				g.Expect(pdb.Spec.MinAvailable).To(Equal(minAvailable))
+				g.Expect(pdb.Spec.MaxUnavailable).To(Equal(maxUnavailable))
+				return true
+			}, testTimeout, testInterval).Should(BeTrue())
+		}
+		minAvailable := intstr.FromInt32(1)
+		maxUnavailable := intstr.FromInt32(1)
+		defaultMinAvailable := intstr.FromString("50%")
+
+		By("Setting minAvailable")
+		updatePDBSpec(&mariadbv1alpha1.PodDisruptionBudget{MinAvailable: &minAvailable})
+		expectPDB(&minAvailable, nil)
+
+		By("Switching to maxUnavailable")
+		updatePDBSpec(&mariadbv1alpha1.PodDisruptionBudget{MaxUnavailable: &maxUnavailable})
+		expectPDB(nil, &maxUnavailable)
+
+		By("Removing the PodDisruptionBudget from the spec")
+		updatePDBSpec(nil)
+		expectPDB(&defaultMinAvailable, nil)
 	})
 
 	// Consecutive switchovers promote nodes that may have retained binary logs from a previous primary.

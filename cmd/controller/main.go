@@ -28,6 +28,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/maintenance"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pdb"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
@@ -299,6 +300,7 @@ var rootCmd = &cobra.Command{
 		configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
 		statefulSetReconciler := statefulset.NewStatefulSetReconciler(client)
 		serviceReconciler := service.NewServiceReconciler(client)
+		pdbReconciler := pdb.NewPDBReconciler(client)
 		endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
 		batchReconciler := batch.NewBatchReconciler(client, builder)
 		rbacReconciler := rbac.NewRBACReconciler(client, builder)
@@ -377,6 +379,7 @@ var rootCmd = &cobra.Command{
 			SecretReconciler:         secretReconciler,
 			StatefulSetReconciler:    statefulSetReconciler,
 			ServiceReconciler:        serviceReconciler,
+			PDBReconciler:            pdbReconciler,
 			EndpointsReconciler:      endpointsReconciler,
 			RBACReconciler:           rbacReconciler,
 			AuthReconciler:           authReconciler,
@@ -408,6 +411,7 @@ var rootCmd = &cobra.Command{
 			AuthReconciler:           authReconciler,
 			StatefulSetReconciler:    statefulSetReconciler,
 			ServiceReconciler:        serviceReconciler,
+			PDBReconciler:            pdbReconciler,
 			DeploymentReconciler:     deployReconciler,
 			ServiceMonitorReconciler: svcMonitorReconciler,
 			CertReconciler:           certReconciler,

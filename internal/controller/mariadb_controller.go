@@ -24,6 +24,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/maintenance"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pdb"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
@@ -78,6 +79,7 @@ type MariaDBReconciler struct {
 	SecretReconciler         *secret.SecretReconciler
 	StatefulSetReconciler    *statefulset.StatefulSetReconciler
 	ServiceReconciler        *service.ServiceReconciler
+	PDBReconciler            *pdb.PDBReconciler
 	EndpointsReconciler      *endpoints.EndpointsReconciler
 	RBACReconciler           *rbac.RBACReconciler
 	AuthReconciler           *auth.AuthReconciler
@@ -114,7 +116,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=list;watch;create;patch;delete
-//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=list;watch;create;patch;delete
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings;clusterrolebindings,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 //+kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
@@ -488,10 +490,35 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.IsHAEnabled() && mariadb.Spec.PodDisruptionBudget == nil {
-		return ctrl.Result{}, r.reconcileHighAvailabilityPDB(ctx, mariadb)
+	key := client.ObjectKeyFromObject(mariadb)
+	var minAvailable, maxUnavailable *intstr.IntOrString
+	switch {
+	case mariadb.Spec.PodDisruptionBudget != nil:
+		minAvailable = mariadb.Spec.PodDisruptionBudget.MinAvailable
+		maxUnavailable = mariadb.Spec.PodDisruptionBudget.MaxUnavailable
+	case mariadb.IsHAEnabled():
+		defaultMinAvailable := intstr.FromString("50%")
+		minAvailable = &defaultMinAvailable
+	default:
+		return ctrl.Result{}, r.PDBReconciler.DeleteControlled(ctx, key, mariadb)
 	}
-	return ctrl.Result{}, r.reconcileDefaultPDB(ctx, mariadb)
+
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDBSelectorLabels(mariadb).
+			Build()
+	opts := builder.PodDisruptionBudgetOpts{
+		Metadata:       mariadb.Spec.InheritMetadata,
+		Key:            key,
+		MinAvailable:   minAvailable,
+		MaxUnavailable: maxUnavailable,
+		SelectorLabels: selectorLabels,
+	}
+	desiredPDB, err := r.Builder.BuildPodDisruptionBudget(opts, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error building PodDisruptionBudget: %v", err)
+	}
+	return ctrl.Result{}, r.PDBReconciler.Reconcile(ctx, desiredPDB)
 }
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -579,60 +606,6 @@ func (r *MariaDBReconciler) reconcileRestore(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{}, fmt.Errorf("error building restore: %v", err)
 	}
 	return ctrl.Result{}, r.Create(ctx, restore)
-}
-
-func (r *MariaDBReconciler) reconcileDefaultPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if mariadb.Spec.PodDisruptionBudget == nil {
-		return nil
-	}
-
-	key := client.ObjectKeyFromObject(mariadb)
-	var existingPDB policyv1.PodDisruptionBudget
-	if err := r.Get(ctx, key, &existingPDB); err == nil {
-		return nil
-	}
-
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDBSelectorLabels(mariadb).
-			Build()
-	opts := builder.PodDisruptionBudgetOpts{
-		Metadata:       mariadb.Spec.InheritMetadata,
-		Key:            key,
-		MinAvailable:   mariadb.Spec.PodDisruptionBudget.MinAvailable,
-		MaxUnavailable: mariadb.Spec.PodDisruptionBudget.MaxUnavailable,
-		SelectorLabels: selectorLabels,
-	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(opts, mariadb)
-	if err != nil {
-		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
-	}
-	return r.Create(ctx, pdb)
-}
-
-func (r *MariaDBReconciler) reconcileHighAvailabilityPDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := client.ObjectKeyFromObject(mariadb)
-	var existingPDB policyv1.PodDisruptionBudget
-	if err := r.Get(ctx, key, &existingPDB); err == nil {
-		return nil
-	}
-
-	selectorLabels :=
-		labels.NewLabelsBuilder().
-			WithMariaDBSelectorLabels(mariadb).
-			Build()
-	minAvailable := intstr.FromString("50%")
-	opts := builder.PodDisruptionBudgetOpts{
-		Metadata:       mariadb.Spec.InheritMetadata,
-		Key:            key,
-		MinAvailable:   &minAvailable,
-		SelectorLabels: selectorLabels,
-	}
-	pdb, err := r.Builder.BuildPodDisruptionBudget(opts, mariadb)
-	if err != nil {
-		return fmt.Errorf("error building PodDisruptionBudget: %v", err)
-	}
-	return r.Create(ctx, pdb)
 }
 
 func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
