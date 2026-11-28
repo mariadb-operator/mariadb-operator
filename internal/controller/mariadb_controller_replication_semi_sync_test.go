@@ -338,6 +338,83 @@ var _ = Describe("MariaDB replication semi-sync", Ordered, func() {
 		expectSemiSyncWriteNotStalled(mdb, primaryPodIndex())
 	})
 
+	// A primary whose replicas lose the connection to it, e.g. when its zone is isolated, is still a healthy primary, but it loses
+	// its Primary role. Reconfiguring it would issue binlogged replication user SQL that waits forever for an ACK: it blocks the
+	// reconciliation, it blocks 'SET GLOBAL read_only=1' (e.g. MaxScale demoting it) and it leaves transactions that no replica has.
+	It("should not write to the primary while its replicas are disconnected", func() {
+		primary := primaryPodIndex()
+		primaryHost := statefulset.PodFQDNWithService(mdb.ObjectMeta, primary, mdb.InternalServiceKey().Name)
+		var replicas []int
+		for i := 0; i < int(mdb.Spec.Replicas); i++ {
+			if i != primary {
+				replicas = append(replicas, i)
+			}
+		}
+		changeMaster := func(host string) {
+			for _, i := range replicas {
+				executeSqlInPodByIndex(mdb, i, "STOP SLAVE;")
+				executeSqlInPodByIndex(mdb, i, fmt.Sprintf("CHANGE MASTER TO master_host='%s';", host))
+				executeSqlInPodByIndex(mdb, i, "START SLAVE;")
+			}
+		}
+		gtidBinlogPos := func(g Gomega) string {
+			var gtid string
+			withSemiSyncSqlClient(g, mdb, primary, func(client *sql.Client) {
+				var err error
+				gtid, err = client.GtidBinlogPos(testCtx)
+				g.Expect(err).ToNot(HaveOccurred())
+			})
+			return gtid
+		}
+
+		By("Expecting the binary log of the primary to settle")
+		var gtid string
+		Eventually(func(g Gomega) bool {
+			current := gtidBinlogPos(g)
+			settled := current == gtid
+			gtid = current
+			return settled
+		}, testHighTimeout, 10*time.Second).Should(BeTrue())
+
+		By("Disconnecting the replicas from the primary")
+		changeMaster("unreachable.invalid")
+
+		By("Expecting the primary to lose its role")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			replStatus := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+			return replStatus.Roles[statefulset.PodName(mdb.ObjectMeta, primary)] == mariadbv1alpha1.ReplicationRoleUnknown
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting no binlogged writes in the primary while its replicas are disconnected")
+		Consistently(func(g Gomega) {
+			g.Expect(gtidBinlogPos(g)).To(Equal(gtid))
+			withSemiSyncSqlClient(g, mdb, primary, func(client *sql.Client) {
+				waitSessions, err := client.StatusVariableInt(testCtx, "Rpl_semi_sync_master_wait_sessions")
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(waitSessions).To(BeZero(), "A session is waiting for a semi-sync acknowledgement in the primary.")
+			})
+		}, 30*time.Second, testInterval).Should(Succeed())
+
+		By("Expecting the primary to be demotable")
+		executeSqlInPodByIndex(mdb, primary, "SET STATEMENT max_statement_time=3 FOR SET GLOBAL read_only=1;")
+		executeSqlInPodByIndex(mdb, primary, "SET GLOBAL read_only=0;")
+
+		By("Reconnecting the replicas to the primary")
+		changeMaster(primaryHost)
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			return mdb.IsReady()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		Expect(primaryPodIndex()).To(Equal(primary))
+		expectSemiSyncTopology(mdb, primary)
+		expectSemiSyncPrimaryAcknowledged(mdb, primary)
+		expectSemiSyncWriteNotStalled(mdb, primary)
+	})
+
 	// Switchover arms the promoted node and disarms the demoted one. Switching back exercises the reverse transition
 	// on nodes that already served as primary.
 	It("should move semi-sync on switchover", func() {

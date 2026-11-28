@@ -309,6 +309,21 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 
+		// Avoid reconciling the 'repl' user when no replicas are connected (Unknown role) and the primary is already configured.
+		// The ALTER USER + GRANT statements are binlogged: on a semi-sync primary with no replica able to ACK them, they block,
+		// and they add transactions that no replica has, which can conflict when the replicas rejoin.
+		if replRoles[pod] == mariadbv1alpha1.ReplicationRoleUnknown && req.mariadb.HasConfiguredReplication() {
+			gtid, err := client.GtidBinlogPos(ctx)
+			if err != nil {
+				logger.V(1).Info("error getting GTID binlog pos", "err", err, "pod", pod)
+				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			}
+			if gtid != "" {
+				logger.V(1).Info("Primary Pod already configured. Skipping reconciliation...", "pod", pod)
+				return ctrl.Result{}, nil
+			}
+		}
+
 		if err := topology.ConfigurePrimary(ctx, client); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error configuring primary: %v", err)
 		}
