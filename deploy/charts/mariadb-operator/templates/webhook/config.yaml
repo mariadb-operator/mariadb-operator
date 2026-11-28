@@ -14,7 +14,7 @@ metadata:
     k8s.mariadb.com/webhook: ""
     {{- end }}
     {{- with .Values.webhook.annotations }}
-    {{ toYaml . | indent 4 }}
+    {{- toYaml . | nindent 4 }}
     {{- end }}
 webhooks:
   - admissionReviewVersions:
