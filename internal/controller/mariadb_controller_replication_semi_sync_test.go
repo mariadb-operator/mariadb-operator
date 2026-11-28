@@ -357,20 +357,11 @@ var _ = Describe("MariaDB replication semi-sync", Ordered, func() {
 				executeSqlInPodByIndex(mdb, i, "START SLAVE;")
 			}
 		}
-		gtidBinlogPos := func(g Gomega) string {
-			var gtid string
-			withSemiSyncSqlClient(g, mdb, primary, func(client *sql.Client) {
-				var err error
-				gtid, err = client.GtidBinlogPos(testCtx)
-				g.Expect(err).ToNot(HaveOccurred())
-			})
-			return gtid
-		}
 
 		By("Expecting the binary log of the primary to settle")
 		var gtid string
 		Eventually(func(g Gomega) bool {
-			current := gtidBinlogPos(g)
+			current := queryInPodByIndex(g, mdb, primary, "SELECT @@global.gtid_binlog_pos;")
 			settled := current == gtid
 			gtid = current
 			return settled
@@ -388,7 +379,7 @@ var _ = Describe("MariaDB replication semi-sync", Ordered, func() {
 
 		By("Expecting no binlogged writes in the primary while its replicas are disconnected")
 		Consistently(func(g Gomega) {
-			g.Expect(gtidBinlogPos(g)).To(Equal(gtid))
+			g.Expect(queryInPodByIndex(g, mdb, primary, "SELECT @@global.gtid_binlog_pos;")).To(Equal(gtid))
 			withSemiSyncSqlClient(g, mdb, primary, func(client *sql.Client) {
 				waitSessions, err := client.StatusVariableInt(testCtx, "Rpl_semi_sync_master_wait_sessions")
 				g.Expect(err).ToNot(HaveOccurred())

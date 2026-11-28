@@ -300,34 +300,7 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("pod", pod))
 
 	if primaryPodIndex == podIndex {
-		if shouldSkipPrimaryReconciliation(req.mariadb, replRoles, pod, logger) {
-			return ctrl.Result{}, nil
-		}
-		client, err := req.replClientSet.clientForIndex(ctx, primaryPodIndex)
-		if err != nil {
-			logger.V(1).Info("error getting current primary client", "err", err, "pod", pod)
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-		}
-
-		// Avoid reconciling the 'repl' user when no replicas are connected (Unknown role) and the primary is already configured.
-		// The ALTER USER + GRANT statements are binlogged: on a semi-sync primary with no replica able to ACK them, they block,
-		// and they add transactions that no replica has, which can conflict when the replicas rejoin.
-		if replRoles[pod] == mariadbv1alpha1.ReplicationRoleUnknown && req.mariadb.HasConfiguredReplication() {
-			gtid, err := client.GtidBinlogPos(ctx)
-			if err != nil {
-				logger.V(1).Info("error getting GTID binlog pos", "err", err, "pod", pod)
-				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-			}
-			if gtid != "" {
-				logger.V(1).Info("Primary Pod already configured. Skipping reconciliation...", "pod", pod)
-				return ctrl.Result{}, nil
-			}
-		}
-
-		if err := topology.ConfigurePrimary(ctx, client); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error configuring primary: %v", err)
-		}
-		return ctrl.Result{}, nil
+		return r.reconcilePrimaryPod(ctx, req, primaryPodIndex, replRoles, topology, logger)
 	}
 
 	if !opts.forceReplicaConfiguration {
@@ -349,6 +322,62 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	}
 	if err := topology.ConfigureReplica(ctx, client, primaryPodIndex, replicaOpts...); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error configuring replica: %v", err)
+	}
+	return ctrl.Result{}, nil
+}
+
+// reconcilePrimaryPod configures the primary Pod when it is not acting as primary yet, e.g. after being promoted.
+func (r *ReplicationReconciler) reconcilePrimaryPod(ctx context.Context, req *ReconcileRequest, primaryPodIndex int,
+	replRoles map[string]mariadbv1alpha1.ReplicationRole, topology Topology, logger logr.Logger) (ctrl.Result, error) {
+	pod := statefulset.PodName(req.mariadb.ObjectMeta, primaryPodIndex)
+	primaryLogger := logger.WithValues("pod", pod)
+
+	role, ok := replRoles[pod]
+	if !ok {
+		primaryLogger.V(1).Info("Primary Pod role not yet assigned. Skipping reconciliation...")
+		return ctrl.Result{}, nil
+	}
+	primaryLogger = primaryLogger.WithValues("role", role)
+
+	isPrimary := hasPrimaryRole(req.mariadb, role)
+	if isPrimary && !req.mariadb.IsMaxScaleEnabled() {
+		// Operator failover does not currently check empty gtid_binlog_pos, therefore, it will not be blocked when empty.
+		// TODO: if operator failover evantually matches MaxScale failover, we should unify branches.
+		return ctrl.Result{}, nil
+	}
+
+	client, err := req.replClientSet.clientForIndex(ctx, primaryPodIndex)
+	if err != nil {
+		primaryLogger.V(1).Info("error getting current primary client", "err", err)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	if isPrimary ||
+		// Avoid reconciling 'repl' user when no replicas are connected (Unknown state).
+		// Since ALTER USER + GRANT statements for reconciling 'repl' user increase GTIDs,
+		// it can lead to additional transactions which can later on cause conflicts when
+		// an isolated old primary is promoted again. In this situation,
+		// replicas may request to join starting from a position which conflicts with the new primary.
+		role == mariadbv1alpha1.ReplicationRoleUnknown && req.mariadb.HasConfiguredReplication() {
+
+		gtid, err := client.GtidBinlogPos(ctx)
+		if err != nil {
+			primaryLogger.V(1).Info("error getting GTID binlog pos", "err", err)
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		if gtid != "" {
+			primaryLogger.V(1).Info("Primary Pod already configured. Skipping reconciliation...")
+			return ctrl.Result{}, nil
+		}
+		// In MaxScale topologies, a replica promoted to primary with log_slave_updates=OFF will have an empty gtid_binlog_pos until it receives a write.
+		// MaxScale's mariadbmon strictly requires a non-empty gtid_binlog_pos on the demotion target to safely coordinate switchovers.
+		// By forcing ConfigurePrimary to run, we ensure the replication user is reconciled (ALTER USER/GRANT), which acts as a benign DDL write, populating
+		// the binlog and allowing future switchovers to proceed.
+		primaryLogger.Info("Primary Pod has an empty gtid_binlog_pos. Forcing primary reconciliation to populate it.")
+	}
+
+	if err := topology.ConfigurePrimary(ctx, client); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error configuring primary: %v", err)
 	}
 	return ctrl.Result{}, nil
 }
@@ -421,13 +450,7 @@ func shouldWaitForPrimaryRole(mariadb *mariadbv1alpha1.MariaDB, primaryPodIndex 
 	return !ok
 }
 
-func shouldSkipPrimaryReconciliation(mariadb *mariadbv1alpha1.MariaDB, replRoles map[string]mariadbv1alpha1.ReplicationRole,
-	pod string, logger logr.Logger) bool {
-	role, ok := replRoles[pod]
-	if !ok {
-		logger.V(1).Info("Primary Pod role not yet assigned. Skipping reconciliation...", "pod", pod)
-		return true
-	}
+func hasPrimaryRole(mariadb *mariadbv1alpha1.MariaDB, role mariadbv1alpha1.ReplicationRole) bool {
 	if mariadb.IsMultiClusterReplica() {
 		return role == mariadbv1alpha1.ReplicationRolePrimaryReplica
 	}
