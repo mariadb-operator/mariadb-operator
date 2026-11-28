@@ -1393,6 +1393,19 @@ func executeSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query st
 	Expect(sqlClient.Exec(testCtx, query)).ToNot(HaveOccurred(), fmt.Sprintf("Could not execute query: %s.", query))
 }
 
+func queryInPodByIndex(g Gomega, mdb *mariadbv1alpha1.MariaDB, podIndex int, query string) string {
+	clientSet := sql.NewClientSet(mdb, testRefResolver)
+	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)
+
+	g.Expect(err).ToNot(HaveOccurred(), "Could not create an internal client.")
+	defer sqlClient.Close()
+
+	var result string
+	row := sqlClient.QueryRow(testCtx, query)
+	g.Expect(row.Scan(&result)).To(Succeed(), fmt.Sprintf("Could not scan query result: %s.", query))
+	return result
+}
+
 func deletePhysicalBackup(key types.NamespacedName, deleteJobs bool) {
 	var backup mariadbv1alpha1.PhysicalBackup
 	By("Deleting PhysicalBackup")

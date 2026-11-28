@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -51,6 +52,12 @@ func (r *userSqlReconciler) reconcileReplUserSql(ctx context.Context, client *sq
 		return fmt.Errorf("error getting repl password: %v", err)
 	}
 	accountName := formatAccountName(opts.username, opts.host)
+
+	// These statements are binlogged, so on a semi-sync primary with no replica able to ACK them, they block until semiSyncAckTimeout.
+	// database/sql applies only the deadline carried by ctx, without a default timeout,
+	// so without one this call can block MariaDB reconciliation indefinitely.
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
 	exists, err := client.UserExists(ctx, opts.username, opts.host)
 	if err != nil {
