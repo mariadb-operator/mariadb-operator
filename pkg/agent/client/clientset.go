@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -21,9 +20,6 @@ type ClientSet struct {
 
 func NewClientSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, env *environment.OperatorEnv,
 	refResolver *refresolver.RefResolver, opts ...mdbhttp.Option) (*ClientSet, error) {
-	if !mariadb.IsHAEnabled() {
-		return nil, errors.New("HA should be enabled to create an agent ClientSet")
-	}
 	clientOpts, err := getClientOpts(ctx, mariadb, env, refResolver)
 	if err != nil {
 		return nil, fmt.Errorf("error getting client options: %v", err)
